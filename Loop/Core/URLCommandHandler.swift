@@ -53,62 +53,69 @@
 
  6. Window List Command:
     Format: loop://windowlist
-    Returns a JSON file listing all visible windows with:
-    - windowID   (CGWindowID, use with ?windowID parameter)
-    - bundleID   (App bundle identifier)
-    - appName    (App display name)
-    - windowTitle (Window title)
-    - frame      (x, y, width, height)
+    Returns JSON listing all visible windows with:
+    - windowID, bundleID, appName, windowTitle, frame
 
- Targeting a Specific Window:
- ---------------------------
- Any action command can optionally include a ?windowID=<id> query parameter
- to target a specific window instead of the frontmost one.
+ 7. Screen List Command:
+    Format: loop://screenlist
+    Returns JSON listing all connected screens with:
+    - screenID, name, frame, isMain
+
+ Query Parameters:
+ ----------------
+ All action commands support optional query parameters for targeting:
+
+ ?windowID=<id>    Target a specific window by CGWindowID
+ ?bundleID=<id>    Target an app by bundle ID (launches if needed)
+ ?screenID=<id>    Target a specific screen by display ID
+
+ Notes:
+ - windowID and bundleID are mutually exclusive (error if both specified)
+ - screenID can be combined with either windowID or bundleID
+ - Use loop://windowlist and loop://screenlist to discover IDs
 
  Examples:
  - loop://direction/right?windowID=1234
- - loop://action/maximize?windowID=1234
- - loop://keybind/myLayout?windowID=1234
- - loop://screen/next?windowID=1234
+ - loop://action/maximize?bundleID=com.apple.Safari
+ - loop://direction/left?screenID=12345
+ - loop://action/maximize?bundleID=com.apple.Safari&screenID=12345
 
  Usage Tips:
  ----------
  1. All commands are case-insensitive
- 2. Parameters with spaces must be URL encoded
- 3. Window commands operate on the frontmost non-terminal window (unless ?windowID is specified)
- 4. Use list commands to discover available options
- 5. Use loop://windowlist to discover window IDs for targeted actions
+ 2. All commands return JSON responses
+ 3. Window commands operate on the frontmost window by default
+ 4. Use loop://windowlist and loop://screenlist to discover IDs
+ 5. Use loop://list/all to discover all available commands
 
  Examples:
  --------
  # Move current window to right half
  open "loop://direction/right"
 
- # List all windows to find window IDs
+ # List all windows and screens
  open "loop://windowlist"
+ open "loop://screenlist"
 
  # Move a specific window to the right half
  open "loop://direction/right?windowID=1234"
 
+ # Launch/focus Safari and maximize it on a specific screen
+ open "loop://action/maximize?bundleID=com.apple.Safari&screenID=12345"
+
  # List all available actions
  open "loop://list/actions"
-
- # Execute custom keybind
- open "loop://keybind/myLayout"
 
  Error Examples:
  -------------
  # Invalid command
- open "loop://invalid" -> Returns available commands
+ open "loop://invalid" -> {"success": false, "error": "Unknown command: invalid"}
 
- # Missing parameter
- open "loop://direction" -> Returns available directions
+ # Both windowID and bundleID
+ open "loop://direction/right?windowID=1&bundleID=com.x" -> error: mutually exclusive
 
- # Invalid keybind
- open "loop://keybind/nonexistent" -> Returns available keybinds
-
- # Invalid window ID
- open "loop://direction/right?windowID=9999" -> Returns error with available windows
+ # Invalid window/screen ID
+ open "loop://direction/right?windowID=9999" -> error: No window found with ID 9999
  */
 
 import Defaults
@@ -135,6 +142,8 @@ final class URLCommandHandler {
         case list
         /// List all visible windows as JSON
         case windowlist
+        /// List all screens as JSON
+        case screenlist
 
         /// Human-readable description of each command type
         var description: String {
@@ -145,8 +154,16 @@ final class URLCommandHandler {
             case .keybind: "Execute custom keybind action"
             case .list: "List available commands"
             case .windowlist: "List all visible windows as JSON"
+            case .screenlist: "List all screens as JSON"
             }
         }
+    }
+
+    /// Parameters parsed from URL query string for targeting specific windows and screens
+    private struct TargetParams {
+        var windowID: CGWindowID?
+        var bundleID: String?
+        var screenID: CGDirectDisplayID?
     }
 
     // MARK: - Properties
@@ -199,13 +216,23 @@ final class URLCommandHandler {
             ])
         }
 
-        // Parse optional windowID query parameter for targeting a specific window
+        // Parse query parameters for targeting specific windows and screens
         let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        let windowID: CGWindowID? = urlComponents?
-            .queryItems?
-            .first(where: { $0.name == "windowID" })?
-            .value
-            .flatMap { UInt32($0) }
+        let queryItems = urlComponents?.queryItems
+
+        let params = TargetParams(
+            windowID: queryItems?.first(where: { $0.name == "windowID" })?.value.flatMap { UInt32($0) },
+            bundleID: queryItems?.first(where: { $0.name == "bundleID" })?.value,
+            screenID: queryItems?.first(where: { $0.name == "screenID" })?.value.flatMap { UInt32($0) }
+        )
+
+        // windowID and bundleID are mutually exclusive
+        if params.windowID != nil, params.bundleID != nil {
+            return jsonString([
+                "success": false,
+                "error": "windowID and bundleID are mutually exclusive"
+            ])
+        }
 
         let components = (url.host.map { [$0] } ?? []) + url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
 
@@ -218,7 +245,7 @@ final class URLCommandHandler {
             ])
         }
 
-        return processCommand(command, Array(components.dropFirst()), windowID: windowID)
+        return processCommand(command, Array(components.dropFirst()), params: params)
     }
 
     // MARK: - Command Processing
@@ -227,19 +254,20 @@ final class URLCommandHandler {
     /// - Parameters:
     ///   - command: The command to process
     ///   - parameters: Array of command parameters
-    ///   - windowID: Optional CGWindowID to target a specific window
+    ///   - params: Targeting parameters (windowID/bundleID/screenID)
     /// - Returns: A JSON string containing the response
-    private func processCommand(_ command: Command, _ parameters: [String], windowID: CGWindowID? = nil) -> String {
+    private func processCommand(_ command: Command, _ parameters: [String], params: TargetParams = .init()) -> String {
         log.info("\(command.rawValue) \(parameters)")
 
         let response: [String: Any]
         switch command {
-        case .direction: response = handleDirectionCommand(parameters, windowID: windowID)
-        case .screen: response = handleScreenCommand(parameters, windowID: windowID)
-        case .action: response = handleActionCommand(parameters, windowID: windowID)
-        case .keybind: response = handleKeybindCommand(parameters, windowID: windowID)
+        case .direction: response = handleDirectionCommand(parameters, params: params)
+        case .screen: response = handleScreenCommand(parameters, params: params)
+        case .action: response = handleActionCommand(parameters, params: params)
+        case .keybind: response = handleKeybindCommand(parameters, params: params)
         case .list: response = handleListCommand(parameters)
         case .windowlist: response = handleWindowListCommand()
+        case .screenlist: response = handleScreenListCommand()
         }
 
         return jsonString(response)
@@ -250,7 +278,7 @@ final class URLCommandHandler {
     ///   - parameters: Direction parameters
     ///   - windowID: Optional CGWindowID to target a specific window
     /// - Returns: JSON response dictionary
-    private func handleDirectionCommand(_ parameters: [String], windowID: CGWindowID? = nil) -> [String: Any] {
+    private func handleDirectionCommand(_ parameters: [String], params: TargetParams = .init()) -> [String: Any] {
         guard let directionStr = parameters.first?.lowercased() else {
             return [
                 "success": false,
@@ -266,7 +294,7 @@ final class URLCommandHandler {
 
         // First check if this is a custom action being called via direction
         if directionStr.hasPrefix("custom") || directionStr.hasPrefix("stash") {
-            return handleActionCommand(parameters, windowID: windowID)
+            return handleActionCommand(parameters, params: params)
         }
 
         let direction: WindowDirection? = WindowDirection.allCases.first { $0.rawValue.lowercased() == directionStr } ?? {
@@ -282,7 +310,7 @@ final class URLCommandHandler {
         }()
 
         if let direction {
-            return executeWindowAction(direction, windowID: windowID)
+            return executeWindowAction(direction, params: params)
         } else {
             return [
                 "success": false,
@@ -298,22 +326,24 @@ final class URLCommandHandler {
     ///   - direction: The direction to move/resize the window
     ///   - windowID: Optional CGWindowID to target a specific window
     /// - Returns: JSON response dictionary
-    private func executeWindowAction(_ direction: WindowDirection, windowID: CGWindowID? = nil) -> [String: Any] {
+    private func executeWindowAction(_ direction: WindowDirection, params: TargetParams = .init()) -> [String: Any] {
         log.info("Executing direction: \(direction.rawValue)")
 
-        guard let window = resolveWindow(windowID: windowID) else {
+        guard let window = resolveWindow(params: params) else {
             return [
                 "success": false,
                 "command": "direction",
                 "parameter": direction.rawValue.lowercased(),
-                "error": windowID != nil
-                    ? "No window found with ID \(windowID!)"
-                    : "No frontmost window found"
+                "error": windowResolveError(params)
             ]
         }
 
-        guard let screen = NSScreen.main else {
-            return ["success": false, "command": "direction", "error": "No screen found"]
+        guard let screen = resolveScreen(screenID: params.screenID) else {
+            return [
+                "success": false,
+                "command": "direction",
+                "error": "No screen found with ID \(params.screenID!)"
+            ]
         }
 
         let action = WindowAction(direction)
@@ -331,19 +361,17 @@ final class URLCommandHandler {
     ///   - parameters: Screen command parameters
     ///   - windowID: Optional CGWindowID to target a specific window
     /// - Returns: JSON response dictionary
-    private func handleScreenCommand(_ parameters: [String], windowID: CGWindowID? = nil) -> [String: Any] {
+    private func handleScreenCommand(_ parameters: [String], params: TargetParams = .init()) -> [String: Any] {
         guard let command = parameters.first?.lowercased() else {
             return ["success": false, "command": "screen", "error": "No screen command specified"]
         }
 
-        guard let window = resolveWindow(windowID: windowID) else {
+        guard let window = resolveWindow(params: params) else {
             return [
                 "success": false,
                 "command": "screen",
                 "parameter": command,
-                "error": windowID != nil
-                    ? "No window found with ID \(windowID!)"
-                    : "No frontmost window found"
+                "error": windowResolveError(params)
             ]
         }
 
@@ -362,7 +390,7 @@ final class URLCommandHandler {
     ///   - parameters: Action parameters
     ///   - windowID: Optional CGWindowID to target a specific window
     /// - Returns: JSON response dictionary
-    private func handleActionCommand(_ parameters: [String], windowID: CGWindowID? = nil) -> [String: Any] {
+    private func handleActionCommand(_ parameters: [String], params: TargetParams = .init()) -> [String: Any] {
         guard let actionStr = parameters.first?.lowercased() else {
             return buildActionsResponse()
         }
@@ -370,24 +398,19 @@ final class URLCommandHandler {
         // First check for custom actions by name
         let customKeybinds = Defaults[.keybinds].filter { $0.direction.isCustomizable && $0.name != nil }
         if let customAction = customKeybinds.first(where: { ($0.name?.lowercased() ?? "") == actionStr }) {
-            if let window = resolveWindow(windowID: windowID), let screen = NSScreen.main {
-                activateAndResizeWindow(window, customAction, screen)
-                return [
-                    "success": true,
-                    "command": "action",
-                    "action": customAction.name ?? actionStr,
-                    "window": windowJSON(window)
-                ]
-            } else {
-                return [
-                    "success": false,
-                    "command": "action",
-                    "parameter": actionStr,
-                    "error": windowID != nil
-                        ? "No window found with ID \(windowID!)"
-                        : "No suitable window found"
-                ]
+            guard let window = resolveWindow(params: params) else {
+                return ["success": false, "command": "action", "parameter": actionStr, "error": windowResolveError(params)]
             }
+            guard let screen = resolveScreen(screenID: params.screenID) else {
+                return ["success": false, "command": "action", "error": "No screen found with ID \(params.screenID!)"]
+            }
+            activateAndResizeWindow(window, customAction, screen)
+            return [
+                "success": true,
+                "command": "action",
+                "action": customAction.name ?? actionStr,
+                "window": windowJSON(window)
+            ]
         }
 
         if actionStr == "list" {
@@ -395,24 +418,19 @@ final class URLCommandHandler {
         }
 
         if let direction = WindowDirection.allCases.first(where: { $0.rawValue.lowercased() == actionStr }) {
-            if let window = resolveWindow(windowID: windowID), let screen = NSScreen.main {
-                activateAndResizeWindow(window, .init(direction), screen)
-                return [
-                    "success": true,
-                    "command": "action",
-                    "action": direction.rawValue,
-                    "window": windowJSON(window)
-                ]
-            } else {
-                return [
-                    "success": false,
-                    "command": "action",
-                    "parameter": actionStr,
-                    "error": windowID != nil
-                        ? "No window found with ID \(windowID!)"
-                        : "No suitable window found"
-                ]
+            guard let window = resolveWindow(params: params) else {
+                return ["success": false, "command": "action", "parameter": actionStr, "error": windowResolveError(params)]
             }
+            guard let screen = resolveScreen(screenID: params.screenID) else {
+                return ["success": false, "command": "action", "error": "No screen found with ID \(params.screenID!)"]
+            }
+            activateAndResizeWindow(window, .init(direction), screen)
+            return [
+                "success": true,
+                "command": "action",
+                "action": direction.rawValue,
+                "window": windowJSON(window)
+            ]
         }
 
         return [
@@ -478,7 +496,7 @@ final class URLCommandHandler {
     ///   - parameters: Keybind parameters
     ///   - windowID: Optional CGWindowID to target a specific window
     /// - Returns: JSON response dictionary
-    private func handleKeybindCommand(_ parameters: [String], windowID: CGWindowID? = nil) -> [String: Any] {
+    private func handleKeybindCommand(_ parameters: [String], params: TargetParams = .init()) -> [String: Any] {
         let keybinds = Defaults[.keybinds]
 
         guard let keybindName = parameters.first else {
@@ -504,37 +522,34 @@ final class URLCommandHandler {
             ]
         }
 
-        guard let window = resolveWindow(windowID: windowID) else {
+        guard let window = resolveWindow(params: params) else {
             return [
                 "success": false,
                 "command": "keybind",
                 "parameter": keybindName,
-                "error": windowID != nil
-                    ? "No window found with ID \(windowID!)"
-                    : "No frontmost window found"
+                "error": windowResolveError(params)
             ]
         }
 
-        if let screen = NSScreen.main {
-            Task {
-                _ = try? await WindowActionEngine.shared.apply(
-                    keybind, window: window, screen: screen
-                )
-            }
-            return [
-                "success": true,
-                "command": "keybind",
-                "keybind": keybind.name ?? keybindName,
-                "window": windowJSON(window)
-            ]
-        } else {
+        guard let screen = resolveScreen(screenID: params.screenID) else {
             return [
                 "success": false,
                 "command": "keybind",
-                "parameter": keybindName,
-                "error": "No suitable window found"
+                "error": "No screen found with ID \(params.screenID!)"
             ]
         }
+
+        Task {
+            _ = try await WindowActionEngine.shared.apply(
+                keybind, window: window, screen: screen
+            )
+        }
+        return [
+            "success": true,
+            "command": "keybind",
+            "keybind": keybind.name ?? keybindName,
+            "window": windowJSON(window)
+        ]
     }
 
     /// Handles list commands for viewing available options
@@ -595,6 +610,32 @@ final class URLCommandHandler {
         ]
     }
 
+    // MARK: - Screen List
+
+    /// Lists all connected screens with their details
+    /// - Returns: JSON response dictionary
+    private func handleScreenListCommand() -> [String: Any] {
+        let screens = NSScreen.screens
+        return [
+            "success": true,
+            "command": "screenlist",
+            "screenCount": screens.count,
+            "screens": screens.map { screen in
+                [
+                    "screenID": screen.displayID ?? 0,
+                    "name": screen.localizedName,
+                    "frame": [
+                        "x": Int(screen.frame.origin.x),
+                        "y": Int(screen.frame.origin.y),
+                        "width": Int(screen.frame.width),
+                        "height": Int(screen.frame.height)
+                    ],
+                    "isMain": screen == NSScreen.main
+                ] as [String: Any]
+            }
+        ]
+    }
+
     // MARK: - Helper Methods
 
     /// Finds a window by its CGWindowID from the current window list
@@ -604,14 +645,87 @@ final class URLCommandHandler {
         WindowUtility.windowList().first { $0.cgWindowID == windowID }
     }
 
-    /// Resolves the target window — by ID if specified, otherwise the frontmost window
-    /// - Parameter windowID: Optional CGWindowID to target a specific window
+    /// Resolves the target window from targeting parameters
+    /// Priority: windowID > bundleID > frontmost window
+    /// - Parameter params: Targeting parameters
     /// - Returns: The resolved window, or nil if not found
-    private func resolveWindow(windowID: CGWindowID? = nil) -> Window? {
-        if let windowID {
+    private func resolveWindow(params: TargetParams = .init()) -> Window? {
+        if let windowID = params.windowID {
             return findWindowByID(windowID)
         }
+        if let bundleID = params.bundleID {
+            return resolveWindowByBundleID(bundleID)
+        }
         return try? WindowUtility.frontmostWindow()
+    }
+
+    /// Resolves a window by bundle ID, launching the app if needed
+    /// - Parameter bundleID: The bundle identifier of the app
+    /// - Returns: The app's frontmost window, or nil if not found
+    private func resolveWindowByBundleID(_ bundleID: String) -> Window? {
+        // Check if already running
+        if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID }) {
+            app.activate(options: .activateIgnoringOtherApps)
+            // Brief pause to let activation settle
+            Thread.sleep(forTimeInterval: 0.1)
+            return try? Window(pid: app.processIdentifier)
+        }
+
+        // Not running — try to launch it
+        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+            log.error("No app found for bundle ID: \(bundleID)")
+            return nil
+        }
+
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var launchedApp: NSRunningApplication?
+        NSWorkspace.shared.openApplication(at: appURL, configuration: config) { app, error in
+            if let error {
+                Self.log.error("Failed to launch \(bundleID): \(error.localizedDescription)")
+            }
+            launchedApp = app
+            semaphore.signal()
+        }
+        _ = semaphore.wait(timeout: .now() + 5)
+
+        guard let app = launchedApp else { return nil }
+
+        // Wait for the app to create a window (up to 3 seconds)
+        for _ in 0..<30 {
+            Thread.sleep(forTimeInterval: 0.1)
+            if let window = try? Window(pid: app.processIdentifier) {
+                return window
+            }
+        }
+
+        log.error("App launched but no window appeared: \(bundleID)")
+        return nil
+    }
+
+    /// Resolves a screen by display ID, falling back to the main screen
+    /// - Parameter screenID: Optional display ID to target a specific screen
+    /// - Returns: The resolved screen, or nil if the specified ID was not found
+    private func resolveScreen(screenID: CGDirectDisplayID? = nil) -> NSScreen? {
+        if let screenID {
+            return NSScreen.screens.first { $0.displayID == screenID }
+        }
+        return NSScreen.main
+    }
+
+    /// Builds a human-readable error message for window resolution failure
+    /// - Parameter params: The targeting parameters that were used
+    /// - Returns: Error message string
+    private func windowResolveError(_ params: TargetParams) -> String {
+        if let windowID = params.windowID {
+            return "No window found with ID \(windowID)"
+        }
+        if let bundleID = params.bundleID {
+            return "Could not find or launch app: \(bundleID)"
+        }
+        return "No frontmost window found"
     }
 
     /// Activates and resizes a window
