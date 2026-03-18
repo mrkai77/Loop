@@ -51,34 +51,71 @@
     - keybinds   (List all custom keybinds)
     - all        (List everything)
 
+ 6. Window List Command:
+    Format: loop://windowlist
+    Returns JSON listing all visible windows with:
+    - windowID, bundleID, appName, windowTitle, frame
+
+ 7. Screen List Command:
+    Format: loop://screenlist
+    Returns JSON listing all connected screens with:
+    - screenID, name, frame, isMain
+
+ Query Parameters:
+ ----------------
+ All action commands support optional query parameters for targeting:
+
+ ?windowID=<id>    Target a specific window by CGWindowID
+ ?bundleID=<id>    Target an app by bundle ID (launches if needed)
+ ?screenID=<id>    Target a specific screen by display ID
+
+ Notes:
+ - windowID and bundleID are mutually exclusive (error if both specified)
+ - screenID can be combined with either windowID or bundleID
+ - Use loop://windowlist and loop://screenlist to discover IDs
+
+ Examples:
+ - loop://direction/right?windowID=1234
+ - loop://action/maximize?bundleID=com.apple.Safari
+ - loop://direction/left?screenID=12345
+ - loop://action/maximize?bundleID=com.apple.Safari&screenID=12345
+
  Usage Tips:
  ----------
  1. All commands are case-insensitive
- 2. Parameters with spaces must be URL encoded
- 3. Window commands operate on the frontmost non-terminal window
- 4. Use list commands to discover available options
+ 2. All commands return JSON responses
+ 3. Window commands operate on the frontmost window by default
+ 4. Use loop://windowlist and loop://screenlist to discover IDs
+ 5. Use loop://list/all to discover all available commands
 
  Examples:
  --------
  # Move current window to right half
  open "loop://direction/right"
 
+ # List all windows and screens
+ open "loop://windowlist"
+ open "loop://screenlist"
+
+ # Move a specific window to the right half
+ open "loop://direction/right?windowID=1234"
+
+ # Launch/focus Safari and maximize it on a specific screen
+ open "loop://action/maximize?bundleID=com.apple.Safari&screenID=12345"
+
  # List all available actions
  open "loop://list/actions"
-
- # Execute custom keybind
- open "loop://keybind/myLayout"
 
  Error Examples:
  -------------
  # Invalid command
- open "loop://invalid" -> Returns available commands
+ open "loop://invalid" -> {"success": false, "error": "Unknown command: invalid"}
 
- # Missing parameter
- open "loop://direction" -> Returns available directions
+ # Both windowID and bundleID
+ open "loop://direction/right?windowID=1&bundleID=com.x" -> error: mutually exclusive
 
- # Invalid keybind
- open "loop://keybind/nonexistent" -> Returns available keybinds
+ # Invalid window/screen ID
+ open "loop://direction/right?windowID=9999" -> error: No window found with ID 9999
  */
 
 import Defaults
@@ -103,6 +140,10 @@ final class URLCommandHandler {
         case keybind
         /// List available commands and options
         case list
+        /// List all visible windows as JSON
+        case windowlist
+        /// List all screens as JSON
+        case screenlist
 
         /// Human-readable description of each command type
         var description: String {
@@ -112,186 +153,148 @@ final class URLCommandHandler {
             case .action: "Execute predefined window action"
             case .keybind: "Execute custom keybind action"
             case .list: "List available commands"
+            case .windowlist: "List all visible windows as JSON"
+            case .screenlist: "List all screens as JSON"
             }
         }
+    }
+
+    /// Parameters parsed from URL query string for targeting specific windows and screens
+    private struct TargetParams {
+        var windowID: CGWindowID?
+        var bundleID: String?
+        var screenID: CGDirectDisplayID?
     }
 
     // MARK: - Properties
 
-    /// Tracks the last active window for context preservation
-    private var lastActiveWindow: Window?
+    // MARK: - JSON Helpers
 
-    /// Timestamp of last window activation
-    private var lastActiveTime: Date?
-
-    /// Current command being processed
-    private var currentCommand: String?
-
-    /// Buffer for collecting output before writing
-    private var outputBuffer: [String] = []
-
-    // MARK: - Output Handling
-
-    /// Writes a message to either the buffer (for list commands) or stdout
-    /// - Parameter message: The message to write
-    private func writeToOutput(_ message: String) {
-        // Remove [URLHandler] prefix and clean up the message
-        let cleanMessage = message.replacingOccurrences(of: "[URLHandler] ", with: "")
-
-        // Skip debug-only messages for regular output
-        if cleanMessage.hasPrefix("Path components:") ||
-            cleanMessage.hasPrefix("Found") ||
-            cleanMessage.hasPrefix("Window:") ||
-            (cleanMessage.hasPrefix("Processing") && !cleanMessage.contains("command:")) {
-            log.info(cleanMessage)
-            return
+    /// Serializes a response dictionary to a pretty-printed JSON string
+    private func jsonString(_ dict: [String: Any]) -> String {
+        guard let data = try? JSONSerialization.data(
+            withJSONObject: dict,
+            options: [.prettyPrinted, .sortedKeys]
+        ) else {
+            return #"{"success":false,"error":"Failed to serialize response"}"#
         }
-
-        let output = cleanMessage
-        if currentCommand?.contains("/list") == true {
-            outputBuffer.append(output)
-        } else {
-            log.info("\(output)")
-        }
-        log.info(cleanMessage)
+        return String(data: data, encoding: .utf8)
+            ?? #"{"success":false,"error":"Failed to encode response"}"#
     }
 
-    /// Writes a titled list of items to output
-    /// - Parameters:
-    ///   - title: The title for the list
-    ///   - items: Array of items to list
-    private func writeList(_ title: String, _ items: [String]) {
-        let formattedItems = items.map { item in
-            if item.hasPrefix("\n") {
-                return item.replacingOccurrences(of: "\n", with: "")
-            }
-            return item
-        }
-
-        if currentCommand?.contains("/list") == true {
-            outputBuffer.append(title)
-            outputBuffer.append(contentsOf: formattedItems)
-        } else {
-            log.info("\n\(title)")
-            formattedItems.forEach { log.info("\($0)") }
-        }
-    }
-
-    /// Flushes the output buffer to a file for list commands
-    /// - Note: Due to limitations with terminal output formatting and the complexity of the list output,
-    ///         we use a temporary file to display the formatted list. This allows for proper spacing,
-    ///         sections, and formatting that would be difficult to achieve with direct terminal output.
-    ///         The file is automatically opened and then deleted after 60 seconds to keep the system clean.
-    private func flushOutput() {
-        guard currentCommand?.contains("/list") == true,
-              !outputBuffer.isEmpty else {
-            outputBuffer.removeAll()
-            return
-        }
-
-        // Create a unique temporary file that will be automatically cleaned up
-        let timestamp = Date().timeIntervalSince1970
-        let tempFile = FileManager.default.temporaryDirectory
-            .appendingPathComponent("loop_output_\(timestamp).txt")
-
-        do {
-            try outputBuffer.joined(separator: "\n").write(to: tempFile, atomically: true, encoding: .utf8)
-            NSWorkspace.shared.open(tempFile)
-
-            // Schedule file deletion after a delay
-            // We use a longer delay (60s) to ensure the user has time to read the content
-            Task {
-                try? await Task.sleep(for: .seconds(60))
-
-                do {
-                    try FileManager.default.removeItem(at: tempFile)
-                    log.info("Cleaned up temporary file: \(tempFile.lastPathComponent)")
-                } catch {
-                    log.error("Failed to clean up temporary file: \(error.localizedDescription)")
-                }
-            }
-        } catch {
-            log.error("Failed to write output: \(error.localizedDescription)")
-
-            // Fallback to direct console output if file operations fail
-            log.info("\(outputBuffer.joined(separator: "\n"))")
-        }
-
-        outputBuffer.removeAll()
+    /// Builds a JSON-serializable dictionary for a window
+    private func windowJSON(_ window: Window) -> [String: Any] {
+        let app = window.nsRunningApplication
+        let frame = window.frame
+        return [
+            "windowID": window.cgWindowID,
+            "bundleID": app?.bundleIdentifier ?? "",
+            "appName": app?.localizedName ?? "",
+            "windowTitle": window.title ?? "",
+            "frame": [
+                "x": Int(frame.origin.x),
+                "y": Int(frame.origin.y),
+                "width": Int(frame.width),
+                "height": Int(frame.height)
+            ]
+        ]
     }
 
     // MARK: - Public Methods
 
-    /// Handles incoming URL scheme requests
+    /// Handles incoming URL scheme requests and returns a JSON response string
     /// - Parameter url: The URL to process
-    /// - Throws: URLError for invalid URLs or commands
-    func handle(_ url: URL) {
-        currentCommand = url.absoluteString
-        writeToOutput("[URLHandler] Processing URL: \(url)")
+    /// - Returns: A JSON string containing the response
+    @discardableResult
+    func handle(_ url: URL) -> String {
+        log.info("Processing URL: \(url)")
 
         guard url.scheme?.lowercased() == "loop" else {
-            writeToOutput("[URLHandler] Invalid scheme: \(url.scheme ?? "nil")")
-            writeToOutput("[URLHandler] Required format: loop://<command>/<parameters>")
-            return
+            return jsonString([
+                "success": false,
+                "error": "Invalid scheme: \(url.scheme ?? "nil"). Required: loop://"
+            ])
+        }
+
+        // Parse query parameters for targeting specific windows and screens
+        let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)
+        let queryItems = urlComponents?.queryItems
+
+        let params = TargetParams(
+            windowID: queryItems?.first(where: { $0.name == "windowID" })?.value.flatMap { UInt32($0) },
+            bundleID: queryItems?.first(where: { $0.name == "bundleID" })?.value,
+            screenID: queryItems?.first(where: { $0.name == "screenID" })?.value.flatMap { UInt32($0) }
+        )
+
+        // windowID and bundleID are mutually exclusive
+        if params.windowID != nil, params.bundleID != nil {
+            return jsonString([
+                "success": false,
+                "error": "windowID and bundleID are mutually exclusive"
+            ])
         }
 
         let components = (url.host.map { [$0] } ?? []) + url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
-        writeToOutput("[URLHandler] Path components: \(components)")
 
         guard let commandString = components.first,
               let command = Command(rawValue: commandString.lowercased()) else {
-            writeToOutput("[URLHandler] Invalid command: \(components.first ?? "nil")")
-            writeToOutput("[URLHandler] Available commands: \(Command.allCases.map(\.rawValue).joined(separator: ", "))")
-            return
+            return jsonString([
+                "success": false,
+                "error": "Unknown command: \(components.first ?? "nil")",
+                "availableCommands": Command.allCases.map(\.rawValue)
+            ])
         }
 
-        processCommand(command, Array(components.dropFirst()))
+        return processCommand(command, Array(components.dropFirst()), params: params)
     }
 
     // MARK: - Command Processing
 
-    /// Processes a command with its parameters
+    /// Processes a command with its parameters and returns a JSON response string
     /// - Parameters:
     ///   - command: The command to process
     ///   - parameters: Array of command parameters
-    private func processCommand(_ command: Command, _ parameters: [String]) {
-        log.info(command.rawValue)
-        log.info(parameters.description)
+    ///   - params: Targeting parameters (windowID/bundleID/screenID)
+    /// - Returns: A JSON string containing the response
+    private func processCommand(_ command: Command, _ parameters: [String], params: TargetParams = .init()) -> String {
+        log.info("\(command.rawValue) \(parameters)")
 
+        let response: [String: Any]
         switch command {
-        case .direction: handleDirectionCommand(parameters)
-        case .screen: handleScreenCommand(parameters)
-        case .action: handleActionCommand(parameters)
-        case .keybind: handleKeybindCommand(parameters)
-        case .list: handleListCommand(parameters)
+        case .direction: response = handleDirectionCommand(parameters, params: params)
+        case .screen: response = handleScreenCommand(parameters, params: params)
+        case .action: response = handleActionCommand(parameters, params: params)
+        case .keybind: response = handleKeybindCommand(parameters, params: params)
+        case .list: response = handleListCommand(parameters)
+        case .windowlist: response = handleWindowListCommand()
+        case .screenlist: response = handleScreenListCommand()
         }
 
-        flushOutput()
+        return jsonString(response)
     }
 
     /// Handles window direction commands
-    /// - Parameter parameters: Direction parameters
-    private func handleDirectionCommand(_ parameters: [String]) {
+    /// - Parameters:
+    ///   - parameters: Direction parameters
+    ///   - windowID: Optional CGWindowID to target a specific window
+    /// - Returns: JSON response dictionary
+    private func handleDirectionCommand(_ parameters: [String], params: TargetParams = .init()) -> [String: Any] {
         guard let directionStr = parameters.first?.lowercased() else {
-            writeToOutput("No direction specified")
-            writeToOutput("Available directions:")
-            writeToOutput("  Basic: left, right, top, bottom")
-            writeToOutput("  Full names: \(WindowDirection.allCases.map { $0.rawValue.lowercased() }.joined(separator: ", "))")
-            return
+            return [
+                "success": false,
+                "command": "direction",
+                "error": "No direction specified"
+            ]
         }
 
-        // If this is a list command, redirect to the action handler
+        // If this is a list command, redirect to the list handler
         if directionStr == "list" {
-            handleListCommand(["actions"])
-            return
+            return handleListCommand(["actions"])
         }
-
-        writeToOutput("Processing direction: \(directionStr)")
 
         // First check if this is a custom action being called via direction
         if directionStr.hasPrefix("custom") || directionStr.hasPrefix("stash") {
-            handleActionCommand(parameters)
-            return
+            return handleActionCommand(parameters, params: params)
         }
 
         let direction: WindowDirection? = WindowDirection.allCases.first { $0.rawValue.lowercased() == directionStr } ?? {
@@ -307,137 +310,160 @@ final class URLCommandHandler {
         }()
 
         if let direction {
-            executeWindowAction(direction)
+            return executeWindowAction(direction, params: params)
         } else {
-            writeToOutput("Invalid direction: \(directionStr)")
-            writeToOutput("Available directions:")
-            writeToOutput("  Basic: left, right, top, bottom")
-            writeToOutput("  Full names: \(WindowDirection.allCases.map { $0.rawValue.lowercased() }.joined(separator: ", "))")
+            return [
+                "success": false,
+                "command": "direction",
+                "parameter": directionStr,
+                "error": "Invalid direction: \(directionStr)"
+            ]
         }
     }
 
     /// Executes a window action for a given direction
-    /// - Parameter direction: The direction to move/resize the window
-    private func executeWindowAction(_ direction: WindowDirection) {
-        writeToOutput("[URLHandler] Executing direction: \(direction.rawValue)")
+    /// - Parameters:
+    ///   - direction: The direction to move/resize the window
+    ///   - windowID: Optional CGWindowID to target a specific window
+    /// - Returns: JSON response dictionary
+    private func executeWindowAction(_ direction: WindowDirection, params: TargetParams = .init()) -> [String: Any] {
+        log.info("Executing direction: \(direction.rawValue)")
 
-        let allWindows = WindowUtility.windowList()
-        writeToOutput("[URLHandler] Found \(allWindows.count) total windows")
-
-        let visibleWindows = allWindows.filter { win in
-            guard let app = win.nsRunningApplication else {
-                writeToOutput("[URLHandler] Window has no application: \(win.title ?? "unknown")")
-                return false
-            }
-
-            let isLoop = app.bundleIdentifier == Bundle.main.bundleIdentifier
-            let isRegular = app.activationPolicy == .regular
-            let isVisible = !win.isApplicationHidden && !win.minimized
-
-            logWindowDetails(win, app, isLoop, isRegular, isVisible)
-
-            return !isLoop && isRegular && isVisible
+        guard let window = resolveWindow(params: params) else {
+            return [
+                "success": false,
+                "command": "direction",
+                "parameter": direction.rawValue.lowercased(),
+                "error": windowResolveError(params)
+            ]
         }
 
-        writeToOutput("[URLHandler] Found \(visibleWindows.count) eligible windows")
-
-        guard let window = findTargetWindow(from: visibleWindows),
-              let screen = NSScreen.main else {
-            writeToOutput("[URLHandler] No suitable windows or screen found")
-            return
+        guard let screen = resolveScreen(screenID: params.screenID) else {
+            return [
+                "success": false,
+                "command": "direction",
+                "error": "No screen found with ID \(params.screenID!)"
+            ]
         }
-
-        logSelectedWindow(window, screen)
 
         let action = WindowAction(direction)
-        writeToOutput("[URLHandler] Resizing window with action: \(direction.rawValue)")
-
         activateAndResizeWindow(window, action, screen)
+        return [
+            "success": true,
+            "command": "direction",
+            "action": direction.rawValue,
+            "window": windowJSON(window)
+        ]
     }
 
     /// Handles screen management commands
-    /// - Parameter parameters: Screen command parameters
-    private func handleScreenCommand(_ parameters: [String]) {
-        guard let command = parameters.first?.lowercased(),
-              let window = try? WindowUtility.frontmostWindow() else {
-            writeToOutput("[URLHandler] No screen command or window")
-            return
+    /// - Parameters:
+    ///   - parameters: Screen command parameters
+    ///   - windowID: Optional CGWindowID to target a specific window
+    /// - Returns: JSON response dictionary
+    private func handleScreenCommand(_ parameters: [String], params: TargetParams = .init()) -> [String: Any] {
+        guard let command = parameters.first?.lowercased() else {
+            return ["success": false, "command": "screen", "error": "No screen command specified"]
         }
 
-        writeToOutput("[URLHandler] Processing screen command: \(command)")
+        guard let window = resolveWindow(params: params) else {
+            return [
+                "success": false,
+                "command": "screen",
+                "parameter": command,
+                "error": windowResolveError(params)
+            ]
+        }
 
         let direction: WindowDirection = command == "next" ? .nextScreen : .previousScreen
         moveWindowToScreen(window, direction)
+        return [
+            "success": true,
+            "command": "screen",
+            "action": command,
+            "window": windowJSON(window)
+        ]
     }
 
     /// Handles predefined window actions
-    /// - Parameter parameters: Action parameters
-    private func handleActionCommand(_ parameters: [String]) {
+    /// - Parameters:
+    ///   - parameters: Action parameters
+    ///   - windowID: Optional CGWindowID to target a specific window
+    /// - Returns: JSON response dictionary
+    private func handleActionCommand(_ parameters: [String], params: TargetParams = .init()) -> [String: Any] {
         guard let actionStr = parameters.first?.lowercased() else {
-            printAvailableActions()
-            return
+            return buildActionsResponse()
         }
 
         // First check for custom actions by name
         let customKeybinds = Defaults[.keybinds].filter { $0.direction.isCustomizable && $0.name != nil }
         if let customAction = customKeybinds.first(where: { ($0.name?.lowercased() ?? "") == actionStr }) {
-            writeToOutput("Executing custom action: \(customAction.name ?? "unnamed")")
-
-            // Try multiple methods to get the target window
-            let targetWindow = findTargetWindow(from: WindowUtility.windowList().filter { win in
-                guard let app = win.nsRunningApplication else { return false }
-                return app.activationPolicy == .regular && !win.isApplicationHidden && !win.minimized
-            })
-
-            if let window = targetWindow,
-               let screen = NSScreen.main {
-                writeToOutput("Found target window: \(window.title ?? "unknown")")
-                activateAndResizeWindow(window, customAction, screen)
-            } else {
-                writeToOutput("Error: Could not find a suitable window to apply the custom action")
+            guard let window = resolveWindow(params: params) else {
+                return ["success": false, "command": "action", "parameter": actionStr, "error": windowResolveError(params)]
             }
-        } else if actionStr == "list" {
-            // For list command, just show the actions without the invalid message
-            printAvailableActions()
-        } else if let direction = WindowDirection.allCases.first(where: { $0.rawValue.lowercased() == actionStr }),
-                  let window = findTargetWindow(from: WindowUtility.windowList()),
-                  let screen = NSScreen.main {
-            writeToOutput("Executing action: \(direction.rawValue)")
-            activateAndResizeWindow(window, .init(direction), screen)
-        } else {
-            writeToOutput("Invalid action: \(actionStr)")
-            printAvailableActions()
+            guard let screen = resolveScreen(screenID: params.screenID) else {
+                return ["success": false, "command": "action", "error": "No screen found with ID \(params.screenID!)"]
+            }
+            activateAndResizeWindow(window, customAction, screen)
+            return [
+                "success": true,
+                "command": "action",
+                "action": customAction.name ?? actionStr,
+                "window": windowJSON(window)
+            ]
         }
+
+        if actionStr == "list" {
+            return buildActionsResponse()
+        }
+
+        if let direction = WindowDirection.allCases.first(where: { $0.rawValue.lowercased() == actionStr }) {
+            guard let window = resolveWindow(params: params) else {
+                return ["success": false, "command": "action", "parameter": actionStr, "error": windowResolveError(params)]
+            }
+            guard let screen = resolveScreen(screenID: params.screenID) else {
+                return ["success": false, "command": "action", "error": "No screen found with ID \(params.screenID!)"]
+            }
+            activateAndResizeWindow(window, .init(direction), screen)
+            return [
+                "success": true,
+                "command": "action",
+                "action": direction.rawValue,
+                "window": windowJSON(window)
+            ]
+        }
+
+        return [
+            "success": false,
+            "command": "action",
+            "parameter": actionStr,
+            "error": "Invalid action: \(actionStr)"
+        ]
     }
 
-    /// Prints all available window actions in categories
-    private func printAvailableActions() {
-        var items: [String] = []
+    /// Builds a structured response of all available actions grouped by category
+    /// - Returns: JSON response dictionary with categorized actions
+    private func buildActionsResponse() -> [String: Any] {
+        var categories: [[String: Any]] = []
 
-        // Get any custom keybinds with names and custom direction
         let customKeybinds = Defaults[.keybinds].filter { $0.direction == .custom && $0.name?.isEmpty == false }
         if !customKeybinds.isEmpty {
-            items.append("Custom Actions:")
-            items.append(contentsOf: customKeybinds.compactMap { keybind in
-                guard let name = keybind.name else { return nil }
-                return "  • loop://action/\(name.lowercased())"
-            })
-            items.append("")
+            categories.append([
+                "category": "Custom Actions",
+                "actions": customKeybinds.compactMap { $0.name?.lowercased() }
+            ])
         }
 
-        // Get any stash keybinds with names and custom direction
         let stashKeybinds = Defaults[.keybinds].filter { $0.direction == .stash && $0.name?.isEmpty == false }
         if !stashKeybinds.isEmpty {
-            items.append("Stash Actions:")
-            items.append(contentsOf: stashKeybinds.compactMap { keybind in
-                guard let name = keybind.name else { return nil }
-                return "  • loop://action/\(name.lowercased())"
-            })
-            items.append("")
+            categories.append([
+                "category": "Stash Actions",
+                "actions": stashKeybinds.compactMap { $0.name?.lowercased() }
+            ])
         }
 
-        let categories: [(String, [WindowDirection])] = [
-            ("General Actions", Array(WindowDirection.general.dropFirst(3))), // Drop first 3 actions
+        let builtinCategories: [(String, [WindowDirection])] = [
+            ("General Actions", Array(WindowDirection.general.dropFirst(3))),
             ("Halves", WindowDirection.halves),
             ("Quarters", WindowDirection.quarters),
             ("Horizontal Thirds", WindowDirection.horizontalThirds),
@@ -450,223 +476,275 @@ final class URLCommandHandler {
             ("Other", WindowDirection.more)
         ]
 
-        for (title, actions) in categories {
-            if !actions.isEmpty {
-                items.append("\(title):")
-                items.append(contentsOf: actions.map { "  • loop://action/\($0.rawValue.lowercased())" })
-                items.append("")
-            }
+        for (title, actions) in builtinCategories where !actions.isEmpty {
+            categories.append([
+                "category": title,
+                "actions": actions.map { $0.rawValue.lowercased() }
+            ])
         }
 
-        // Remove the last empty line if it exists
-        if items.last?.isEmpty == true {
-            items.removeLast()
-        }
-
-        writeList("", items)
+        return [
+            "success": true,
+            "command": "list",
+            "type": "actions",
+            "categories": categories
+        ]
     }
 
     /// Handles custom keybind execution
-    /// - Parameter parameters: Keybind parameters
-    private func handleKeybindCommand(_ parameters: [String]) {
-        guard let keybindName = parameters.first else {
-            writeToOutput("[URLHandler] No keybind specified")
-            return
-        }
-
+    /// - Parameters:
+    ///   - parameters: Keybind parameters
+    ///   - windowID: Optional CGWindowID to target a specific window
+    /// - Returns: JSON response dictionary
+    private func handleKeybindCommand(_ parameters: [String], params: TargetParams = .init()) -> [String: Any] {
         let keybinds = Defaults[.keybinds]
 
-        if keybindName.lowercased() == "list" {
-            writeToOutput("[URLHandler] Available keybinds:")
-            keybinds.compactMap(\.name).forEach { writeToOutput("  - \($0)") }
-            return
+        guard let keybindName = parameters.first else {
+            return ["success": false, "command": "keybind", "error": "No keybind specified"]
         }
 
-        if let keybind = keybinds.first(where: { $0.name?.lowercased() == keybindName.lowercased() }) {
-            writeToOutput("[URLHandler] Executing keybind: \(keybind.name ?? "unnamed")")
-            if let window = WindowUtility.userDefinedTargetWindow(),
-               let screen = NSScreen.main {
-                Task {
-                    _ = try? await WindowActionEngine.shared.apply(
-                        keybind,
-                        window: window,
-                        screen: screen
-                    )
-                }
-            }
-        } else {
-            writeToOutput("[URLHandler] Keybind not found: \(keybindName)")
-            writeToOutput("[URLHandler] Available keybinds:")
-            keybinds.compactMap(\.name).forEach { writeToOutput("  - \($0)") }
+        if keybindName.lowercased() == "list" {
+            return [
+                "success": true,
+                "command": "list",
+                "type": "keybinds",
+                "keybinds": keybinds.compactMap(\.name)
+            ]
         }
+
+        guard let keybind = keybinds.first(where: { $0.name?.lowercased() == keybindName.lowercased() }) else {
+            return [
+                "success": false,
+                "command": "keybind",
+                "parameter": keybindName,
+                "error": "Keybind not found: \(keybindName)",
+                "availableKeybinds": keybinds.compactMap(\.name)
+            ]
+        }
+
+        guard let window = resolveWindow(params: params) else {
+            return [
+                "success": false,
+                "command": "keybind",
+                "parameter": keybindName,
+                "error": windowResolveError(params)
+            ]
+        }
+
+        guard let screen = resolveScreen(screenID: params.screenID) else {
+            return [
+                "success": false,
+                "command": "keybind",
+                "error": "No screen found with ID \(params.screenID!)"
+            ]
+        }
+
+        Task {
+            _ = try await WindowActionEngine.shared.apply(
+                keybind, window: window, screen: screen
+            )
+        }
+        return [
+            "success": true,
+            "command": "keybind",
+            "keybind": keybind.name ?? keybindName,
+            "window": windowJSON(window)
+        ]
     }
 
     /// Handles list commands for viewing available options
     /// - Parameter parameters: List parameters
-    private func handleListCommand(_ parameters: [String]) {
+    /// - Returns: JSON response dictionary
+    private func handleListCommand(_ parameters: [String]) -> [String: Any] {
         let type = parameters.first?.lowercased() ?? "all"
-        var items: [String] = []
 
         switch type {
         case "actions":
-            items.append("Available Actions:")
-            // Get any custom keybinds with names and custom direction
-            let customKeybinds = Defaults[.keybinds].filter { $0.direction == .custom && $0.name?.isEmpty == false }
-            if !customKeybinds.isEmpty {
-                items.append("\nCustom Actions:")
-                items.append(contentsOf: customKeybinds.compactMap { keybind in
-                    guard let name = keybind.name else { return nil }
-                    return "  • loop://action/\(name.lowercased())"
-                })
-            }
-
-            // Get any stash keybinds with names and custom direction
-            let stashKeybinds = Defaults[.keybinds].filter { $0.direction == .stash && $0.name?.isEmpty == false }
-            if !stashKeybinds.isEmpty {
-                items.append("\nStash Actions:")
-                items.append(contentsOf: stashKeybinds.compactMap { keybind in
-                    guard let name = keybind.name else { return nil }
-                    return "  • loop://action/\(name.lowercased())"
-                })
-            }
-
-            let categories: [(String, [WindowDirection])] = [
-                ("General Actions", Array(WindowDirection.general.dropFirst(3))),
-                ("Halves", WindowDirection.halves),
-                ("Quarters", WindowDirection.quarters),
-                ("Horizontal Thirds", WindowDirection.horizontalThirds),
-                ("Vertical Thirds", WindowDirection.verticalThirds),
-                ("Screen Switching", WindowDirection.screenSwitching),
-                ("Size Adjustment", WindowDirection.sizeAdjustment),
-                ("Shrink", WindowDirection.shrink),
-                ("Grow", WindowDirection.grow),
-                ("Move", WindowDirection.move),
-                ("Other", WindowDirection.more)
-            ]
-
-            for (title, actions) in categories {
-                if !actions.isEmpty {
-                    items.append("\n\(title):")
-                    items.append(contentsOf: actions.map { "  • loop://action/\($0.rawValue.lowercased())" })
-                }
-            }
+            return buildActionsResponse()
 
         case "keybinds":
-            items.append("Available Keybinds:")
-            items.append(contentsOf: Defaults[.keybinds].compactMap { keybind in
-                guard let name = keybind.name else { return nil }
-                return "  • loop://keybind/\(name)"
-            })
+            return [
+                "success": true,
+                "command": "list",
+                "type": "keybinds",
+                "keybinds": Defaults[.keybinds].compactMap(\.name)
+            ]
 
         default:
-            items.append("Available Commands:")
+            let actionsResponse = buildActionsResponse()
 
-            items.append("\nDirection Commands:")
-            items.append(contentsOf: WindowDirection.allCases.map { "  • loop://direction/\($0.rawValue.lowercased())" })
+            return [
+                "success": true,
+                "command": "list",
+                "type": "all",
+                "directions": WindowDirection.allCases.map { $0.rawValue.lowercased() },
+                "screenCommands": ["next", "previous"],
+                "actionCategories": actionsResponse["categories"] ?? [],
+                "keybinds": Defaults[.keybinds].compactMap(\.name),
+                "commands": Command.allCases.map { [
+                    "command": $0.rawValue,
+                    "description": $0.description
+                ] as [String: String] }
+            ]
+        }
+    }
 
-            items.append("\nScreen Commands:")
-            items.append("  • loop://screen/next")
-            items.append("  • loop://screen/previous")
+    // MARK: - Window List
 
-            items.append("\nActions:")
-            // Get any custom keybinds with names and custom direction
-            let customKeybinds = Defaults[.keybinds].filter { $0.direction == .custom && $0.name?.isEmpty == false }
-            if !customKeybinds.isEmpty {
-                items.append("\nCustom Actions:")
-                items.append(contentsOf: customKeybinds.compactMap { keybind in
-                    guard let name = keybind.name else { return nil }
-                    return "  • loop://action/\(name.lowercased())"
-                })
-            }
-
-            // Get any stash keybinds with names and custom direction
-            let stashKeybinds = Defaults[.keybinds].filter { $0.direction == .stash && $0.name?.isEmpty == false }
-            if !stashKeybinds.isEmpty {
-                items.append("\nStash Actions:")
-                items.append(contentsOf: stashKeybinds.compactMap { keybind in
-                    guard let name = keybind.name else { return nil }
-                    return "  • loop://action/\(name.lowercased())"
-                })
-            }
-
-            items.append("\nKeybind Commands:")
-            items.append(contentsOf: Defaults[.keybinds].compactMap { keybind in
-                guard let name = keybind.name else { return nil }
-                return "  • loop://keybind/\(name)"
-            })
-
-            items.append("\nList Commands:")
-            items.append("  • loop://list/actions")
-            items.append("  • loop://list/keybinds")
-            items.append("  • loop://list/all")
+    /// Lists all visible windows with their details
+    /// - Returns: JSON response dictionary
+    private func handleWindowListCommand() -> [String: Any] {
+        let visibleWindows = WindowUtility.windowList().filter { win in
+            guard let app = win.nsRunningApplication else { return false }
+            return app.bundleIdentifier != Bundle.main.bundleIdentifier
+                && app.activationPolicy == .regular
+                && !win.isApplicationHidden
+                && !win.minimized
         }
 
-        writeList(type == "all" ? "All Commands" : items.removeFirst(), Array(items))
+        return [
+            "success": true,
+            "command": "windowlist",
+            "windowCount": visibleWindows.count,
+            "windows": visibleWindows.map { windowJSON($0) }
+        ]
+    }
+
+    // MARK: - Screen List
+
+    /// Lists all connected screens with their details
+    /// - Returns: JSON response dictionary
+    private func handleScreenListCommand() -> [String: Any] {
+        let screens = NSScreen.screens
+        return [
+            "success": true,
+            "command": "screenlist",
+            "screenCount": screens.count,
+            "screens": screens.map { screen in
+                [
+                    "screenID": screen.displayID ?? 0,
+                    "name": screen.localizedName,
+                    "frame": [
+                        "x": Int(screen.frame.origin.x),
+                        "y": Int(screen.frame.origin.y),
+                        "width": Int(screen.frame.width),
+                        "height": Int(screen.frame.height)
+                    ],
+                    "isMain": screen == NSScreen.main
+                ] as [String: Any]
+            }
+        ]
     }
 
     // MARK: - Helper Methods
 
-    /// Finds the most appropriate target window for an action
-    /// - Parameter visibleWindows: Array of visible windows to choose from
-    /// - Returns: The most appropriate window or nil if none found
-    private func findTargetWindow(from visibleWindows: [Window]) -> Window? {
-        if let targetWindow = WindowUtility.userDefinedTargetWindow() {
-            writeToOutput("[URLHandler] Using WindowEngine.getTargetWindow(): \(targetWindow.title ?? "unknown")")
-            return targetWindow
-        }
-
-        if let lastWindow = lastActiveWindow,
-           let app = lastWindow.nsRunningApplication,
-           app.bundleIdentifier != Bundle.main.bundleIdentifier,
-           !lastWindow.isApplicationHidden, !lastWindow.minimized,
-           let lastTime = lastActiveTime,
-           lastTime.timeIntervalSinceNow > -5 {
-            writeToOutput("[URLHandler] Using last active window: \(lastWindow.title ?? "unknown")")
-            return lastWindow
-        }
-
-        return visibleWindows.first
+    /// Finds a window by its CGWindowID from the current window list
+    /// - Parameter windowID: The CGWindowID to search for
+    /// - Returns: The matching window, or nil if not found
+    private func findWindowByID(_ windowID: CGWindowID) -> Window? {
+        WindowUtility.windowList().first { $0.cgWindowID == windowID }
     }
 
-    /// Logs window details for debugging
-    private func logWindowDetails(_ window: Window, _ app: NSRunningApplication, _ isLoop: Bool, _ isRegular: Bool, _ isVisible: Bool) {
-        writeToOutput("[URLHandler] Window: \(window.title ?? "unknown")")
-        writeToOutput("  - App: \(app.localizedName ?? "unknown")")
-        writeToOutput("  - Bundle ID: \(app.bundleIdentifier ?? "unknown")")
-        writeToOutput("  - Is Loop: \(isLoop)")
-        writeToOutput("  - Is Regular: \(isRegular)")
-        writeToOutput("  - Is Visible: \(isVisible)")
+    /// Resolves the target window from targeting parameters
+    /// Priority: windowID > bundleID > frontmost window
+    /// - Parameter params: Targeting parameters
+    /// - Returns: The resolved window, or nil if not found
+    private func resolveWindow(params: TargetParams = .init()) -> Window? {
+        if let windowID = params.windowID {
+            return findWindowByID(windowID)
+        }
+        if let bundleID = params.bundleID {
+            return resolveWindowByBundleID(bundleID)
+        }
+        return try? WindowUtility.frontmostWindow()
     }
 
-    /// Logs selected window details
-    private func logSelectedWindow(_ window: Window, _ screen: NSScreen) {
-        writeToOutput("[URLHandler] Selected window for action:")
-        writeToOutput("  - Title: \(window.title ?? "unknown")")
-        writeToOutput("  - App: \(window.nsRunningApplication?.localizedName ?? "unknown")")
-        writeToOutput("  - Screen: \(screen.localizedName)")
-        writeToOutput("  - Current Frame: \(window.frame)")
+    /// Resolves a window by bundle ID, launching the app if needed
+    /// - Parameter bundleID: The bundle identifier of the app
+    /// - Returns: The app's frontmost window, or nil if not found
+    private func resolveWindowByBundleID(_ bundleID: String) -> Window? {
+        // Check if already running
+        if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID }) {
+            app.activate(options: .activateIgnoringOtherApps)
+            // Brief pause to let activation settle
+            Thread.sleep(forTimeInterval: 0.1)
+            return try? Window(pid: app.processIdentifier)
+        }
+
+        // Not running — try to launch it
+        guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
+            log.error("No app found for bundle ID: \(bundleID)")
+            return nil
+        }
+
+        let config = NSWorkspace.OpenConfiguration()
+        config.activates = true
+
+        let semaphore = DispatchSemaphore(value: 0)
+        var launchedApp: NSRunningApplication?
+        NSWorkspace.shared.openApplication(at: appURL, configuration: config) { app, error in
+            if let error {
+                Self.log.error("Failed to launch \(bundleID): \(error.localizedDescription)")
+            }
+            launchedApp = app
+            semaphore.signal()
+        }
+        _ = semaphore.wait(timeout: .now() + 5)
+
+        guard let app = launchedApp else { return nil }
+
+        // Wait for the app to create a window (up to 3 seconds)
+        for _ in 0..<30 {
+            Thread.sleep(forTimeInterval: 0.1)
+            if let window = try? Window(pid: app.processIdentifier) {
+                return window
+            }
+        }
+
+        log.error("App launched but no window appeared: \(bundleID)")
+        return nil
+    }
+
+    /// Resolves a screen by display ID, falling back to the main screen
+    /// - Parameter screenID: Optional display ID to target a specific screen
+    /// - Returns: The resolved screen, or nil if the specified ID was not found
+    private func resolveScreen(screenID: CGDirectDisplayID? = nil) -> NSScreen? {
+        if let screenID {
+            return NSScreen.screens.first { $0.displayID == screenID }
+        }
+        return NSScreen.main
+    }
+
+    /// Builds a human-readable error message for window resolution failure
+    /// - Parameter params: The targeting parameters that were used
+    /// - Returns: Error message string
+    private func windowResolveError(_ params: TargetParams) -> String {
+        if let windowID = params.windowID {
+            return "No window found with ID \(windowID)"
+        }
+        if let bundleID = params.bundleID {
+            return "Could not find or launch app: \(bundleID)"
+        }
+        return "No frontmost window found"
     }
 
     /// Activates and resizes a window
     private func activateAndResizeWindow(_ window: Window, _ action: WindowAction, _ screen: NSScreen) {
-        lastActiveWindow = window
-        lastActiveTime = Date()
-
         if let app = window.nsRunningApplication {
-            writeToOutput("[URLHandler] Activating application: \(app.localizedName ?? "unknown")")
+            log.info("Activating application: \(app.localizedName ?? "unknown")")
             app.activate(options: .activateIgnoringOtherApps)
         }
 
         Task {
             try? await Task.sleep(for: .seconds(0.1))
 
-            writeToOutput("[URLHandler] Executing resize operation")
+            log.info("Executing resize: \(action) on \(window.title ?? "unknown")")
             _ = try? await WindowActionEngine.shared.apply(
                 action,
                 window: window,
                 screen: screen
             )
-            writeToOutput("[URLHandler] New window frame: \(window.frame)")
+            log.info("New window frame: \(window.frame)")
         }
     }
 
@@ -676,7 +754,7 @@ final class URLCommandHandler {
            let targetScreen = direction == .nextScreen ?
            ScreenUtility.nextScreen(from: currentScreen) :
            ScreenUtility.previousScreen(from: currentScreen) {
-            writeToOutput("[URLHandler] Moving window to screen: \(targetScreen.localizedName)")
+            log.info("Moving window to screen: \(targetScreen.localizedName)")
             Task {
                 _ = try? await WindowActionEngine.shared.apply(
                     .init(direction),
@@ -685,7 +763,7 @@ final class URLCommandHandler {
                 )
             }
         } else {
-            writeToOutput("[URLHandler] Failed to find target screen")
+            log.error("Failed to find target screen")
         }
     }
 }

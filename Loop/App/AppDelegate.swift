@@ -152,7 +152,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LogManager.shared.configuration.includeFileAndLineNumber = false
     }
 
-    @objc func handleGetURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent _: NSAppleEventDescriptor) {
+    @objc func handleGetURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent replyEvent: NSAppleEventDescriptor) {
         guard let urlString = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
               let url = URL(string: urlString) else {
             log.info("Failed to get URL from event")
@@ -160,7 +160,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         log.info("Received URL: \(url)")
-        urlCommandHandler.handle(url)
+        let response = urlCommandHandler.handle(url)
+        log.info("Response: \(response)")
+
+        // Set reply for callers that support Apple Event replies
+        replyEvent.setDescriptor(
+            NSAppleEventDescriptor(string: response),
+            forKeyword: keyDirectObject
+        )
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
