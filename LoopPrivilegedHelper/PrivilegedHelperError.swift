@@ -1,5 +1,5 @@
 //
-//  PrivilegedInstallerError.swift
+//  PrivilegedHelperError.swift
 //  Loop
 //
 //  Created by Kai Azim on 2026-02-23.
@@ -7,11 +7,12 @@
 
 import Foundation
 
-enum PrivilegedInstallerError: LocalizedError {
+enum PrivilegedHelperError: LocalizedError {
     case ownershipLookupFailed(url: URL)
     case ownershipChangeFailed(url: URL, code: Int32)
     case pathValidationFailed(operation: String, path: String, reason: String)
     case bundleValidationFailed(path: String, reason: String)
+    case commandLineToolInstallFailed(reason: String)
 
     var errorDescription: String? {
         switch self {
@@ -24,6 +25,8 @@ enum PrivilegedInstallerError: LocalizedError {
             return "Rejected privileged \(operation) path \(path): \(reason)"
         case let .bundleValidationFailed(path, reason):
             return "Rejected privileged bundle at \(path): \(reason)"
+        case let .commandLineToolInstallFailed(reason):
+            return "Could not install Loop command-line tool: \(reason)"
         }
     }
 }
