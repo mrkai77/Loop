@@ -16,6 +16,7 @@
 		2A86890D2F80968A005B521B /* LoopDockTile.plugin in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2A8689072F809625005B521B /* LoopDockTile.plugin */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		3ED0A7B92F21DF6800A58629 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 3ED0A7B82F21DF6800A58629 /* ZIPFoundation */; };
 		B1AA00412F30000100AABBCC /* LoopUpdaterHelper in CopyFiles */ = {isa = PBXBuildFile; fileRef = B1AA00012F30000100AABBCC /* LoopUpdaterHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		C1BB00412F30000200AABBCC /* loop-cli in CopyFiles */ = {isa = PBXBuildFile; fileRef = C1BB00012F30000200AABBCC /* loop-cli */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		F06D768A2DFF7A77007EEDA9 /* SkyLight.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F06D76892DFF7A77007EEDA9 /* SkyLight.framework */; };
 /* End PBXBuildFile section */
 
@@ -41,6 +42,13 @@
 			remoteGlobalIDString = B1AA00112F30000100AABBCC;
 			remoteInfo = LoopUpdaterHelper;
 		};
+		C1BB00512F30000200AABBCC /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = A8E59C2D297F5E9A0064D4BA /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C1BB00112F30000200AABBCC;
+			remoteInfo = LoopCLI;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
@@ -64,6 +72,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C1BB00612F30000200AABBCC /* CopyFiles */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 6;
+			files = (
+				C1BB00412F30000200AABBCC /* loop-cli in CopyFiles */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
@@ -76,6 +94,7 @@
 		A8E59C35297F5E9A0064D4BA /* Loop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Loop.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A8E6D1FC2A4155DC005751D4 /* .gitignore */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
 		B1AA00012F30000100AABBCC /* LoopUpdaterHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LoopUpdaterHelper; sourceTree = BUILT_PRODUCTS_DIR; };
+		C1BB00012F30000200AABBCC /* loop-cli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "loop-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1AA00802F30000100AABBCC /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
 		F06D76892DFF7A77007EEDA9 /* SkyLight.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SkyLight.framework; path = ../../../../System/Library/PrivateFrameworks/SkyLight.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -122,6 +141,7 @@
 		2ACE2DEA3043A6F600C4FECB /* LoopTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LoopTests; sourceTree = "<group>"; };
 		A8C751AC2D7BA98600B58784 /* Loop */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A8C751FF2D7BA98600B58784 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Loop; sourceTree = "<group>"; };
 		B1AA00022F30000100AABBCC /* LoopUpdaterHelper */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (2A5DD5CC2F5D270C0077AB3C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = LoopUpdaterHelper; sourceTree = "<group>"; };
+		C1BB00022F30000200AABBCC /* LoopCLI */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LoopCLI; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -161,6 +181,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C1BB00102F30000200AABBCC /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
@@ -185,6 +212,7 @@
 				B1AA00022F30000100AABBCC /* LoopUpdaterHelper */,
 				2A86890E2F809700005B521B /* LoopDockTile */,
 				2ACE2DEA3043A6F600C4FECB /* LoopTests */,
+				C1BB00022F30000200AABBCC /* LoopCLI */,
 				A8E59C36297F5E9A0064D4BA /* Products */,
 				A883642D298B7288005D6C19 /* Frameworks */,
 				2A6A87F02F4D20D2004E995D /* Shared */,
@@ -198,6 +226,7 @@
 				B1AA00012F30000100AABBCC /* LoopUpdaterHelper */,
 				2A8689072F809625005B521B /* LoopDockTile.plugin */,
 				2ACE2DE93043A6F600C4FECB /* LoopTests.xctest */,
+				C1BB00012F30000200AABBCC /* loop-cli */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -259,6 +288,7 @@
 				A8E59C32297F5E9A0064D4BA /* Frameworks */,
 				B1AA00612F30000100AABBCC /* CopyFiles */,
 				2A86890C2F80967B005B521B /* CopyFiles */,
+				C1BB00612F30000200AABBCC /* CopyFiles */,
 				A8E59C33297F5E9A0064D4BA /* Resources */,
 			);
 			buildRules = (
@@ -266,6 +296,7 @@
 			dependencies = (
 				B1AA00712F30000100AABBCC /* PBXTargetDependency */,
 				2A8689112F809800005B521B /* PBXTargetDependency */,
+				C1BB00712F30000200AABBCC /* PBXTargetDependency */,
 			);
 			fileSystemSynchronizedGroups = (
 				2A6A87F02F4D20D2004E995D /* Shared */,
@@ -306,6 +337,25 @@
 			productReference = B1AA00012F30000100AABBCC /* LoopUpdaterHelper */;
 			productType = "com.apple.product-type.tool";
 		};
+		C1BB00112F30000200AABBCC /* LoopCLI */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C1BB00212F30000200AABBCC /* Build configuration list for PBXNativeTarget "LoopCLI" */;
+			buildPhases = (
+				C1BB00122F30000200AABBCC /* Sources */,
+				C1BB00102F30000200AABBCC /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				C1BB00022F30000200AABBCC /* LoopCLI */,
+			);
+			name = LoopCLI;
+			productName = "loop-cli";
+			productReference = C1BB00012F30000200AABBCC /* loop-cli */;
+			productType = "com.apple.product-type.tool";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -327,6 +377,9 @@
 						CreatedOnToolsVersion = 14.2;
 					};
 					B1AA00112F30000100AABBCC = {
+						CreatedOnToolsVersion = 16.0;
+					};
+					C1BB00112F30000200AABBCC = {
 						CreatedOnToolsVersion = 16.0;
 					};
 				};
@@ -367,6 +420,7 @@
 				B1AA00112F30000100AABBCC /* LoopUpdaterHelper */,
 				2A8689062F809625005B521B /* LoopDockTile */,
 				2ACE2DE83043A6F600C4FECB /* LoopTests */,
+				C1BB00112F30000200AABBCC /* LoopCLI */,
 			);
 		};
 /* End PBXProject section */
@@ -431,6 +485,13 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C1BB00122F30000200AABBCC /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
@@ -448,6 +509,11 @@
 			isa = PBXTargetDependency;
 			target = B1AA00112F30000100AABBCC /* LoopUpdaterHelper */;
 			targetProxy = B1AA00512F30000100AABBCC /* PBXContainerItemProxy */;
+		};
+		C1BB00712F30000200AABBCC /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C1BB00112F30000200AABBCC /* LoopCLI */;
+			targetProxy = C1BB00512F30000200AABBCC /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
@@ -1001,6 +1067,56 @@
 			};
 			name = Development;
 		};
+		C1BB00312F30000200AABBCC /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 5F967GYF84;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MrKai77.Loop.CLI;
+				PRODUCT_NAME = "loop-cli";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		C1BB00322F30000200AABBCC /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 5F967GYF84;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MrKai77.Loop.CLI;
+				PRODUCT_NAME = "loop-cli";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		C1BB00332F30000200AABBCC /* Development */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
+				DEVELOPMENT_TEAM = 5F967GYF84;
+				ENABLE_HARDENED_RUNTIME = YES;
+				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MrKai77.Loop.CLI;
+				PRODUCT_NAME = "loop-cli";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Development;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -1050,6 +1166,16 @@
 				B1AA00312F30000100AABBCC /* Debug */,
 				B1AA00322F30000100AABBCC /* Release */,
 				B1AA00332F30000100AABBCC /* Development */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C1BB00212F30000200AABBCC /* Build configuration list for PBXNativeTarget "LoopCLI" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C1BB00312F30000200AABBCC /* Debug */,
+				C1BB00322F30000200AABBCC /* Release */,
+				C1BB00332F30000200AABBCC /* Development */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

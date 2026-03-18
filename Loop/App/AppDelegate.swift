@@ -14,6 +14,7 @@ import UserNotifications
 @Loggable
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let urlCommandHandler = URLCommandHandler()
+    private lazy var loopServer = LoopServer(handler: urlCommandHandler)
 
     private static let terminateNotificationName = Notification.Name("com.MrKai77.Loop.terminate")
     private var terminateObserver: Any?
@@ -75,6 +76,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await Updater.shared.fetchLatestInfo()
             await Updater.shared.showUpdateWindowIfEligible()
         }
+
+        // Start the Unix socket server for loop-cli
+        loopServer.start()
     }
 
     /// Subscribes to the terminate notification so this instance shuts down when a newer Loop instance launches.
@@ -186,6 +190,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LoopManager.shared.shutdown()
         WindowDragManager.shared.shutdown()
         StashManager.shared.shutdown()
+        loopServer.stop()
         return .terminateNow
     }
 

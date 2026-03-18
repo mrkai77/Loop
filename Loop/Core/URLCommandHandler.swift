@@ -202,8 +202,9 @@ final class URLCommandHandler {
 
     // MARK: - Public Methods
 
-    /// Handles incoming URL scheme requests and returns a JSON response string
-    /// - Parameter url: The URL to process
+    /// Handles incoming URL scheme requests and returns a JSON response string.
+    /// This is the entry point for `loop://` URL scheme events.
+    /// - Parameter url: The URL to process (e.g., `loop://direction/right?bundleID=com.apple.Safari`)
     /// - Returns: A JSON string containing the response
     @discardableResult
     func handle(_ url: URL) -> String {
@@ -226,6 +227,61 @@ final class URLCommandHandler {
             screenID: queryItems?.first(where: { $0.name == "screenID" })?.value.flatMap { UInt32($0) }
         )
 
+        let components = (url.host.map { [$0] } ?? []) + url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
+
+        return execute(components, params: params)
+    }
+
+    /// Executes a raw command string and returns a JSON response.
+    /// This is the entry point for the Unix socket (loop-cli).
+    ///
+    /// Format: `<command> [args...] [--window-id <id>] [--bundle-id <id>] [--screen-id <id>]`
+    ///
+    /// Examples:
+    /// - `windowlist`
+    /// - `direction right`
+    /// - `direction right --bundle-id com.apple.Safari --screen-id 123`
+    /// - `action maximize --window-id 1234`
+    ///
+    /// - Parameter input: The raw command string
+    /// - Returns: A JSON string containing the response
+    func executeRaw(_ input: String) -> String {
+        log.info("Processing command: \(input)")
+
+        var components: [String] = []
+        var params = TargetParams()
+
+        let tokens = input.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+        var i = 0
+
+        while i < tokens.count {
+            switch tokens[i] {
+            case "--window-id":
+                i += 1
+                if i < tokens.count { params.windowID = UInt32(tokens[i]) }
+            case "--bundle-id":
+                i += 1
+                if i < tokens.count { params.bundleID = tokens[i] }
+            case "--screen-id":
+                i += 1
+                if i < tokens.count { params.screenID = UInt32(tokens[i]) }
+            default:
+                components.append(tokens[i])
+            }
+            i += 1
+        }
+
+        return execute(components, params: params)
+    }
+
+    // MARK: - Command Execution
+
+    /// Core command execution. Both `handle()` (URL scheme) and `executeRaw()` (socket) converge here.
+    /// - Parameters:
+    ///   - components: Path components (e.g., `["direction", "right"]`)
+    ///   - params: Targeting parameters (windowID/bundleID/screenID)
+    /// - Returns: A JSON string containing the response
+    private func execute(_ components: [String], params: TargetParams) -> String {
         // windowID and bundleID are mutually exclusive
         if params.windowID != nil, params.bundleID != nil {
             return jsonString([
@@ -233,8 +289,6 @@ final class URLCommandHandler {
                 "error": "windowID and bundleID are mutually exclusive"
             ])
         }
-
-        let components = (url.host.map { [$0] } ?? []) + url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
 
         guard let commandString = components.first,
               let command = Command(rawValue: commandString.lowercased()) else {
@@ -245,18 +299,7 @@ final class URLCommandHandler {
             ])
         }
 
-        return processCommand(command, Array(components.dropFirst()), params: params)
-    }
-
-    // MARK: - Command Processing
-
-    /// Processes a command with its parameters and returns a JSON response string
-    /// - Parameters:
-    ///   - command: The command to process
-    ///   - parameters: Array of command parameters
-    ///   - params: Targeting parameters (windowID/bundleID/screenID)
-    /// - Returns: A JSON string containing the response
-    private func processCommand(_ command: Command, _ parameters: [String], params: TargetParams = .init()) -> String {
+        let parameters = Array(components.dropFirst())
         log.info("\(command.rawValue) \(parameters)")
 
         let response: [String: Any]
@@ -684,7 +727,7 @@ final class URLCommandHandler {
         var launchedApp: NSRunningApplication?
         NSWorkspace.shared.openApplication(at: appURL, configuration: config) { app, error in
             if let error {
-                Self.log.error("Failed to launch \(bundleID): \(error.localizedDescription)")
+                self.log.error("Failed to launch \(bundleID): \(error.localizedDescription)")
             }
             launchedApp = app
             semaphore.signal()
