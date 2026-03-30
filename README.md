@@ -114,16 +114,15 @@ To set Caps Lock as your trigger key, you have two options:
 
 #### c. Shell/AppleScript
 
-Loop can be controlled via shell commands or AppleScript using its URL scheme:
+Loop can be controlled from the shell or AppleScript using its URL scheme:
 
 ```bash
 # Shell examples
 open "loop://direction/right"     # Move window to right half
-open "loop://action/maximize"     # Maximize window
-open "loop://screen/next"         # Move to next screen
+open "loop://direction/maximize"  # Maximize window
+open "loop://direction/next_screen" # Move to next screen
 
-# AppleScript examples
-osascript -e 'tell application "Loop" to activate'
+# AppleScript example
 osascript -e 'open location "loop://direction/left"'
 ```
 
@@ -134,15 +133,28 @@ You can also create custom scripts to chain multiple actions:
 # Example: Move window right and then maximize
 open "loop://direction/right"
 sleep 0.5
-open "loop://action/maximize"
+open "loop://direction/maximize"
 ```
 
-For a complete list of available commands:
+Read-style URL commands open a Loop output window with selectable JSON:
 
 ```bash
-open "loop://list/all"           # List all commands
-open "loop://list/actions"       # List window actions
-open "loop://list/keybinds"      # List custom keybinds
+open "loop://list/windows"              # List visible windows
+open "loop://list/screens"              # List connected screens
+open "loop://list/actions"              # List all executable actions
+open "loop://list/actions/directions"   # List built-in direction actions
+open "loop://list/actions/keybinds"     # List keybind-backed actions
+```
+
+For machine-readable shell output, install the CLI from Loop's Advanced tab. This creates `/usr/local/bin/loop`, which points at the bundled `loop-cli` binary:
+
+```bash
+loop list windows
+loop list screens
+loop list actions --directions-only
+loop exec --direction right
+loop exec --keybind "My Layout"
+loop exec --id 123e4567-e89b-12d3-a456-426614174000
 ```
 
 ### Keyboard Shortcuts

@@ -5235,6 +5235,12 @@
         }
       }
     },
+    "Command Line Interface" : {
+      "comment" : "Section header shown in settings"
+    },
+    "Command-Line Tool Error" : {
+
+    },
     "Configure…" : {
       "comment" : "Button label that opens a view to configure padding settings.",
       "localizations" : {

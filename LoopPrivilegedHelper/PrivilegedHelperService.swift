@@ -1,5 +1,5 @@
 //
-//  PrivilegedInstallerService.swift
+//  PrivilegedHelperService.swift
 //  Loop
 //
 //  Created by Kai Azim on 2026-02-23.
@@ -12,7 +12,7 @@ import Scribe
 import Security
 
 @Loggable
-final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
+final class PrivilegedHelperService: NSObject, NSXPCListenerDelegate {
     struct TrustedClientContext {
         let clientPID: pid_t
         let clientUID: uid_t
@@ -34,9 +34,9 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
     }
 
     func run() {
-        log.info("Starting privileged installer listener")
+        log.info("Starting privileged helper listener")
         listener.resume()
-        log.success("Privileged installer listener is running")
+        log.success("Privileged helper listener is running")
         RunLoop.current.run()
     }
 
@@ -60,15 +60,14 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
         newConnection.interruptionHandler = { [weak self] in
             self?.releaseActiveConnection(for: pid, reason: "interruption")
         }
-        newConnection.exportedInterface = NSXPCInterface(with: PrivilegedInstallerProtocol.self)
-        newConnection.exportedObject = PrivilegedInstaller(context: context)
+        newConnection.exportedInterface = NSXPCInterface(with: PrivilegedHelperProtocol.self)
+        newConnection.exportedObject = PrivilegedHelper(context: context)
         newConnection.resume()
         log.success("Accepted XPC connection (pid: \(pid), uid: \(context.clientUID))")
 
         return true
     }
 
-    /// Builds per-connection trusted context from authenticated process identity and uid-derived paths.
     private func trustedClientContext(for connection: NSXPCConnection) -> TrustedClientContext? {
         let pid = connection.processIdentifier
         guard pid > 0 else {
@@ -77,7 +76,7 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
         }
 
         guard let app = NSRunningApplication(processIdentifier: pid),
-              app.bundleIdentifier == PrivilegedInstallerConstants.appBundleIdentifier else {
+              app.bundleIdentifier == PrivilegedHelperConstants.appBundleIdentifier else {
             log.warn("Rejecting client pid \(pid) due to bundle identifier mismatch")
             return nil
         }
@@ -128,7 +127,7 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
 
         var requirement: SecRequirement?
         let requirementStatus = SecRequirementCreateWithString(
-            PrivilegedInstallerConstants.authorizedClientRequirement as CFString,
+            PrivilegedHelperConstants.authorizedClientRequirement as CFString,
             SecCSFlags(),
             &requirement
         )
@@ -148,7 +147,6 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
         return true
     }
 
-    /// Resolves a user's home directory and primary group from the system account database.
     private func userAccountInfo(for uid: uid_t) -> (homeDirectory: URL, primaryGroupID: gid_t)? {
         guard let passwdEntry = getpwuid(uid) else {
             return nil
@@ -165,7 +163,6 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
         )
     }
 
-    /// Reserves a single active connection slot to prevent overlapping privileged sessions.
     private func reserveActiveConnection(for pid: pid_t) -> Bool {
         connectionStateLock.lock()
         defer { connectionStateLock.unlock() }
@@ -178,7 +175,6 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
         return true
     }
 
-    /// Releases the active connection slot when that connection ends.
     private func releaseActiveConnection(for pid: pid_t, reason: String) {
         connectionStateLock.lock()
         defer { connectionStateLock.unlock() }

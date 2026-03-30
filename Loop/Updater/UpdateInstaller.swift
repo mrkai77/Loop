@@ -22,7 +22,7 @@ actor UpdateInstaller {
 
     private let backupManager: BackupManager
     private let fileManager: FileManager
-    private let authorizationCoordinator: UpdaterAuthorizationCoordinator
+    private let privilegedHelperCoordinator: PrivilegedHelperCoordinator
 
     private var isCancelled = false
     private var relocateToApplications = false
@@ -44,7 +44,7 @@ actor UpdateInstaller {
     init(fileManager: FileManager = .default) {
         self.fileManager = fileManager
         self.backupManager = BackupManager(fileManager: fileManager)
-        self.authorizationCoordinator = UpdaterAuthorizationCoordinator()
+        self.privilegedHelperCoordinator = PrivilegedHelperCoordinator()
     }
 
     func installUpdate(
@@ -233,7 +233,7 @@ actor UpdateInstaller {
     }
 
     private func permissionStateForRestrictedInstallLocation(baseReason: String) -> InstallationPermissionState {
-        switch authorizationCoordinator.privilegedHelperReadiness() {
+        switch privilegedHelperCoordinator.privilegedHelperReadiness() {
         case .available:
             .needsElevation(reason: baseReason)
         case let .unavailable(helperReason):
@@ -483,7 +483,9 @@ actor UpdateInstaller {
                 log.info("Requesting administrator authorization for privileged installation")
                 var enteredPrivilegedSession = false
                 do {
-                    try await authorizationCoordinator.withPrivilegedSession { session in
+                    try await privilegedHelperCoordinator.withPrivilegedSession(
+                        prompt: "\(Bundle.main.appName) needs administrator permission to install this update."
+                    ) { session in
                         enteredPrivilegedSession = true
                         log.success("Administrator authorization granted; privileged session established")
 
@@ -544,7 +546,7 @@ actor UpdateInstaller {
     private func performRelocationInstall(
         from appBundle: URL,
         manifest: UpdateManifest,
-        cleanupSession: UpdaterAuthorizationCoordinator.PrivilegedSession? = nil
+        cleanupSession: PrivilegedHelperCoordinator.PrivilegedSession? = nil
     ) async throws {
         log.info("Installing to Applications folder")
 
@@ -586,7 +588,7 @@ actor UpdateInstaller {
     private func cleanupOldRelocatedCopyIfNeeded(
         source sourceAppURL: URL,
         destination destinationURL: URL,
-        cleanupSession: UpdaterAuthorizationCoordinator.PrivilegedSession?
+        cleanupSession: PrivilegedHelperCoordinator.PrivilegedSession?
     ) async {
         let canonicalSource = LoopSupportPaths.canonical(sourceAppURL)
         let canonicalDestination = LoopSupportPaths.canonical(destinationURL)
@@ -700,7 +702,7 @@ actor UpdateInstaller {
         from sourceURL: URL,
         to destinationURL: URL,
         manifest: UpdateManifest,
-        session: UpdaterAuthorizationCoordinator.PrivilegedSession
+        session: PrivilegedHelperCoordinator.PrivilegedSession
     ) async throws {
         let stagingURL = stagingRootDirectory
             .appendingPathComponent("\(destinationURL.lastPathComponent).staging", isDirectory: true)
@@ -801,7 +803,7 @@ actor UpdateInstaller {
     private func atomicSwapPrivileged(
         staged stagingURL: URL,
         current currentURL: URL,
-        session: UpdaterAuthorizationCoordinator.PrivilegedSession
+        session: PrivilegedHelperCoordinator.PrivilegedSession
     ) async throws {
         try checkCancellation()
 
@@ -840,7 +842,7 @@ actor UpdateInstaller {
         staged stagingURL: URL,
         rollbackID: String,
         originalError: Error,
-        session: UpdaterAuthorizationCoordinator.PrivilegedSession
+        session: PrivilegedHelperCoordinator.PrivilegedSession
     ) async throws {
         let rollbackContainerURL = rollbackRootDirectory.appendingPathComponent(rollbackID, isDirectory: true)
         let backupBundleURL = rollbackContainerURL.appendingPathComponent(

@@ -9,18 +9,16 @@ import Foundation
 
 // MARK: - Socket Communication
 
-/// Connects to the Loop Unix socket, sends a command URL, and returns the JSON response.
-func sendCommand(_ urlString: String) -> (response: String, success: Bool) {
+/// Connects to the Loop Unix socket, sends a raw command string, and returns the JSON response.
+func sendCommand(_ commandString: String) -> (response: String, success: Bool) {
     let socketPath = "/tmp/loop-\(getuid()).socket"
 
-    // Create socket
     let fd = socket(AF_UNIX, SOCK_STREAM, 0)
     guard fd >= 0 else {
         return (makeError("Failed to create socket"), false)
     }
     defer { close(fd) }
 
-    // Connect
     var addr = sockaddr_un()
     addr.sun_family = sa_family_t(AF_UNIX)
 
@@ -43,13 +41,11 @@ func sendCommand(_ urlString: String) -> (response: String, success: Bool) {
         return (makeError("Loop is not running (could not connect to \(socketPath))"), false)
     }
 
-    // Set timeout
     var timeout = timeval(tv_sec: 5, tv_usec: 0)
     setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
     setsockopt(fd, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
 
-    // Send request
-    let request = urlString + "\n"
+    let request = commandString + "\n"
     let sent = request.utf8.withContiguousStorageIfAvailable { buffer in
         Darwin.write(fd, buffer.baseAddress!, buffer.count)
     } ?? -1
@@ -58,7 +54,6 @@ func sendCommand(_ urlString: String) -> (response: String, success: Bool) {
         return (makeError("Failed to send command"), false)
     }
 
-    // Read response (until EOF)
     var responseData = Data()
     var buffer = [UInt8](repeating: 0, count: 4096)
 
@@ -75,7 +70,6 @@ func sendCommand(_ urlString: String) -> (response: String, success: Bool) {
         return (makeError("Empty response from Loop"), false)
     }
 
-    // Check success field
     let isSuccess: Bool
     if let data = response.data(using: .utf8),
        let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
@@ -96,63 +90,88 @@ func makeError(_ message: String) -> String {
 // MARK: - Command Building
 
 /// Builds a raw command string from CLI arguments.
-/// The command string is sent directly over the socket — no URL wrapping.
-///
-/// Usage: loop-cli <command> [subcommand...] [--window-id <id>] [--bundle-id <id>] [--screen-id <id>]
-///
-/// Examples:
-///   loop-cli windowlist                                      → "windowlist"
-///   loop-cli direction right                                 → "direction right"
-///   loop-cli direction right --bundle-id com.apple.Safari    → "direction right --bundle-id com.apple.Safari"
+/// Arguments are shell-escaped so quoted values such as `--keybind "My Layout"`
+/// survive the socket transport and can be re-tokenized in the app.
 func buildCommand(from args: [String]) -> String? {
     guard !args.isEmpty else { return nil }
 
-    // Validate that flag args have values
-    var i = 0
-    while i < args.count {
-        if args[i] == "--window-id" || args[i] == "--bundle-id" || args[i] == "--screen-id" {
-            guard i + 1 < args.count else {
-                fputs("Error: \(args[i]) requires a value\n", stderr)
+    let flagsRequiringValues: Set<String> = [
+        "--window-id",
+        "--bundle-id",
+        "--screen-id",
+        "--direction",
+        "--keybind",
+        "--id"
+    ]
+
+    var index = 0
+    while index < args.count {
+        if flagsRequiringValues.contains(args[index]) {
+            guard index + 1 < args.count else {
+                fputs("Error: \(args[index]) requires a value\n", stderr)
                 return nil
             }
-            i += 2
+            index += 2
         } else {
-            i += 1
+            index += 1
         }
     }
 
-    return args.joined(separator: " ")
+    return args.map(escapeArgument).joined(separator: " ")
+}
+
+func escapeArgument(_ argument: String) -> String {
+    if argument.isEmpty {
+        return "\"\""
+    }
+
+    let escaped = argument
+        .replacingOccurrences(of: "\\", with: "\\\\")
+        .replacingOccurrences(of: "\"", with: "\\\"")
+
+    return escaped.contains(where: \.isWhitespace) || escaped.contains("\"")
+        ? "\"\(escaped)\""
+        : escaped
 }
 
 // MARK: - Help
 
+let executableName = URL(fileURLWithPath: CommandLine.arguments.first ?? "loop-cli").lastPathComponent
+
 let helpText = """
-loop-cli — Command-line interface for Loop window manager
+\(executableName) — Command-line interface for Loop window manager
 
 USAGE:
-  loop-cli <command> [arguments] [options]
+  \(executableName) list <windows|screens|actions> [--directions-only | --keybinds-only]
+  \(executableName) exec --direction <slug> | --keybind <name> | --id <uuid> [options]
 
-COMMANDS:
-  windowlist                    List all visible windows
-  screenlist                    List all connected screens
-  direction <dir>               Move/resize window (left, right, top, bottom, maximize, center, ...)
-  action <action>               Execute a window action
-  keybind <name>                Execute a custom keybind
-  screen <next|previous>        Move window to another screen
-  list <actions|keybinds|all>   List available commands
+READ COMMANDS:
+  list windows                     List all visible windows
+  list screens                     List all connected screens
+  list actions                     List all executable actions
+  list actions --directions-only   List only built-in direction actions
+  list actions --keybinds-only     List only keybind-backed actions
 
-OPTIONS:
-  --window-id <id>    Target a specific window by ID (from windowlist)
+WRITE COMMANDS:
+  exec --direction <slug>          Execute a built-in direction action
+  exec --keybind <name>            Execute a keybind-backed action by display name
+  exec --id <uuid>                 Execute any action by UUID
+
+TARGET OPTIONS:
+  --window-id <id>    Target a specific window by ID (from `list windows`)
   --bundle-id <id>    Target an app by bundle identifier (launches if needed)
-  --screen-id <id>    Target a specific screen by ID (from screenlist)
+  --screen-id <id>    Target a specific screen by ID (from `list screens`)
+
+OTHER OPTIONS:
   --help, -h          Show this help message
 
 EXAMPLES:
-  loop-cli windowlist
-  loop-cli direction right
-  loop-cli direction right --bundle-id com.apple.Safari
-  loop-cli action maximize --window-id 1234 --screen-id 5678
-  loop-cli list all
+  \(executableName) list windows
+  \(executableName) list actions --directions-only
+  \(executableName) exec --direction right
+  \(executableName) exec --direction next_screen --bundle-id com.apple.Safari
+  \(executableName) exec --keybind "My Layout"
+  \(executableName) exec --id 123e4567-e89b-12d3-a456-426614174000
 
 All commands return JSON. Exit code is 0 on success, 1 on failure.
 """
@@ -167,7 +186,7 @@ if args.isEmpty || args.contains("--help") || args.contains("-h") {
 }
 
 guard let command = buildCommand(from: args) else {
-    fputs("Error: No command specified. Run 'loop-cli --help' for usage.\n", stderr)
+    fputs("Error: Invalid command. Run '\(executableName) --help' for usage.\n", stderr)
     exit(1)
 }
 

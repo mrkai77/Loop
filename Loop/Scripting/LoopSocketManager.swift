@@ -1,5 +1,5 @@
 //
-//  LoopServer.swift
+//  LoopSocketManager.swift
 //  Loop
 //
 //  Created by Kai Azim on 2026-03-18.
@@ -11,17 +11,17 @@ import Scribe
 /// Listens on a Unix domain socket for commands from loop-cli.
 ///
 /// The server accepts connections, reads a raw command string (newline-terminated),
-/// dispatches it to `URLCommandHandler.executeRaw()` on the main thread, and writes
+/// dispatches it to `LoopCommandHandler.executeRaw()` on the main thread, and writes
 /// the JSON response back before closing the connection.
 ///
 /// Command format: `<command> [args...] [--window-id <id>] [--bundle-id <id>] [--screen-id <id>]`
-/// Example: `direction right --bundle-id com.apple.Safari`
+/// Example: `exec --direction right --bundle-id com.apple.Safari`
 @Loggable
-final class LoopServer {
+final class LoopSocketManager {
     // MARK: - Properties
 
     private let socketPath: String
-    private let handler: URLCommandHandler
+    private let handler: LoopCommandHandler
     private var serverFD: Int32 = -1
     private var isRunning = false
 
@@ -35,7 +35,7 @@ final class LoopServer {
 
     // MARK: - Initialization
 
-    init(handler: URLCommandHandler) {
+    init(handler: LoopCommandHandler) {
         self.handler = handler
         self.socketPath = "/tmp/loop-\(getuid()).socket"
     }
@@ -187,7 +187,7 @@ final class LoopServer {
                 semaphore.signal()
                 return
             }
-            response = self.handler.executeRaw(requestString)
+            response = self.handler.executeRaw(requestString).jsonResponse
             semaphore.signal()
         }
 

@@ -13,8 +13,9 @@ import UserNotifications
 
 @Loggable
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let urlCommandHandler = URLCommandHandler()
-    private lazy var loopServer = LoopServer(handler: urlCommandHandler)
+    private let loopCommandHandler = LoopCommandHandler()
+    private lazy var loopSocketManager = LoopSocketManager(handler: loopCommandHandler)
+    private var pendingSettingsWindowOpen: Task<Void, Never>?
 
     private static let terminateNotificationName = Notification.Name("com.MrKai77.Loop.terminate")
     private var terminateObserver: Any?
@@ -38,11 +39,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DataPatcher.run()
         }
 
-        // Show settings window only if not launched as login item AND startHidden is disabled
+        // Normal user-facing launches should open Settings, but URL-driven launches need a chance
+        // to cancel that presentation when their URL event arrives immediately after startup.
         if !launchedAsLoginItem, !Defaults[.startHidden] {
-            SettingsWindowManager.shared.show()
+            scheduleSettingsWindowOpen()
         } else {
-            // Closing also hides the dock icon if needed.
             SettingsWindowManager.shared.close()
         }
 
@@ -77,8 +78,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await Updater.shared.showUpdateWindowIfEligible()
         }
 
-        // Start the Unix socket server for loop-cli
-        loopServer.start()
+        // Start the Unix socket listener for loop-cli
+        loopSocketManager.start()
     }
 
     /// Subscribes to the terminate notification so this instance shuts down when a newer Loop instance launches.
@@ -163,15 +164,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        log.info("Received URL: \(url)")
-        let response = urlCommandHandler.handle(url)
-        log.info("Response: \(response)")
+        processIncomingURL(url, replyEvent: replyEvent)
+    }
 
-        // Set reply for callers that support Apple Event replies
-        replyEvent.setDescriptor(
-            NSAppleEventDescriptor(string: response),
-            forKeyword: keyDirectObject
-        )
+    func applicationShouldOpenUntitledFile(_: NSApplication) -> Bool {
+        !launchedAsLoginItem && !Defaults[.startHidden]
+    }
+
+    func applicationOpenUntitledFile(_: NSApplication) -> Bool {
+        cancelPendingSettingsWindowOpen()
+        SettingsWindowManager.shared.show()
+        return true
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
@@ -179,8 +182,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
-        SettingsWindowManager.shared.show()
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
+        guard !hasVisibleWindows else {
+            return false
+        }
+        
+        scheduleSettingsWindowOpen()
         return true
     }
 
@@ -190,13 +197,53 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LoopManager.shared.shutdown()
         WindowDragManager.shared.shutdown()
         StashManager.shared.shutdown()
-        loopServer.stop()
+        loopSocketManager.stop()
         return .terminateNow
     }
-
+    
     func application(_: NSApplication, open urls: [URL]) {
         for url in urls {
-            urlCommandHandler.handle(url)
+            processIncomingURL(url)
         }
+    }
+    
+    private func processIncomingURL(_ url: URL, replyEvent: NSAppleEventDescriptor? = nil) {
+        cancelPendingSettingsWindowOpen()
+        log.info("Received URL: \(url)")
+
+        let result = loopCommandHandler.handle(url)
+        log.info("Response: \(result.jsonResponse)")
+
+        replyEvent?.setDescriptor(
+            NSAppleEventDescriptor(string: result.jsonResponse),
+            forKeyword: keyDirectObject
+        )
+
+        Task { @MainActor in
+            result.presentIfNeeded()
+        }
+    }
+
+    private func scheduleSettingsWindowOpen() {
+        guard !launchedAsLoginItem, !Defaults[.startHidden] else {
+            return
+        }
+
+        cancelPendingSettingsWindowOpen()
+
+        pendingSettingsWindowOpen = Task { @MainActor [weak self] in
+            await Task.yield()
+            guard !Task.isCancelled else {
+                return
+            }
+
+            self?.pendingSettingsWindowOpen = nil
+            SettingsWindowManager.shared.show()
+        }
+    }
+
+    private func cancelPendingSettingsWindowOpen() {
+        pendingSettingsWindowOpen?.cancel()
+        pendingSettingsWindowOpen = nil
     }
 }

@@ -3,11 +3,11 @@
 <plist version="1.0">
 <dict>
 	<key>CFBundleIdentifier</key>
-	<string>com.MrKai77.Loop.UpdaterHelper</string>
+	<string>com.MrKai77.Loop.PrivilegedHelper</string>
 	<key>CFBundleExecutable</key>
 	<string>$(EXECUTABLE_NAME)</string>
 	<key>CFBundleName</key>
-	<string>LoopUpdaterHelper</string>
+	<string>LoopPrivilegedHelper</string>
 	<key>CFBundlePackageType</key>
 	<string>BNDL</string>
 </dict>

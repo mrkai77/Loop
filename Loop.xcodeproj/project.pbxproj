@@ -15,7 +15,7 @@
 		2A504E8A2FFD8E8800694B30 /* Subsurface in Frameworks */ = {isa = PBXBuildFile; productRef = 2A504E892FFD8E8800694B30 /* Subsurface */; };
 		2A86890D2F80968A005B521B /* LoopDockTile.plugin in CopyFiles */ = {isa = PBXBuildFile; fileRef = 2A8689072F809625005B521B /* LoopDockTile.plugin */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		3ED0A7B92F21DF6800A58629 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 3ED0A7B82F21DF6800A58629 /* ZIPFoundation */; };
-		B1AA00412F30000100AABBCC /* LoopUpdaterHelper in CopyFiles */ = {isa = PBXBuildFile; fileRef = B1AA00012F30000100AABBCC /* LoopUpdaterHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		B1AA00412F30000100AABBCC /* LoopPrivilegedHelper in CopyFiles */ = {isa = PBXBuildFile; fileRef = B1AA00012F30000100AABBCC /* LoopPrivilegedHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		C1BB00412F30000200AABBCC /* loop-cli in CopyFiles */ = {isa = PBXBuildFile; fileRef = C1BB00012F30000200AABBCC /* loop-cli */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		F06D768A2DFF7A77007EEDA9 /* SkyLight.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F06D76892DFF7A77007EEDA9 /* SkyLight.framework */; };
 /* End PBXBuildFile section */
@@ -40,7 +40,7 @@
 			containerPortal = A8E59C2D297F5E9A0064D4BA /* Project object */;
 			proxyType = 1;
 			remoteGlobalIDString = B1AA00112F30000100AABBCC;
-			remoteInfo = LoopUpdaterHelper;
+			remoteInfo = LoopPrivilegedHelper;
 		};
 		C1BB00512F30000200AABBCC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -68,7 +68,7 @@
 			dstPath = Contents/Library/LaunchServices;
 			dstSubfolderSpec = 1;
 			files = (
-				B1AA00412F30000100AABBCC /* LoopUpdaterHelper in CopyFiles */,
+				B1AA00412F30000100AABBCC /* LoopPrivilegedHelper in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -93,9 +93,9 @@
 		A894B0C52C4B31AA00B4CE6F /* CONTRIBUTING.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = CONTRIBUTING.md; sourceTree = "<group>"; };
 		A8E59C35297F5E9A0064D4BA /* Loop.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Loop.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A8E6D1FC2A4155DC005751D4 /* .gitignore */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = .gitignore; sourceTree = "<group>"; };
-		B1AA00012F30000100AABBCC /* LoopUpdaterHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LoopUpdaterHelper; sourceTree = BUILT_PRODUCTS_DIR; };
-		C1BB00012F30000200AABBCC /* loop-cli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "loop-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
+		B1AA00012F30000100AABBCC /* LoopPrivilegedHelper */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = LoopPrivilegedHelper; sourceTree = BUILT_PRODUCTS_DIR; };
 		B1AA00802F30000100AABBCC /* Security.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Security.framework; path = System/Library/Frameworks/Security.framework; sourceTree = SDKROOT; };
+		C1BB00012F30000200AABBCC /* loop-cli */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = "loop-cli"; sourceTree = BUILT_PRODUCTS_DIR; };
 		F06D76892DFF7A77007EEDA9 /* SkyLight.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SkyLight.framework; path = ../../../../System/Library/PrivateFrameworks/SkyLight.framework; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -105,15 +105,15 @@
 			membershipExceptions = (
 				Info.plist,
 			);
-			target = B1AA00112F30000100AABBCC /* LoopUpdaterHelper */;
+			target = B1AA00112F30000100AABBCC /* LoopPrivilegedHelper */;
 		};
 		2A6A87F22F4D20F4004E995D /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				LoopSupportPaths.swift,
-				PrivilegedInstallerProtocol.swift,
+				PrivilegedHelperProtocol.swift,
 			);
-			target = B1AA00112F30000100AABBCC /* LoopUpdaterHelper */;
+			target = B1AA00112F30000100AABBCC /* LoopPrivilegedHelper */;
 		};
 		A8C751FF2D7BA98600B58784 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
@@ -140,7 +140,7 @@
 		2A86890E2F809700005B521B /* LoopDockTile */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LoopDockTile; sourceTree = "<group>"; };
 		2ACE2DEA3043A6F600C4FECB /* LoopTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LoopTests; sourceTree = "<group>"; };
 		A8C751AC2D7BA98600B58784 /* Loop */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A8C751FF2D7BA98600B58784 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Loop; sourceTree = "<group>"; };
-		B1AA00022F30000100AABBCC /* LoopUpdaterHelper */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (2A5DD5CC2F5D270C0077AB3C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = LoopUpdaterHelper; sourceTree = "<group>"; };
+		B1AA00022F30000100AABBCC /* LoopPrivilegedHelper */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (2A5DD5CC2F5D270C0077AB3C /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = LoopPrivilegedHelper; sourceTree = "<group>"; };
 		C1BB00022F30000200AABBCC /* LoopCLI */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LoopCLI; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
@@ -209,7 +209,7 @@
 				A86AFD7529888B29008F4892 /* README.md */,
 				A894B0C52C4B31AA00B4CE6F /* CONTRIBUTING.md */,
 				A8C751AC2D7BA98600B58784 /* Loop */,
-				B1AA00022F30000100AABBCC /* LoopUpdaterHelper */,
+				B1AA00022F30000100AABBCC /* LoopPrivilegedHelper */,
 				2A86890E2F809700005B521B /* LoopDockTile */,
 				2ACE2DEA3043A6F600C4FECB /* LoopTests */,
 				C1BB00022F30000200AABBCC /* LoopCLI */,
@@ -223,7 +223,7 @@
 			isa = PBXGroup;
 			children = (
 				A8E59C35297F5E9A0064D4BA /* Loop.app */,
-				B1AA00012F30000100AABBCC /* LoopUpdaterHelper */,
+				B1AA00012F30000100AABBCC /* LoopPrivilegedHelper */,
 				2A8689072F809625005B521B /* LoopDockTile.plugin */,
 				2ACE2DE93043A6F600C4FECB /* LoopTests.xctest */,
 				C1BB00012F30000200AABBCC /* loop-cli */,
@@ -314,9 +314,9 @@
 			productReference = A8E59C35297F5E9A0064D4BA /* Loop.app */;
 			productType = "com.apple.product-type.application";
 		};
-		B1AA00112F30000100AABBCC /* LoopUpdaterHelper */ = {
+		B1AA00112F30000100AABBCC /* LoopPrivilegedHelper */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = B1AA00212F30000100AABBCC /* Build configuration list for PBXNativeTarget "LoopUpdaterHelper" */;
+			buildConfigurationList = B1AA00212F30000100AABBCC /* Build configuration list for PBXNativeTarget "LoopPrivilegedHelper" */;
 			buildPhases = (
 				B1AA00122F30000100AABBCC /* Sources */,
 				B1AA00102F30000100AABBCC /* Frameworks */,
@@ -327,14 +327,14 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				B1AA00022F30000100AABBCC /* LoopUpdaterHelper */,
+				B1AA00022F30000100AABBCC /* LoopPrivilegedHelper */,
 			);
-			name = LoopUpdaterHelper;
+			name = LoopPrivilegedHelper;
 			packageProductDependencies = (
 				2A03B7282FFD8EDC00B2243F /* Scribe */,
 			);
-			productName = LoopUpdaterHelper;
-			productReference = B1AA00012F30000100AABBCC /* LoopUpdaterHelper */;
+			productName = LoopPrivilegedHelper;
+			productReference = B1AA00012F30000100AABBCC /* LoopPrivilegedHelper */;
 			productType = "com.apple.product-type.tool";
 		};
 		C1BB00112F30000200AABBCC /* LoopCLI */ = {
@@ -417,7 +417,7 @@
 			projectRoot = "";
 			targets = (
 				A8E59C34297F5E9A0064D4BA /* Loop */,
-				B1AA00112F30000100AABBCC /* LoopUpdaterHelper */,
+				B1AA00112F30000100AABBCC /* LoopPrivilegedHelper */,
 				2A8689062F809625005B521B /* LoopDockTile */,
 				2ACE2DE83043A6F600C4FECB /* LoopTests */,
 				C1BB00112F30000200AABBCC /* LoopCLI */,
@@ -507,7 +507,7 @@
 		};
 		B1AA00712F30000100AABBCC /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = B1AA00112F30000100AABBCC /* LoopUpdaterHelper */;
+			target = B1AA00112F30000100AABBCC /* LoopPrivilegedHelper */;
 			targetProxy = B1AA00512F30000100AABBCC /* PBXContainerItemProxy */;
 		};
 		C1BB00712F30000200AABBCC /* PBXTargetDependency */ = {
@@ -987,10 +987,10 @@
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = LoopUpdaterHelper/Info.plist;
+				INFOPLIST_FILE = LoopPrivilegedHelper/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.MrKai77.Loop.UpdaterHelper;
-				PRODUCT_NAME = LoopUpdaterHelper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MrKai77.Loop.PrivilegedHelper;
+				PRODUCT_NAME = LoopPrivilegedHelper;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
 				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
 				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
@@ -1018,10 +1018,10 @@
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = LoopUpdaterHelper/Info.plist;
+				INFOPLIST_FILE = LoopPrivilegedHelper/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.MrKai77.Loop.UpdaterHelper;
-				PRODUCT_NAME = LoopUpdaterHelper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MrKai77.Loop.PrivilegedHelper;
+				PRODUCT_NAME = LoopPrivilegedHelper;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
 				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
 				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
@@ -1050,10 +1050,10 @@
 				ENABLE_RESOURCE_ACCESS_LOCATION = NO;
 				ENABLE_RESOURCE_ACCESS_PHOTO_LIBRARY = NO;
 				GENERATE_INFOPLIST_FILE = NO;
-				INFOPLIST_FILE = LoopUpdaterHelper/Info.plist;
+				INFOPLIST_FILE = LoopPrivilegedHelper/Info.plist;
 				MACOSX_DEPLOYMENT_TARGET = 13.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.MrKai77.Loop.UpdaterHelper;
-				PRODUCT_NAME = LoopUpdaterHelper;
+				PRODUCT_BUNDLE_IDENTIFIER = com.MrKai77.Loop.PrivilegedHelper;
+				PRODUCT_NAME = LoopPrivilegedHelper;
 				RUNTIME_EXCEPTION_ALLOW_DYLD_ENVIRONMENT_VARIABLES = NO;
 				RUNTIME_EXCEPTION_ALLOW_JIT = NO;
 				RUNTIME_EXCEPTION_ALLOW_UNSIGNED_EXECUTABLE_MEMORY = NO;
@@ -1160,7 +1160,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		B1AA00212F30000100AABBCC /* Build configuration list for PBXNativeTarget "LoopUpdaterHelper" */ = {
+		B1AA00212F30000100AABBCC /* Build configuration list for PBXNativeTarget "LoopPrivilegedHelper" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				B1AA00312F30000100AABBCC /* Debug */,
