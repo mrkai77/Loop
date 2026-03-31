@@ -164,7 +164,7 @@ final class LoopSocketManager {
         }
 
         guard totalRead > 0 else {
-            writeResponse(clientFD, #"{"success":false,"error":"Empty request"}"#)
+            writeResponse(clientFD, encodedErrorResponse(message: "Empty request"))
             return
         }
 
@@ -173,7 +173,7 @@ final class LoopSocketManager {
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
         guard !requestString.isEmpty else {
-            writeResponse(clientFD, #"{"success":false,"error":"Empty request"}"#)
+            writeResponse(clientFD, encodedErrorResponse(message: "Empty request"))
             return
         }
 
@@ -183,7 +183,7 @@ final class LoopSocketManager {
 
         DispatchQueue.main.async { [weak self] in
             guard let self else {
-                response = #"{"success":false,"error":"Server shutting down"}"#
+                response = Self.fallbackEncodedErrorResponse(message: "Server shutting down")
                 semaphore.signal()
                 return
             }
@@ -194,10 +194,26 @@ final class LoopSocketManager {
         _ = semaphore.wait(timeout: .now() + Self.connectionTimeout)
 
         if response.isEmpty {
-            response = #"{"success":false,"error":"Request timed out"}"#
+            response = encodedErrorResponse(message: "Request timed out")
         }
 
         writeResponse(clientFD, response)
+    }
+
+    private func encodedErrorResponse(message: String) -> String {
+        do {
+            return try LoopAutomationJSON.encodeString(
+                LoopAutomationResponse(
+                    error: LoopAutomationError(message: message)
+                )
+            )
+        } catch {
+            return Self.fallbackEncodedErrorResponse(message: message)
+        }
+    }
+
+    private static func fallbackEncodedErrorResponse(message: String) -> String {
+        #"{"error":{"message":"\#(message)"},"success":false}"#
     }
 
     private func writeResponse(_ fd: Int32, _ response: String) {

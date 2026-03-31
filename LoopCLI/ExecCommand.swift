@@ -41,8 +41,11 @@ struct ExecCommand: ParsableCommand, CLIRequestCommand {
     @OptionGroup
     var outputOptions: OutputOptions
 
-    var outputMode: CLIOutputMode {
-        outputOptions.outputMode
+    var outputConfiguration: CLIOutputConfiguration {
+        CLIOutputConfiguration(
+            mode: outputOptions.outputMode,
+            showIDs: false
+        )
     }
 
     func validate() throws {

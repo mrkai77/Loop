@@ -16,26 +16,36 @@ struct ListCommand: ParsableCommand, CLIRequestCommand {
     @Argument(help: "What to list")
     var subject: ListSubject
 
-    @Flag(name: .customLong("directions-only"), help: "List only built-in direction actions")
+    @Flag(name: .customLong("directions"), help: "List only built-in direction actions")
     var directionsOnly = false
 
-    @Flag(name: .customLong("keybinds-only"), help: "List only keybind-backed actions")
+    @Flag(name: .customLong("keybinds"), help: "List only keybind-backed actions")
     var keybindsOnly = false
+
+    @Flag(name: .customLong("ids"), help: "Show action UUIDs in `list actions` output")
+    var ids = false
 
     @OptionGroup
     var outputOptions: OutputOptions
 
-    var outputMode: CLIOutputMode {
-        outputOptions.outputMode
+    var outputConfiguration: CLIOutputConfiguration {
+        CLIOutputConfiguration(
+            mode: outputOptions.outputMode,
+            showIDs: ids
+        )
     }
 
     func validate() throws {
         if directionsOnly, keybindsOnly {
-            throw ValidationError("--directions-only and --keybinds-only are mutually exclusive")
+            throw ValidationError("--directions and --keybinds are mutually exclusive")
         }
 
         if subject != .actions, directionsOnly || keybindsOnly {
-            throw ValidationError("--directions-only and --keybinds-only are only valid with `list actions`")
+            throw ValidationError("--directions and --keybinds are only valid with `list actions`")
+        }
+
+        if subject != .actions, ids {
+            throw ValidationError("--ids is only valid with `list actions`")
         }
     }
 

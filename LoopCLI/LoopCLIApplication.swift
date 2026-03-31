@@ -28,16 +28,16 @@ final class LoopCLIApplication {
         self.outputFormatter = outputFormatter
     }
 
-    func execute(_ request: CLIRequest, outputMode: CLIOutputMode) throws {
+    func execute(_ request: CLIRequest, outputConfiguration: CLIOutputConfiguration) throws {
         let response = try socketClient.send(request)
         guard response.isSuccess else {
             throw errorFormatter.error(from: response)
         }
 
-        print(outputFormatter.format(response, mode: outputMode))
+        print(outputFormatter.format(response, configuration: outputConfiguration))
     }
 
-    func resolveKeybind(named displayName: String) throws -> CLIActionDescriptor {
+    func resolveKeybind(named displayName: String) throws -> LoopActionDescriptor {
         let response = try socketClient.send(
             CLIRequest(routeComponents: ["list", "actions", "keybinds"])
         )
@@ -59,7 +59,7 @@ final class LoopCLIApplication {
             throw errorFormatter.runtimeError(
                 """
                 Unknown keybind name: \(displayName)
-                Try: \(Self.executableName) list actions --keybinds-only
+                Try: \(Self.executableName) list actions --keybinds
                 """
             )
         }

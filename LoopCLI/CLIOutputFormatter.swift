@@ -5,370 +5,222 @@
 //  Created by Kai Azim on 2026-03-30.
 //
 
+import Darwin
 import Foundation
+import CoreGraphics
 
 struct CLIOutputFormatter {
-    func format(_ response: CLIResponse, mode: CLIOutputMode) -> String {
-        switch mode {
+    private let supportsANSIStyle = isatty(STDOUT_FILENO) != 0
+        && ProcessInfo.processInfo.environment["NO_COLOR"] == nil
+        && ProcessInfo.processInfo.environment["TERM"]?.lowercased() != "dumb"
+
+    func format(_ response: CLIResponse, configuration: CLIOutputConfiguration) -> String {
+        switch configuration.mode {
         case .json:
             return response.rawOutput
         case .human:
-            guard let jsonBody = response.jsonBody else {
+            guard let result = response.result else {
                 return response.rawOutput
             }
 
-            return formatHuman(jsonBody) ?? formatGenericValue(jsonBody, indentLevel: 0)
+            switch result {
+            case let .windowList(result):
+                return formatWindows(result.windows)
+            case let .screenList(result):
+                return formatScreens(result.screens)
+            case let .actionList(result):
+                return formatActions(result, showIDs: configuration.showIDs)
+            case let .execution(result):
+                return formatExecution(result)
+            }
         }
     }
 
-    private func formatHuman(_ body: [String: Any]) -> String? {
-        guard let command = stringValue(body["command"])?.lowercased() else {
-            return nil
-        }
-
-        switch command {
-        case "list":
-            return formatList(body)
-        case "direction", "keybind", "id":
-            return formatExecution(body)
-        default:
-            return nil
-        }
-    }
-
-    private func formatList(_ body: [String: Any]) -> String? {
-        guard let type = stringValue(body["type"])?.lowercased() else {
-            return nil
-        }
-
-        switch type {
-        case "windows":
-            return formatWindows(body)
-        case "screens":
-            return formatScreens(body)
-        case "actions":
-            return formatActions(body)
-        default:
-            return nil
-        }
-    }
-
-    private func formatWindows(_ body: [String: Any]) -> String {
-        let windows = dictionaryArray(body["windows"])
-        var lines = ["Windows (\(windows.count))"]
-
+    private func formatWindows(_ windows: [LoopWindowSummary]) -> String {
         guard !windows.isEmpty else {
-            return lines[0]
+            return "No windows"
         }
 
-        for (index, window) in windows.enumerated() {
-            lines.append("")
-            lines.append("\(index + 1). \(windowHeading(window, fallback: "Window \(index + 1)"))")
+        return windows.enumerated().map { index, window in
+            var lines = [windowPrimaryLine(appName: window.appName, title: window.title, fallback: "Window \(index + 1)")]
 
-            if let title = nonEmptyString(window["windowTitle"]) {
-                lines.append("   Title: \(sanitizeInline(title))")
+            if let metadata = windowMetadataLine(
+                bundleID: window.bundleID,
+                idLabel: "Window ID",
+                id: window.id,
+                frame: window.frame
+            ) {
+                lines.append(dim(metadata))
             }
 
-            if let bundleID = nonEmptyString(window["bundleID"]) {
-                lines.append("   Bundle ID: \(bundleID)")
-            }
-
-            if let windowID = integerString(window["windowID"]) {
-                lines.append("   Window ID: \(windowID)")
-            }
-
-            if let frame = frameString(from: dictionaryValue(window["frame"])) {
-                lines.append("   Frame: \(frame)")
-            }
-        }
-
-        return lines.joined(separator: "\n")
+            return lines.joined(separator: "\n")
+        }.joined(separator: "\n\n")
     }
 
-    private func formatScreens(_ body: [String: Any]) -> String {
-        let screens = dictionaryArray(body["screens"])
-        var lines = ["Screens (\(screens.count))"]
-
+    private func formatScreens(_ screens: [LoopScreenSummary]) -> String {
         guard !screens.isEmpty else {
-            return lines[0]
+            return "No screens"
         }
 
-        for (index, screen) in screens.enumerated() {
-            let name = nonEmptyString(screen["name"]) ?? "Screen \(index + 1)"
-            let isMain = booleanValue(screen["isMain"]) ?? false
-            let suffix = isMain ? " [main]" : ""
+        return screens.enumerated().map { index, screen in
+            var lines = [screenPrimaryLine(screen, fallback: "Screen \(index + 1)")]
 
-            lines.append("")
-            lines.append("\(index + 1). \(sanitizeInline(name))\(suffix)")
-
-            if let screenID = integerString(screen["screenID"]) {
-                lines.append("   Screen ID: \(screenID)")
+            if let metadata = screenMetadataLine(screen) {
+                lines.append(dim(metadata))
             }
 
-            if let frame = frameString(from: dictionaryValue(screen["frame"])) {
-                lines.append("   Frame: \(frame)")
-            }
-        }
-
-        return lines.joined(separator: "\n")
+            return lines.joined(separator: "\n")
+        }.joined(separator: "\n\n")
     }
 
-    private func formatActions(_ body: [String: Any]) -> String {
-        let subtype = stringValue(body["subtype"])?.lowercased()
+    private func formatActions(_ result: LoopActionListResult, showIDs: Bool) -> String {
         var sections: [String] = []
 
-        if subtype == nil || subtype == "directions" {
-            sections.append(formatDirectionSections(dictionaryArray(body["directionActions"])))
+        if !result.directionCategories.isEmpty {
+            sections.append(formatDirectionSections(result.directionCategories, showIDs: showIDs))
         }
 
-        if subtype == nil || subtype == "keybinds" {
-            sections.append(formatKeybindSection(dictionaryArray(body["keybindActions"])))
+        if !result.keybindActions.isEmpty || result.filter == .keybindsOnly || result.filter == .all {
+            sections.append(formatKeybindSection(result.keybindActions, showIDs: showIDs))
         }
 
         let nonEmptySections = sections.filter { !$0.isEmpty }
         if nonEmptySections.isEmpty {
-            return "Actions\n\nNone"
+            return "No actions"
         }
 
         return nonEmptySections.joined(separator: "\n\n")
     }
 
-    private func formatDirectionSections(_ categories: [[String: Any]]) -> String {
+    private func formatDirectionSections(_ categories: [LoopActionCategory], showIDs: Bool) -> String {
         guard !categories.isEmpty else {
-            return "Direction Actions\n\nNone"
+            return "\(bold("- Direction Actions (Built-in) -"))\n\n\(dim("None"))"
         }
 
-        var lines = ["Direction Actions"]
+        var lines = [bold("- Direction Actions (Built-in) -")]
 
-        for category in categories {
-            let categoryName = nonEmptyString(category["category"]) ?? "Actions"
-            let actions = dictionaryArray(category["actions"])
-            let rows = actions.compactMap(directionRow)
-
-            guard !rows.isEmpty else {
-                continue
-            }
-
+        for category in categories where !category.actions.isEmpty {
             lines.append("")
-            lines.append(sanitizeInline(categoryName))
-            lines.append(contentsOf: formatAlignedRows(rows, indent: "  "))
+            lines.append(bold(sanitizeInline(category.name)))
+            lines.append(contentsOf: formatActionRows(category.actions, showIDs: showIDs))
         }
 
         return lines.joined(separator: "\n")
     }
 
-    private func formatKeybindSection(_ keybinds: [[String: Any]]) -> String {
-        var lines = ["Keybind Actions (\(keybinds.count))"]
+    private func formatKeybindSection(_ keybinds: [LoopActionDescriptor], showIDs: Bool) -> String {
+        var lines = [bold("- User-Configured Keybind Actions -")]
 
         guard !keybinds.isEmpty else {
             lines.append("")
-            lines.append("None")
+            lines.append(dim("None"))
             return lines.joined(separator: "\n")
         }
 
-        let duplicateNames = duplicateNameSet(for: keybinds)
         lines.append("")
-        let rows = keybinds.compactMap(keybindRow)
-        let width = rows.map(\.0.count).max() ?? 0
-
-        for keybind in keybinds {
-            guard let row = keybindRow(from: keybind) else {
-                continue
-            }
-
-            lines.append(formatAlignedRow(row, width: width, indent: "  "))
-
-            guard
-                let name = nonEmptyString(keybind["name"]),
-                duplicateNames.contains(name.caseInsensitiveCompareKey),
-                let id = nonEmptyString(keybind["id"])
-            else {
-                continue
-            }
-
-            lines.append("    id: \(id.lowercased())")
-        }
+        lines.append(contentsOf: formatActionRows(keybinds, showIDs: showIDs))
 
         return lines.joined(separator: "\n")
     }
 
-    private func formatExecution(_ body: [String: Any]) -> String {
-        let name = nonEmptyString(body["name"]) ?? "Action"
-        var lines = ["Executed \(sanitizeInline(name))"]
+    private func formatExecution(_ result: LoopExecutionResult) -> String {
+        let slug = sanitizeInline(result.action.slug)
 
-        if let kind = nonEmptyString(body["kind"]) {
-            lines.append("Kind: \(sanitizeInline(kind))")
+        guard let window = result.targetWindow else {
+            return "Successfully executed \(slug)"
         }
 
-        if let slug = nonEmptyString(body["slug"]) {
-            lines.append("Slug: \(sanitizeInline(slug))")
+        if let appName = nonEmptyString(window.appName).map(sanitizeInline) {
+            return "Successfully executed \(slug) on \(appName) (Window ID: \(window.id))"
         }
 
-        if let id = nonEmptyString(body["id"]) {
-            lines.append("ID: \(id.lowercased())")
-        }
-
-        if let window = dictionaryValue(body["window"]) {
-            lines.append("")
-            lines.append("Target Window")
-            lines.append(contentsOf: formatWindowDetails(window, indent: "  "))
-        }
-
-        return lines.joined(separator: "\n")
+        return "Successfully executed \(slug) (Window ID: \(window.id))"
     }
 
-    private func formatWindowDetails(_ window: [String: Any], indent: String) -> [String] {
-        var lines = ["\(indent)App: \(windowHeading(window, fallback: "Unknown"))"]
-
-        if let title = nonEmptyString(window["windowTitle"]) {
-            lines.append("\(indent)Title: \(sanitizeInline(title))")
+    private func formatActionRows(_ actions: [LoopActionDescriptor], showIDs: Bool) -> [String] {
+        let rows = actions.map { action in
+            (slug: sanitizeInline(action.slug), id: action.idString)
         }
 
-        if let bundleID = nonEmptyString(window["bundleID"]) {
-            lines.append("\(indent)Bundle ID: \(bundleID)")
+        guard showIDs else {
+            return rows.map { blue($0.slug) }
         }
 
-        if let windowID = integerString(window["windowID"]) {
-            lines.append("\(indent)Window ID: \(windowID)")
-        }
+        let slugColumnWidth = rows.map(\.slug.count).max() ?? 0
 
-        if let frame = frameString(from: dictionaryValue(window["frame"])) {
-            lines.append("\(indent)Frame: \(frame)")
-        }
-
-        return lines
-    }
-
-    private func formatAlignedRows(_ rows: [(String, String)], indent: String) -> [String] {
-        let width = rows.map(\.0.count).max() ?? 0
-
-        return rows.map { primary, secondary in
-            formatAlignedRow((primary, secondary), width: width, indent: indent)
+        return rows.map { row in
+            let paddedSlug = row.slug.padding(toLength: slugColumnWidth, withPad: " ", startingAt: 0)
+            return "\(blue(paddedSlug))  \(dim(row.id))"
         }
     }
 
-    private func formatAlignedRow(_ row: (String, String), width: Int, indent: String) -> String {
-        let (primary, secondary) = row
-        guard !secondary.isEmpty else {
-            return "\(indent)\(primary)"
-        }
+    private func windowPrimaryLine(appName: String, title: String, fallback: String) -> String {
+        let sanitizedAppName = nonEmptyString(appName).map(sanitizeInline)
+        let sanitizedTitle = nonEmptyString(title).map(quotedTitle)
 
-        let padding = String(repeating: " ", count: max(2, width - primary.count + 2))
-        return "\(indent)\(primary)\(padding)\(secondary)"
-    }
-
-    private func directionRow(from action: [String: Any]) -> (String, String)? {
-        guard let slug = nonEmptyString(action["slug"]) else {
-            return nil
-        }
-
-        let name = nonEmptyString(action["name"]) ?? slug
-        return (sanitizeInline(slug), sanitizeInline(name))
-    }
-
-    private func keybindRow(from action: [String: Any]) -> (String, String)? {
-        guard let slug = nonEmptyString(action["slug"]) else {
-            return nil
-        }
-
-        let name = nonEmptyString(action["name"]) ?? slug
-        return (sanitizeInline(slug), sanitizeInline(name))
-    }
-
-    private func duplicateNameSet(for keybinds: [[String: Any]]) -> Set<String> {
-        var counts: [String: Int] = [:]
-
-        for keybind in keybinds {
-            guard let name = nonEmptyString(keybind["name"]) else {
-                continue
-            }
-
-            counts[name.caseInsensitiveCompareKey, default: 0] += 1
-        }
-
-        return Set(counts.compactMap { key, value in
-            value > 1 ? key : nil
-        })
-    }
-
-    private func windowHeading(_ window: [String: Any], fallback: String) -> String {
-        if let appName = nonEmptyString(window["appName"]) {
-            return sanitizeInline(appName)
-        }
-
-        if let title = nonEmptyString(window["windowTitle"]) {
-            return sanitizeInline(title)
-        }
-
-        return fallback
-    }
-
-    private func frameString(from frame: [String: Any]?) -> String? {
-        guard
-            let frame,
-            let width = integerString(frame["width"]),
-            let height = integerString(frame["height"]),
-            let x = integerString(frame["x"]),
-            let y = integerString(frame["y"])
-        else {
-            return nil
-        }
-
-        return "\(width)x\(height) @ \(x),\(y)"
-    }
-
-    private func dictionaryValue(_ value: Any?) -> [String: Any]? {
-        value as? [String: Any]
-    }
-
-    private func dictionaryArray(_ value: Any?) -> [[String: Any]] {
-        (value as? [Any])?.compactMap { $0 as? [String: Any] } ?? []
-    }
-
-    private func stringValue(_ value: Any?) -> String? {
-        value as? String
-    }
-
-    private func nonEmptyString(_ value: Any?) -> String? {
-        guard let string = stringValue(value)?.trimmingCharacters(in: .whitespacesAndNewlines),
-              !string.isEmpty
-        else {
-            return nil
-        }
-
-        return string
-    }
-
-    private func booleanValue(_ value: Any?) -> Bool? {
-        switch value {
-        case let bool as Bool:
-            return bool
-        case let number as NSNumber:
-            if CFGetTypeID(number) == CFBooleanGetTypeID() {
-                return number.boolValue
-            }
-            return nil
-        default:
-            return nil
+        switch (sanitizedAppName, sanitizedTitle) {
+        case let (appName?, title?):
+            return "\(bold(appName)) \(title)"
+        case let (appName?, nil):
+            return bold(appName)
+        case let (nil, title?):
+            return title
+        case (nil, nil):
+            return fallback
         }
     }
 
-    private func integerString(_ value: Any?) -> String? {
-        switch value {
-        case let int as Int:
-            return String(int)
-        case let int32 as Int32:
-            return String(int32)
-        case let int64 as Int64:
-            return String(int64)
-        case let number as NSNumber:
-            if CFGetTypeID(number) == CFBooleanGetTypeID() {
-                return nil
-            }
-            return String(number.int64Value)
-        default:
-            return nil
+    private func windowMetadataLine(
+        bundleID: String,
+        idLabel: String,
+        id: UInt32,
+        frame: LoopRect?
+    ) -> String? {
+        var parts: [String] = []
+
+        if let bundleID = nonEmptyString(bundleID) {
+            parts.append("Bundle ID: \(bundleID)")
         }
+
+        parts.append("\(idLabel): \(id)")
+
+        if let frame {
+            parts.append("Frame: \(formatLength(frame.width))x\(formatLength(frame.height)) @ \(formatCoordinate(frame.x)),\(formatCoordinate(frame.y))")
+        }
+
+        return parts.isEmpty ? nil : parts.joined(separator: " | ")
+    }
+
+    private func screenPrimaryLine(_ screen: LoopScreenSummary, fallback: String) -> String {
+        let name = nonEmptyString(screen.name).map(sanitizeInline) ?? fallback
+        return screen.isMain ? "\(bold(name)) [main]" : bold(name)
+    }
+
+    private func screenMetadataLine(_ screen: LoopScreenSummary) -> String? {
+        "Screen ID: \(screen.id) | Frame: \(formatLength(screen.frame.width))x\(formatLength(screen.frame.height)) @ \(formatCoordinate(screen.frame.x)),\(formatCoordinate(screen.frame.y))"
+    }
+
+    private func formatLength(_ value: CGFloat) -> String {
+        formatCGFloat(value)
+    }
+
+    private func formatCoordinate(_ value: CGFloat) -> String {
+        formatCGFloat(value)
+    }
+
+    private func formatCGFloat(_ value: CGFloat) -> String {
+        if value.rounded() == value {
+            return String(Int(value))
+        }
+
+        let formatted = String(format: "%.2f", Double(value))
+        return formatted
+            .replacingOccurrences(of: #"\.?0+$"#, with: "", options: .regularExpression)
+    }
+
+    private func nonEmptyString(_ string: String) -> String? {
+        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
+        return trimmed.isEmpty ? nil : trimmed
     }
 
     private func sanitizeInline(_ string: String) -> String {
@@ -379,126 +231,32 @@ struct CLIOutputFormatter {
             .joined(separator: " ")
     }
 
-    private func formatGenericValue(_ value: Any, indentLevel: Int) -> String {
-        if let dictionary = value as? [String: Any] {
-            return formatGenericDictionary(dictionary, indentLevel: indentLevel)
-        }
-
-        if let array = value as? [Any] {
-            return formatGenericArray(array, indentLevel: indentLevel)
-        }
-
-        return formatGenericScalar(value)
+    private func quotedTitle(_ string: String) -> String {
+        let sanitized = sanitizeInline(string).replacingOccurrences(of: "'", with: "\\'")
+        return "'\(sanitized)'"
     }
 
-    private func formatGenericDictionary(_ dictionary: [String: Any], indentLevel: Int) -> String {
-        if dictionary.isEmpty {
-            return "{}"
-        }
-
-        let indent = String(repeating: "  ", count: indentLevel)
-        let sortedKeys = dictionary.keys.sorted()
-
-        return sortedKeys.map { key in
-            let value = dictionary[key]!
-            if isCollection(value) {
-                let renderedValue = formatGenericValue(value, indentLevel: indentLevel + 1)
-                if renderedValue == "{}" || renderedValue == "[]" {
-                    return "\(indent)\(key): \(renderedValue)"
-                }
-                return "\(indent)\(key):\n\(renderedValue)"
-            }
-
-            return "\(indent)\(key): \(formatGenericScalar(value))"
-        }.joined(separator: "\n")
-    }
-
-    private func formatGenericArray(_ array: [Any], indentLevel: Int) -> String {
-        if array.isEmpty {
-            return "[]"
-        }
-
-        let indent = String(repeating: "  ", count: indentLevel)
-        let childIndentLevel = indentLevel + 1
-
-        return array.map { item in
-            if isCollection(item) {
-                let renderedValue = formatGenericValue(item, indentLevel: childIndentLevel)
-                if renderedValue == "{}" || renderedValue == "[]" {
-                    return "\(indent)- \(renderedValue)"
-                }
-
-                return "\(indent)-\n\(renderedValue)"
-            }
-
-            return "\(indent)- \(formatGenericScalar(item))"
-        }.joined(separator: "\n")
-    }
-
-    private func formatGenericScalar(_ value: Any) -> String {
-        switch value {
-        case let string as String:
-            return formatGenericString(string)
-        case let number as NSNumber:
-            if CFGetTypeID(number) == CFBooleanGetTypeID() {
-                return number.boolValue ? "true" : "false"
-            }
-            return number.stringValue
-        case _ as NSNull:
-            return "null"
-        default:
-            return formatGenericString(String(describing: value))
-        }
-    }
-
-    private func formatGenericString(_ string: String) -> String {
-        guard requiresQuoting(string) else {
+    private func bold(_ string: String) -> String {
+        guard supportsANSIStyle else {
             return string
         }
 
-        return "\"\(escape(string))\""
+        return "\u{001B}[1m\(string)\u{001B}[22m"
     }
 
-    private func requiresQuoting(_ string: String) -> Bool {
-        if string.isEmpty {
-            return true
+    private func dim(_ string: String) -> String {
+        guard supportsANSIStyle else {
+            return string
         }
 
-        if string.trimmingCharacters(in: .whitespacesAndNewlines) != string {
-            return true
-        }
-
-        if string.contains("\n") || string.contains("\r") {
-            return true
-        }
-
-        if string.contains(": ") || string.contains("#") {
-            return true
-        }
-
-        if string.contains("{") || string.contains("}") || string.contains("[") || string.contains("]") {
-            return true
-        }
-
-        return false
+        return "\u{001B}[2m\(string)\u{001B}[22m"
     }
 
-    private func escape(_ string: String) -> String {
-        string
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-            .replacingOccurrences(of: "\n", with: "\\n")
-            .replacingOccurrences(of: "\r", with: "\\r")
-            .replacingOccurrences(of: "\t", with: "\\t")
-    }
+    private func blue(_ string: String) -> String {
+        guard supportsANSIStyle else {
+            return string
+        }
 
-    private func isCollection(_ value: Any) -> Bool {
-        value is [String: Any] || value is [Any]
-    }
-}
-
-private extension String {
-    var caseInsensitiveCompareKey: String {
-        lowercased()
+        return "\u{001B}[34m\(string)\u{001B}[39m"
     }
 }

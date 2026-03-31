@@ -157,7 +157,8 @@ For machine-readable shell output, install the CLI from Loop's Advanced tab. Thi
 ```bash
 loop list windows
 loop list screens
-loop list actions --directions-only
+loop list actions --directions
+loop list actions --ids
 loop exec --direction right
 loop exec --keybind "My Layout"
 loop exec --id 123e4567-e89b-12d3-a456-426614174000
@@ -165,7 +166,7 @@ loop list windows --json
 loop exec --direction right --json
 ```
 
-Successful `loop` commands print human-readable structured text by default. Pass `--json` to print the raw JSON response. Runtime failures print plain-text errors to `stderr`, and local usage errors are handled by the CLI's built-in help and validation output.
+Successful `loop` commands print human-readable structured text by default. Pass `--json` to print the raw JSON response. Successful JSON now uses a shared envelope of `{ "success": true, "result": { ... } }`, and failures use `{ "success": false, "error": { ... } }`. Runtime failures print plain-text errors to `stderr`, and local usage errors are handled by the CLI's built-in help and validation output.
 
 ### Keyboard Shortcuts
 

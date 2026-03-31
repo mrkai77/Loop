@@ -18,7 +18,8 @@ struct LoopCLICommand: ParsableCommand {
         Examples:
           \(LoopCLIApplication.executableName) list windows
           \(LoopCLIApplication.executableName) list windows --json
-          \(LoopCLIApplication.executableName) list actions --directions-only
+          \(LoopCLIApplication.executableName) list actions --directions
+          \(LoopCLIApplication.executableName) list actions --ids
           \(LoopCLIApplication.executableName) exec --direction right
           \(LoopCLIApplication.executableName) exec --direction right --json
           \(LoopCLIApplication.executableName) exec --keybind "My Layout"

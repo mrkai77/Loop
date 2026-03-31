@@ -351,6 +351,7 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
+				2A6A87F02F4D20D2004E995D /* Shared */,
 				C1BB00022F30000200AABBCC /* LoopCLI */,
 			);
 			name = LoopCLI;

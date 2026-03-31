@@ -22,6 +22,10 @@
  Socket / CLI transport:
  - loop-cli parses CLI arguments locally and sends canonical loop:// URLs over the socket
 
+ Response JSON:
+ - success responses use `{ "success": true, "result": { ... } }`
+ - failures use `{ "success": false, "error": { "message": "...", ... } }`
+
  Query parameters:
  - ?windowID=<id>
  - ?bundleID=<id>
@@ -99,15 +103,26 @@ final class LoopCommandHandler {
         }
     }
 
-    private enum ListActionFilter {
+    private enum ListActionFilter: Equatable {
         case all
         case directionsOnly
         case keybindsOnly
+
+        var automationFilter: LoopActionListFilter {
+            switch self {
+            case .all:
+                .all
+            case .directionsOnly:
+                .directionsOnly
+            case .keybindsOnly:
+                .keybindsOnly
+            }
+        }
     }
 
     private enum ResponseResult<Value> {
         case success(Value)
-        case failure([String: Any])
+        case failure(LoopAutomationResponse)
     }
 
     private enum MessageResult<Value> {
@@ -165,6 +180,15 @@ final class LoopCommandHandler {
         case direction(DirectionActionDescriptor)
         case keybind(KeybindActionDescriptor)
 
+        var id: UUID {
+            switch self {
+            case let .direction(descriptor):
+                descriptor.id
+            case let .keybind(descriptor):
+                descriptor.id
+            }
+        }
+
         var idString: String {
             switch self {
             case let .direction(descriptor):
@@ -198,6 +222,15 @@ final class LoopCommandHandler {
                 "direction"
             case .keybind:
                 "keybind"
+            }
+        }
+
+        var actionKind: LoopActionKind {
+            switch self {
+            case .direction:
+                .direction
+            case .keybind:
+                .keybind
             }
         }
 
@@ -266,10 +299,9 @@ final class LoopCommandHandler {
                 source: source,
                 kind: .write,
                 components: [],
-                response: [
-                    "success": false,
-                    "error": "Invalid scheme: \(url.scheme ?? "nil"). Required: loop://"
-                ]
+                response: failureResponse(
+                    message: "Invalid scheme: \(url.scheme ?? "nil"). Required: loop://"
+                )
             )
         }
 
@@ -295,10 +327,7 @@ final class LoopCommandHandler {
                 source: source,
                 kind: .write,
                 components: [],
-                response: [
-                    "success": false,
-                    "error": "Invalid request URL: \(request)"
-                ]
+                response: failureResponse(message: "Invalid request URL: \(request)")
             )
         }
 
@@ -317,10 +346,7 @@ final class LoopCommandHandler {
                 source: source,
                 kind: .write,
                 components: components,
-                response: [
-                    "success": false,
-                    "error": "windowID and bundleID are mutually exclusive"
-                ]
+                response: failureResponse(message: "windowID and bundleID are mutually exclusive")
             )
         }
 
@@ -392,7 +418,7 @@ final class LoopCommandHandler {
 
     // MARK: - List Commands
 
-    private func handleListCommand(_ parameters: [String]) -> [String: Any] {
+    private func handleListCommand(_ parameters: [String]) -> LoopAutomationResponse {
         guard let type = parameters.first?.lowercased() else {
             return invalidListRootResponse()
         }
@@ -450,32 +476,22 @@ final class LoopCommandHandler {
         }
     }
 
-    private func buildActionsResponse(filter: ListActionFilter) -> [String: Any] {
-        let directionActions = buildDirectionActionCategoriesJSON()
-        let keybindActions = keybindActionDescriptors().map(keybindActionJSON)
-
-        var response: [String: Any] = [
-            "success": true,
-            "command": "list",
-            "type": "actions"
-        ]
-
-        switch filter {
-        case .all:
-            response["directionActions"] = directionActions
-            response["keybindActions"] = keybindActions
-        case .directionsOnly:
-            response["subtype"] = "directions"
-            response["directionActions"] = directionActions
-        case .keybindsOnly:
-            response["subtype"] = "keybinds"
-            response["keybindActions"] = keybindActions
+    private func buildActionsResponse(filter: ListActionFilter) -> LoopAutomationResponse {
+        let allDirectionCategories = buildDirectionActionCategories()
+        let allKeybindActions = keybindActionDescriptors().map { descriptor in
+            sharedActionDescriptor(.keybind(descriptor))
         }
 
-        return response
+        let result = LoopActionListResult(
+            filter: filter.automationFilter,
+            directionCategories: filter == .keybindsOnly ? [] : allDirectionCategories,
+            keybindActions: filter == .directionsOnly ? [] : allKeybindActions
+        )
+
+        return LoopAutomationResponse(result: .actionList(result))
     }
 
-    private func buildWindowListResponse() -> [String: Any] {
+    private func buildWindowListResponse() -> LoopAutomationResponse {
         let visibleWindows = WindowUtility.windowList().filter { window in
             guard let app = window.nsRunningApplication else {
                 return false
@@ -487,172 +503,127 @@ final class LoopCommandHandler {
                 && !window.minimized
         }
 
-        return [
-            "success": true,
-            "command": "list",
-            "type": "windows",
-            "windowCount": visibleWindows.count,
-            "windows": visibleWindows.map(windowJSON)
-        ]
+        return LoopAutomationResponse(
+            result: .windowList(
+                LoopWindowListResult(
+                    windows: visibleWindows.map(windowSummary)
+                )
+            )
+        )
     }
 
-    private func buildScreenListResponse() -> [String: Any] {
+    private func buildScreenListResponse() -> LoopAutomationResponse {
         let screens = NSScreen.screens
-        return [
-            "success": true,
-            "command": "list",
-            "type": "screens",
-            "screenCount": screens.count,
-            "screens": screens.map { screen in
-                [
-                    "screenID": screen.displayID ?? 0,
-                    "name": screen.localizedName,
-                    "frame": [
-                        "x": Int(screen.frame.origin.x),
-                        "y": Int(screen.frame.origin.y),
-                        "width": Int(screen.frame.width),
-                        "height": Int(screen.frame.height)
-                    ],
-                    "isMain": screen == NSScreen.main
-                ] as [String: Any]
-            }
-        ]
+        return LoopAutomationResponse(
+            result: .screenList(
+                LoopScreenListResult(
+                    screens: screens.map(screenSummary)
+                )
+            )
+        )
     }
 
     // MARK: - Write Commands
 
-    private func handleDirectionCommand(_ parameters: [String], params: TargetParams) -> [String: Any] {
+    private func handleDirectionCommand(_ parameters: [String], params: TargetParams) -> LoopAutomationResponse {
         guard parameters.count == 1 else {
-            return [
-                "success": false,
-                "command": "direction",
-                "error": "Direction execution requires exactly one slug",
-                "replacement": urlCommandString(["list", "actions", "directions"])
-            ]
+            return failureResponse(
+                message: "Direction execution requires exactly one slug",
+                replacementRoute: urlCommandString(["list", "actions", "directions"])
+            )
         }
 
         let token = parameters[0]
         if let descriptor = directionActionDescriptor(slug: token) {
-            return executeAction(.direction(descriptor), params: params, command: "direction")
+            return executeAction(.direction(descriptor), params: params)
         }
 
         if let descriptor = legacyDirectionDescriptor(for: token) {
-            return migrationErrorResponse(
-                command: "direction",
-                error: "Use the canonical direction slug",
-                replacement: urlCommandString(["direction", descriptor.slug])
+            return failureResponse(
+                message: "Use the canonical direction slug",
+                replacementRoute: urlCommandString(["direction", descriptor.slug])
             )
         }
 
-        return [
-            "success": false,
-            "command": "direction",
-            "error": "Unknown direction slug: \(token)",
-            "replacement": urlCommandString(["list", "actions", "directions"])
-        ]
+        return failureResponse(
+            message: "Unknown direction slug: \(token)",
+            replacementRoute: urlCommandString(["list", "actions", "directions"])
+        )
     }
 
-    private func handleKeybindCommand(_ parameters: [String], params: TargetParams) -> [String: Any] {
+    private func handleKeybindCommand(_ parameters: [String], params: TargetParams) -> LoopAutomationResponse {
         guard parameters.count == 1 else {
-            return [
-                "success": false,
-                "command": "keybind",
-                "error": "Keybind execution requires exactly one slug",
-                "replacement": urlCommandString(["list", "actions", "keybinds"])
-            ]
+            return failureResponse(
+                message: "Keybind execution requires exactly one slug",
+                replacementRoute: urlCommandString(["list", "actions", "keybinds"])
+            )
         }
 
         let token = parameters[0]
         if let descriptor = keybindActionDescriptor(slug: token) {
-            return executeAction(.keybind(descriptor), params: params, command: "keybind")
+            return executeAction(.keybind(descriptor), params: params)
         }
 
         let legacyMatches = legacyKeybindDescriptors(for: token)
         if legacyMatches.count == 1, let descriptor = legacyMatches.first {
-            return migrationErrorResponse(
-                command: "keybind",
-                error: "Use the canonical keybind slug",
-                replacement: urlCommandString(["keybind", descriptor.slug])
+            return failureResponse(
+                message: "Use the canonical keybind slug",
+                replacementRoute: urlCommandString(["keybind", descriptor.slug])
             )
         }
 
         if legacyMatches.count > 1 {
-            return [
-                "success": false,
-                "command": "keybind",
-                "error": "Multiple keybind actions match \(token). Use list/actions/keybinds to find the canonical slug."
-            ]
+            return failureResponse(
+                message: "Multiple keybind actions match \(token). Use list/actions/keybinds to find the canonical slug."
+            )
         }
 
-        return [
-            "success": false,
-            "command": "keybind",
-            "error": "Unknown keybind slug: \(token)",
-            "replacement": urlCommandString(["list", "actions", "keybinds"])
-        ]
+        return failureResponse(
+            message: "Unknown keybind slug: \(token)",
+            replacementRoute: urlCommandString(["list", "actions", "keybinds"])
+        )
     }
 
-    private func handleIDCommand(_ parameters: [String], params: TargetParams) -> [String: Any] {
+    private func handleIDCommand(_ parameters: [String], params: TargetParams) -> LoopAutomationResponse {
         guard parameters.count == 1 else {
-            return [
-                "success": false,
-                "command": "id",
-                "error": "ID execution requires exactly one UUID",
-                "replacement": urlCommandString(["list", "actions"])
-            ]
+            return failureResponse(
+                message: "ID execution requires exactly one UUID",
+                replacementRoute: urlCommandString(["list", "actions"])
+            )
         }
 
         let token = parameters[0]
         guard let identifier = UUID(uuidString: token) else {
-            return [
-                "success": false,
-                "command": "id",
-                "error": "Invalid UUID: \(token)",
-                "replacement": urlCommandString(["list", "actions"])
-            ]
+            return failureResponse(
+                message: "Invalid UUID: \(token)",
+                replacementRoute: urlCommandString(["list", "actions"])
+            )
         }
 
         guard let descriptor = executableActionDescriptor(id: identifier) else {
-            return [
-                "success": false,
-                "command": "id",
-                "error": "Unknown action ID: \(token)",
-                "replacement": urlCommandString(["list", "actions"])
-            ]
+            return failureResponse(
+                message: "Unknown action ID: \(token)",
+                replacementRoute: urlCommandString(["list", "actions"])
+            )
         }
 
-        return executeAction(descriptor, params: params, command: "id")
+        return executeAction(descriptor, params: params)
     }
 
     private func executeAction(
         _ descriptor: ExecutableActionDescriptor,
-        params: TargetParams,
-        command: String
-    ) -> [String: Any] {
+        params: TargetParams
+    ) -> LoopAutomationResponse {
         let action = descriptor.windowAction
         let resolvedWindow = resolveWindow(params: params)
         let resolvedAction = resolveActionForCommandExecution(action, window: resolvedWindow)
 
         if resolvedAction.direction.isNoOp || resolvedAction.direction == .cycle {
-            return [
-                "success": false,
-                "command": command,
-                "id": descriptor.idString,
-                "name": descriptor.name,
-                "kind": descriptor.kind,
-                "error": "Action is not executable: \(descriptor.name)"
-            ]
+            return failureResponse(message: "Action is not executable: \(descriptor.name)")
         }
 
         if !resolvedAction.direction.willFocusWindow, resolvedWindow == nil {
-            return [
-                "success": false,
-                "command": command,
-                "id": descriptor.idString,
-                "name": descriptor.name,
-                "kind": descriptor.kind,
-                "error": windowResolveError(params)
-            ]
+            return failureResponse(message: windowResolveError(params))
         }
 
         let targetScreen: NSScreen
@@ -660,69 +631,32 @@ final class LoopCommandHandler {
         case let .success(screen):
             targetScreen = screen
         case let .failure(error):
-            return [
-                "success": false,
-                "command": command,
-                "id": descriptor.idString,
-                "name": descriptor.name,
-                "kind": descriptor.kind,
-                "error": error
-            ]
+            return failureResponse(message: error)
         }
 
         dispatchAction(resolvedAction, on: resolvedWindow, screen: targetScreen)
 
-        var response: [String: Any] = [
-            "success": true,
-            "command": command,
-            "id": descriptor.idString,
-            "kind": descriptor.kind,
-            "name": descriptor.name,
-            "slug": descriptor.slug,
-            "urlPath": descriptor.urlPath,
-            "idPath": descriptor.idPath
-        ]
-
-        if let window = resolvedWindow {
-            response["window"] = windowJSON(window)
-        }
-
-        return response
+        return LoopAutomationResponse(
+            result: .execution(
+                LoopExecutionResult(
+                    action: sharedActionDescriptor(descriptor),
+                    targetWindow: resolvedWindow.map(executionTargetWindowSummary)
+                )
+            )
+        )
     }
 
     // MARK: - Action Catalog
 
-    private func buildDirectionActionCategoriesJSON() -> [[String: Any]] {
+    private func buildDirectionActionCategories() -> [LoopActionCategory] {
         Self.directionCategories.map { category, directions in
-            [
-                "category": category,
-                "actions": directions.map { direction in
-                    directionActionJSON(directionActionDescriptor(for: direction))
+            LoopActionCategory(
+                name: category,
+                actions: directions.map { direction in
+                    sharedActionDescriptor(.direction(directionActionDescriptor(for: direction)))
                 }
-            ]
+            )
         }
-    }
-
-    private func directionActionJSON(_ descriptor: DirectionActionDescriptor) -> [String: Any] {
-        [
-            "id": descriptor.idString,
-            "kind": "direction",
-            "name": descriptor.name,
-            "slug": descriptor.slug,
-            "urlPath": descriptor.urlPath,
-            "idPath": descriptor.idPath
-        ]
-    }
-
-    private func keybindActionJSON(_ descriptor: KeybindActionDescriptor) -> [String: Any] {
-        [
-            "id": descriptor.idString,
-            "kind": "keybind",
-            "name": descriptor.name,
-            "slug": descriptor.slug,
-            "urlPath": descriptor.urlPath,
-            "idPath": descriptor.idPath
-        ]
     }
 
     private func allDirectionActionDescriptors() -> [DirectionActionDescriptor] {
@@ -842,25 +776,23 @@ final class LoopCommandHandler {
     private func removedLegacyCommandResponse(
         command: String,
         parameters: [String]
-    ) -> (kind: CommandKind, response: [String: Any])? {
+    ) -> (kind: CommandKind, response: LoopAutomationResponse)? {
         switch command {
         case "windowlist":
             (
                 .read,
-                migrationErrorResponse(
-                    command: "windowlist",
-                    error: "windowlist has been removed",
-                    replacement: listRouteReplacement(["windows"])
+                failureResponse(
+                    message: "windowlist has been removed",
+                    replacementRoute: listRouteReplacement(["windows"])
                 )
             )
 
         case "screenlist":
             (
                 .read,
-                migrationErrorResponse(
-                    command: "screenlist",
-                    error: "screenlist has been removed",
-                    replacement: listRouteReplacement(["screens"])
+                failureResponse(
+                    message: "screenlist has been removed",
+                    replacementRoute: listRouteReplacement(["screens"])
                 )
             )
 
@@ -887,91 +819,81 @@ final class LoopCommandHandler {
         }
     }
 
-    private func removedExecuteResponse(parameters: [String]) -> [String: Any] {
+    private func removedExecuteResponse(parameters: [String]) -> LoopAutomationResponse {
         if parameters.count == 1, let identifier = UUID(uuidString: parameters[0]), let descriptor = executableActionDescriptor(id: identifier) {
-            return migrationErrorResponse(
-                command: "execute",
-                error: "execute has been removed",
-                replacement: urlCommandString(["id", descriptor.idString])
+            return failureResponse(
+                message: "execute has been removed",
+                replacementRoute: urlCommandString(["id", descriptor.idString])
             )
         }
 
         if parameters.count == 2, parameters[0].lowercased() == "direction", let descriptor = legacyDirectionDescriptor(for: parameters[1]) {
-            return migrationErrorResponse(
-                command: "execute",
-                error: "execute has been removed",
-                replacement: replacementCommand(for: .direction(descriptor))
+            return failureResponse(
+                message: "execute has been removed",
+                replacementRoute: replacementCommand(for: .direction(descriptor))
             )
         }
 
         if parameters.count == 2, parameters[0].lowercased() == "keybind", let descriptor = keybindActionDescriptor(slug: parameters[1]) ?? legacyKeybindDescriptors(for: parameters[1]).only {
-            return migrationErrorResponse(
-                command: "execute",
-                error: "execute has been removed",
-                replacement: replacementCommand(for: .keybind(descriptor))
+            return failureResponse(
+                message: "execute has been removed",
+                replacementRoute: replacementCommand(for: .keybind(descriptor))
             )
         }
 
-        return migrationErrorResponse(
-            command: "execute",
-            error: "execute has been removed",
+        return failureResponse(
+            message: "execute has been removed",
             availableRoutes: publicWriteRoutes()
         )
     }
 
-    private func removedScreenResponse(parameters: [String]) -> [String: Any] {
+    private func removedScreenResponse(parameters: [String]) -> LoopAutomationResponse {
         if let parameter = parameters.first, let descriptor = legacyDirectionDescriptor(for: parameter) {
-            return migrationErrorResponse(
-                command: "screen",
-                error: "screen has been removed",
-                replacement: replacementCommand(for: .direction(descriptor))
+            return failureResponse(
+                message: "screen has been removed",
+                replacementRoute: replacementCommand(for: .direction(descriptor))
             )
         }
 
-        return migrationErrorResponse(
-            command: "screen",
-            error: "screen has been removed",
-            replacement: urlCommandString(["list", "actions", "directions"])
+        return failureResponse(
+            message: "screen has been removed",
+            replacementRoute: urlCommandString(["list", "actions", "directions"])
         )
     }
 
-    private func removedActionResponse(parameters: [String]) -> [String: Any] {
+    private func removedActionResponse(parameters: [String]) -> LoopAutomationResponse {
         if parameters.isEmpty || parameters.first?.lowercased() == "list" {
-            return migrationErrorResponse(
-                command: "action",
-                error: "action has been removed",
-                replacement: listRouteReplacement(["actions"])
+            return failureResponse(
+                message: "action has been removed",
+                replacementRoute: listRouteReplacement(["actions"])
             )
         }
 
         if let descriptor = legacyDirectionDescriptor(for: parameters[0]) {
-            return migrationErrorResponse(
-                command: "action",
-                error: "action has been removed",
-                replacement: replacementCommand(for: .direction(descriptor))
+            return failureResponse(
+                message: "action has been removed",
+                replacementRoute: replacementCommand(for: .direction(descriptor))
             )
         }
 
         let keybindMatches = legacyKeybindDescriptors(for: parameters[0])
         if let descriptor = keybindMatches.only {
-            return migrationErrorResponse(
-                command: "action",
-                error: "action has been removed",
-                replacement: replacementCommand(for: .keybind(descriptor))
+            return failureResponse(
+                message: "action has been removed",
+                replacementRoute: replacementCommand(for: .keybind(descriptor))
             )
         }
 
-        return migrationErrorResponse(
-            command: "action",
-            error: "action has been removed",
-            replacement: listRouteReplacement(["actions"])
+        return failureResponse(
+            message: "action has been removed",
+            replacementRoute: listRouteReplacement(["actions"])
         )
     }
 
     // MARK: - Response Helpers
 
-    private func publicCommandNames() -> [String] {
-        ["list", "direction", "keybind", "id"]
+    private func publicRoutes() -> [String] {
+        publicListRoutes() + publicWriteRoutes()
     }
 
     private func publicListRoutes() -> [String] {
@@ -1006,96 +928,78 @@ final class LoopCommandHandler {
         urlCommandString(descriptor.urlPath.split(separator: "/").map(String.init))
     }
 
-    private func migrationErrorResponse(
-        command: String,
-        error: String,
-        replacement: String? = nil,
+    private func failureResponse(
+        message: String,
+        replacementRoute: String? = nil,
         availableRoutes: [String] = []
-    ) -> [String: Any] {
-        var response: [String: Any] = [
-            "success": false,
-            "command": command,
-            "error": error
-        ]
-
-        if let replacement {
-            response["replacement"] = replacement
-        }
-
-        if !availableRoutes.isEmpty {
-            response["availableRoutes"] = availableRoutes
-        }
-
-        return response
+    ) -> LoopAutomationResponse {
+        LoopAutomationResponse(
+            error: LoopAutomationError(
+                message: message,
+                replacementRoute: replacementRoute,
+                availableRoutes: availableRoutes.isEmpty ? nil : availableRoutes
+            )
+        )
     }
 
-    private func invalidListRootResponse() -> [String: Any] {
-        migrationErrorResponse(
-            command: "list",
-            error: "No list type specified",
+    private func invalidListRootResponse() -> LoopAutomationResponse {
+        failureResponse(
+            message: "No list type specified",
             availableRoutes: publicListRoutes()
         )
     }
 
-    private func removedListAllResponse() -> [String: Any] {
-        migrationErrorResponse(
-            command: "list",
-            error: "list/all has been removed",
+    private func removedListAllResponse() -> LoopAutomationResponse {
+        failureResponse(
+            message: "list/all has been removed",
             availableRoutes: publicListRoutes()
         )
     }
 
-    private func removedListKeybindsResponse() -> [String: Any] {
-        migrationErrorResponse(
-            command: "list",
-            error: "list/keybinds has been removed",
-            replacement: listRouteReplacement(["actions", "keybinds"])
+    private func removedListKeybindsResponse() -> LoopAutomationResponse {
+        failureResponse(
+            message: "list/keybinds has been removed",
+            replacementRoute: listRouteReplacement(["actions", "keybinds"])
         )
     }
 
-    private func invalidListRouteResponse(_ parameters: [String]) -> [String: Any] {
-        migrationErrorResponse(
-            command: "list",
-            error: "Unknown list route: list/\(parameters.joined(separator: "/"))",
+    private func invalidListRouteResponse(_ parameters: [String]) -> LoopAutomationResponse {
+        failureResponse(
+            message: "Unknown list route: list/\(parameters.joined(separator: "/"))",
             availableRoutes: publicListRoutes()
         )
     }
 
-    private func unknownCommandResponse(_ command: String?) -> [String: Any] {
-        [
-            "success": false,
-            "error": "Unknown command: \(command ?? "nil")",
-            "availableCommands": publicCommandNames()
-        ]
+    private func unknownCommandResponse(_ command: String?) -> LoopAutomationResponse {
+        failureResponse(
+            message: "Unknown command: \(command ?? "nil")",
+            availableRoutes: publicRoutes()
+        )
     }
 
     // MARK: - JSON Helpers
 
-    /// Serializes a response dictionary to a pretty-printed JSON string.
-    private func jsonString(_ dict: [String: Any]) -> String {
-        guard let data = try? JSONSerialization.data(
-            withJSONObject: dict,
-            options: [.prettyPrinted, .sortedKeys]
-        ) else {
-            return #"{"success":false,"error":"Failed to serialize response"}"#
+    private func jsonString(_ response: LoopAutomationResponse) -> String {
+        do {
+            return try LoopAutomationJSON.encodeString(response)
+        } catch {
+            return #"{"error":{"message":"Failed to serialize response"},"success":false}"#
         }
-        return String(data: data, encoding: .utf8)
-            ?? #"{"success":false,"error":"Failed to encode response"}"#
     }
 
     private func makeExecutionResult(
         source: InvocationSource,
         kind: CommandKind,
         components: [String],
-        response: [String: Any]
+        response: LoopAutomationResponse
     ) -> CommandExecutionResult {
         CommandExecutionResult(
             source: source,
             kind: kind,
             title: outputTitle(for: components),
             jsonResponse: jsonString(response),
-            isSuccess: response["success"] as? Bool ?? false,
-            errorMessage: response["error"] as? String
+            isSuccess: response.success,
+            errorMessage: response.error?.message
         )
     }
 
@@ -1104,22 +1008,45 @@ final class LoopCommandHandler {
         return commandPath.isEmpty ? "Loop Output" : "Loop Output: \(commandPath)"
     }
 
-    /// Builds a JSON-serializable dictionary for a window.
-    private func windowJSON(_ window: Window) -> [String: Any] {
+    private func windowSummary(_ window: Window) -> LoopWindowSummary {
         let app = window.nsRunningApplication
-        let frame = window.frame
-        return [
-            "windowID": window.cgWindowID,
-            "bundleID": app?.bundleIdentifier ?? "",
-            "appName": app?.localizedName ?? "",
-            "windowTitle": window.title ?? "",
-            "frame": [
-                "x": Int(frame.origin.x),
-                "y": Int(frame.origin.y),
-                "width": Int(frame.width),
-                "height": Int(frame.height)
-            ]
-        ]
+        return LoopWindowSummary(
+            id: window.cgWindowID,
+            bundleID: app?.bundleIdentifier ?? "",
+            appName: app?.localizedName ?? "",
+            title: window.title ?? "",
+            frame: LoopRect(window.frame)
+        )
+    }
+
+    private func executionTargetWindowSummary(_ window: Window) -> LoopExecutionTargetWindow {
+        let app = window.nsRunningApplication
+        return LoopExecutionTargetWindow(
+            id: window.cgWindowID,
+            bundleID: app?.bundleIdentifier ?? "",
+            appName: app?.localizedName ?? "",
+            title: window.title ?? ""
+        )
+    }
+
+    private func screenSummary(_ screen: NSScreen) -> LoopScreenSummary {
+        LoopScreenSummary(
+            id: screen.displayID ?? 0,
+            name: screen.localizedName,
+            frame: LoopRect(screen.frame),
+            isMain: screen == NSScreen.main
+        )
+    }
+
+    private func sharedActionDescriptor(_ descriptor: ExecutableActionDescriptor) -> LoopActionDescriptor {
+        LoopActionDescriptor(
+            id: descriptor.id,
+            kind: descriptor.actionKind,
+            name: descriptor.name,
+            slug: descriptor.slug,
+            route: urlCommandString(descriptor.urlPath.split(separator: "/").map(String.init)),
+            idRoute: urlCommandString(descriptor.idPath.split(separator: "/").map(String.init))
+        )
     }
 
     // MARK: - Slug and ID Helpers

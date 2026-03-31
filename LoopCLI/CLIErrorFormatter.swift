@@ -33,7 +33,7 @@ struct CLIErrorFormatter {
     func error(from response: CLIResponse) -> CLICommandError {
         var lines: [String] = []
 
-        if let errorMessage = response.errorMessage, !errorMessage.isEmpty {
+        if let errorMessage = response.automationError?.message, !errorMessage.isEmpty {
             lines.append(errorMessage)
         } else if !response.rawOutput.isEmpty {
             lines.append(response.rawOutput)
@@ -41,16 +41,13 @@ struct CLIErrorFormatter {
             lines.append("Command failed")
         }
 
-        if let replacement = response.replacement, !replacement.isEmpty {
+        if let replacement = response.automationError?.replacementRoute, !replacement.isEmpty {
             lines.append("Try: \(displayString(for: replacement))")
         }
 
-        if !response.availableCommands.isEmpty {
-            lines.append("Available commands: \(response.availableCommands.joined(separator: ", "))")
-        }
-
-        if !response.availableRoutes.isEmpty {
-            let displayedRoutes = response.availableRoutes.map(displayString)
+        let availableRoutes = response.automationError?.availableRoutes ?? []
+        if !availableRoutes.isEmpty {
+            let displayedRoutes = availableRoutes.map(displayString)
             lines.append("Available routes: \(displayedRoutes.joined(separator: ", "))")
         }
 
@@ -76,9 +73,9 @@ struct CLIErrorFormatter {
         case ["list", "actions"]:
             return "\(executableName) list actions"
         case ["list", "actions", "directions"]:
-            return "\(executableName) list actions --directions-only"
+            return "\(executableName) list actions --directions"
         case ["list", "actions", "keybinds"]:
-            return "\(executableName) list actions --keybinds-only"
+            return "\(executableName) list actions --keybinds"
         default:
             break
         }

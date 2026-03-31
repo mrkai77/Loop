@@ -9,7 +9,7 @@ import ArgumentParser
 import Foundation
 
 protocol CLIRequestCommand: ParsableCommand {
-    var outputMode: CLIOutputMode { get }
+    var outputConfiguration: CLIOutputConfiguration { get }
     func makeRequest(using application: LoopCLIApplication) throws -> CLIRequest
 }
 
@@ -17,7 +17,7 @@ extension CLIRequestCommand {
     func run() throws {
         try LoopCLIApplication.shared.execute(
             makeRequest(using: .shared),
-            outputMode: outputMode
+            outputConfiguration: outputConfiguration
         )
     }
 }
@@ -50,4 +50,14 @@ struct CLIRequest {
     var serializedRequest: String {
         url.absoluteString
     }
+}
+
+struct CLIOutputConfiguration {
+    let mode: CLIOutputMode
+    let showIDs: Bool
+
+    static let `default` = CLIOutputConfiguration(
+        mode: .human,
+        showIDs: false
+    )
 }
