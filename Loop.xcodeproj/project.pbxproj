@@ -17,6 +17,7 @@
 		3ED0A7B92F21DF6800A58629 /* ZIPFoundation in Frameworks */ = {isa = PBXBuildFile; productRef = 3ED0A7B82F21DF6800A58629 /* ZIPFoundation */; };
 		B1AA00412F30000100AABBCC /* LoopPrivilegedHelper in CopyFiles */ = {isa = PBXBuildFile; fileRef = B1AA00012F30000100AABBCC /* LoopPrivilegedHelper */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		C1BB00412F30000200AABBCC /* loop-cli in CopyFiles */ = {isa = PBXBuildFile; fileRef = C1BB00012F30000200AABBCC /* loop-cli */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		C1BB00A52F40000200AABBCC /* ArgumentParser in Frameworks */ = {isa = PBXBuildFile; productRef = C1BB00A42F40000200AABBCC /* ArgumentParser */; };
 		F06D768A2DFF7A77007EEDA9 /* SkyLight.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F06D76892DFF7A77007EEDA9 /* SkyLight.framework */; };
 /* End PBXBuildFile section */
 
@@ -185,6 +186,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C1BB00A52F40000200AABBCC /* ArgumentParser in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -352,6 +354,9 @@
 				C1BB00022F30000200AABBCC /* LoopCLI */,
 			);
 			name = LoopCLI;
+			packageProductDependencies = (
+				C1BB00A42F40000200AABBCC /* ArgumentParser */,
+			);
 			productName = "loop-cli";
 			productReference = C1BB00012F30000200AABBCC /* loop-cli */;
 			productType = "com.apple.product-type.tool";
@@ -411,6 +416,7 @@
 				2A504E802FFD8E5400694B30 /* XCRemoteSwiftPackageReference "Scribe" */,
 				2A504E852FFD8E7700694B30 /* XCRemoteSwiftPackageReference "Luminare" */,
 				2A504E882FFD8E8800694B30 /* XCRemoteSwiftPackageReference "Subsurface" */,
+				C1BB00A32F40000200AABBCC /* XCRemoteSwiftPackageReference "swift-argument-parser" */,
 			);
 			productRefGroup = A8E59C36297F5E9A0064D4BA /* Products */;
 			projectDirPath = "";
@@ -1223,6 +1229,14 @@
 				minimumVersion = 0.9.20;
 			};
 		};
+		C1BB00A32F40000200AABBCC /* XCRemoteSwiftPackageReference "swift-argument-parser" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/apple/swift-argument-parser";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 1.0.0;
+			};
+		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
@@ -1260,6 +1274,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 3ED0A7B72F21DF6800A58629 /* XCRemoteSwiftPackageReference "ZIPFoundation" */;
 			productName = ZIPFoundation;
+		};
+		C1BB00A42F40000200AABBCC /* ArgumentParser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C1BB00A32F40000200AABBCC /* XCRemoteSwiftPackageReference "swift-argument-parser" */;
+			productName = ArgumentParser;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

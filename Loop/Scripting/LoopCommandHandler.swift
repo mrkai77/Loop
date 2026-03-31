@@ -17,19 +17,15 @@
  - loop://list/actions/keybinds
  - loop://direction/<slug>
  - loop://keybind/<slug>
+ - loop://id/<uuid>
 
- Public CLI commands:
- - loop-cli list windows
- - loop-cli list screens
- - loop-cli list actions [--directions-only | --keybinds-only]
- - loop-cli exec --direction <slug>
- - loop-cli exec --keybind <name>
- - loop-cli exec --id <uuid>
+ Socket / CLI transport:
+ - loop-cli parses CLI arguments locally and sends canonical loop:// URLs over the socket
 
- Query parameters / target flags:
- - ?windowID=<id> / --window-id <id>
- - ?bundleID=<id> / --bundle-id <id>
- - ?screenID=<id> / --screen-id <id>
+ Query parameters:
+ - ?windowID=<id>
+ - ?bundleID=<id>
+ - ?screenID=<id>
  */
 
 import AppKit
@@ -43,17 +39,17 @@ import Scribe
 final class LoopCommandHandler {
     // MARK: - Types
 
-    enum InvocationSource: Sendable {
+    enum InvocationSource {
         case urlScheme
         case cli
     }
 
-    enum CommandKind: Sendable {
+    enum CommandKind {
         case read
         case write
     }
 
-    struct CommandExecutionResult: Sendable {
+    struct CommandExecutionResult {
         let source: InvocationSource
         let kind: CommandKind
         let title: String
@@ -140,6 +136,10 @@ final class LoopCommandHandler {
         var urlPath: String {
             "direction/\(slug)"
         }
+
+        var idPath: String {
+            "id/\(idString)"
+        }
     }
 
     private struct KeybindActionDescriptor {
@@ -154,6 +154,10 @@ final class LoopCommandHandler {
 
         var urlPath: String {
             "keybind/\(slug)"
+        }
+
+        var idPath: String {
+            "id/\(idString)"
         }
     }
 
@@ -206,6 +210,15 @@ final class LoopCommandHandler {
             }
         }
 
+        var idPath: String {
+            switch self {
+            case let .direction(descriptor):
+                descriptor.idPath
+            case let .keybind(descriptor):
+                descriptor.idPath
+            }
+        }
+
         var windowAction: WindowAction {
             switch self {
             case let .direction(descriptor):
@@ -241,11 +254,16 @@ final class LoopCommandHandler {
     /// Handles incoming `loop://` requests and returns command metadata.
     @discardableResult
     func handle(_ url: URL) -> CommandExecutionResult {
-        log.info("Processing URL: \(url)")
+        handle(url, source: .urlScheme)
+    }
+
+    @discardableResult
+    func handle(_ url: URL, source: InvocationSource) -> CommandExecutionResult {
+        log.info("Processing request: \(url.absoluteString)")
 
         guard url.scheme?.lowercased() == "loop" else {
             return makeExecutionResult(
-                source: .urlScheme,
+                source: source,
                 kind: .write,
                 components: [],
                 response: [
@@ -265,94 +283,26 @@ final class LoopCommandHandler {
         )
 
         let components = (url.host.map { [$0] } ?? []) + url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
-        return execute(components, params: params, source: .urlScheme)
+        return execute(components, params: params, source: source)
     }
 
-    /// Executes a raw command string and returns command metadata.
-    func executeRaw(_ input: String) -> CommandExecutionResult {
-        log.info("Processing command: \(input)")
+    @discardableResult
+    func handleRequestURLString(_ request: String, source: InvocationSource) -> CommandExecutionResult {
+        log.info("Processing request string: \(request)")
 
-        switch tokenizeCommandLine(input) {
-        case let .failure(error):
+        guard let url = URL(string: request) else {
             return makeExecutionResult(
-                source: .cli,
+                source: source,
                 kind: .write,
                 components: [],
                 response: [
                     "success": false,
-                    "command": "exec",
-                    "error": error
+                    "error": "Invalid request URL: \(request)"
                 ]
             )
-
-        case let .success(tokens):
-            var components: [String] = []
-            var params = TargetParams()
-            var index = 0
-
-            while index < tokens.count {
-                let token = tokens[index]
-
-                switch token {
-                case "--window-id":
-                    guard index + 1 < tokens.count else {
-                        return makeExecutionResult(
-                            source: .cli,
-                            kind: .write,
-                            components: components,
-                            response: [
-                                "success": false,
-                                "command": components.first?.lowercased() ?? "exec",
-                                "error": "--window-id requires a value"
-                            ]
-                        )
-                    }
-
-                    params.windowID = UInt32(tokens[index + 1])
-                    index += 2
-
-                case "--bundle-id":
-                    guard index + 1 < tokens.count else {
-                        return makeExecutionResult(
-                            source: .cli,
-                            kind: .write,
-                            components: components,
-                            response: [
-                                "success": false,
-                                "command": components.first?.lowercased() ?? "exec",
-                                "error": "--bundle-id requires a value"
-                            ]
-                        )
-                    }
-
-                    params.bundleID = tokens[index + 1]
-                    index += 2
-
-                case "--screen-id":
-                    guard index + 1 < tokens.count else {
-                        return makeExecutionResult(
-                            source: .cli,
-                            kind: .write,
-                            components: components,
-                            response: [
-                                "success": false,
-                                "command": components.first?.lowercased() ?? "exec",
-                                "error": "--screen-id requires a value"
-                            ]
-                        )
-                    }
-
-                    params.screenID = UInt32(tokens[index + 1])
-                    index += 2
-
-                default:
-                    components.append(token)
-                    index += 1
-                }
-            }
-
-            return execute(components, params: params, source: .cli)
         }
+
+        return handle(url, source: source)
     }
 
     // MARK: - Command Execution
@@ -379,7 +329,7 @@ final class LoopCommandHandler {
                 source: source,
                 kind: .write,
                 components: components,
-                response: unknownCommandResponse(nil, source: source)
+                response: unknownCommandResponse(nil)
             )
         }
 
@@ -387,8 +337,7 @@ final class LoopCommandHandler {
 
         if let legacy = removedLegacyCommandResponse(
             command: commandString,
-            parameters: parameters,
-            source: source
+            parameters: parameters
         ) {
             return makeExecutionResult(
                 source: source,
@@ -404,10 +353,10 @@ final class LoopCommandHandler {
                 source: source,
                 kind: .read,
                 components: components,
-                response: handleListCommand(parameters, source: source)
+                response: handleListCommand(parameters)
             )
 
-        case "direction" where source == .urlScheme:
+        case "direction":
             return makeExecutionResult(
                 source: source,
                 kind: .write,
@@ -415,7 +364,7 @@ final class LoopCommandHandler {
                 response: handleDirectionCommand(parameters, params: params)
             )
 
-        case "keybind" where source == .urlScheme:
+        case "keybind":
             return makeExecutionResult(
                 source: source,
                 kind: .write,
@@ -423,12 +372,12 @@ final class LoopCommandHandler {
                 response: handleKeybindCommand(parameters, params: params)
             )
 
-        case "exec" where source == .cli:
+        case "id":
             return makeExecutionResult(
                 source: source,
                 kind: .write,
                 components: components,
-                response: handleExecCommand(parameters, params: params)
+                response: handleIDCommand(parameters, params: params)
             )
 
         default:
@@ -436,33 +385,33 @@ final class LoopCommandHandler {
                 source: source,
                 kind: .write,
                 components: components,
-                response: unknownCommandResponse(commandString, source: source)
+                response: unknownCommandResponse(commandString)
             )
         }
     }
 
     // MARK: - List Commands
 
-    private func handleListCommand(_ parameters: [String], source: InvocationSource) -> [String: Any] {
+    private func handleListCommand(_ parameters: [String]) -> [String: Any] {
         guard let type = parameters.first?.lowercased() else {
-            return invalidListRootResponse(source: source)
+            return invalidListRootResponse()
         }
 
         switch type {
         case "windows":
             guard parameters.count == 1 else {
-                return invalidListRouteResponse(parameters, source: source)
+                return invalidListRouteResponse(parameters)
             }
             return buildWindowListResponse()
 
         case "screens":
             guard parameters.count == 1 else {
-                return invalidListRouteResponse(parameters, source: source)
+                return invalidListRouteResponse(parameters)
             }
             return buildScreenListResponse()
 
         case "actions":
-            switch parseListActionFilter(parameters, source: source) {
+            switch parseListActionFilter(parameters) {
             case let .success(filter):
                 return buildActionsResponse(filter: filter)
             case let .failure(error):
@@ -470,87 +419,34 @@ final class LoopCommandHandler {
             }
 
         case "all":
-            return removedListAllResponse(source: source)
+            return removedListAllResponse()
 
         case "keybinds":
-            return removedListKeybindsResponse(source: source)
+            return removedListKeybindsResponse()
 
         default:
-            return invalidListRouteResponse(parameters, source: source)
+            return invalidListRouteResponse(parameters)
         }
     }
 
-    private func parseListActionFilter(
-        _ parameters: [String],
-        source: InvocationSource
-    ) -> ResponseResult<ListActionFilter> {
+    private func parseListActionFilter(_ parameters: [String]) -> ResponseResult<ListActionFilter> {
         let tail = Array(parameters.dropFirst())
 
-        switch source {
-        case .urlScheme:
-            guard tail.count <= 1 else {
-                return .failure(invalidListRouteResponse(parameters, source: source))
-            }
+        guard tail.count <= 1 else {
+            return .failure(invalidListRouteResponse(parameters))
+        }
 
-            guard let subtype = tail.first?.lowercased() else {
-                return .success(.all)
-            }
-
-            switch subtype {
-            case "directions":
-                return .success(.directionsOnly)
-            case "keybinds":
-                return .success(.keybindsOnly)
-            default:
-                return .failure(invalidListRouteResponse(parameters, source: source))
-            }
-
-        case .cli:
-            let flags = tail.filter { $0.hasPrefix("--") }
-            let positional = tail.filter { !$0.hasPrefix("--") }
-
-            guard positional.isEmpty else {
-                return .failure([
-                    "success": false,
-                    "command": "list",
-                    "type": "actions",
-                    "error": "CLI action filters must use --directions-only or --keybinds-only"
-                ])
-            }
-
-            let allowedFlags: Set<String> = ["--directions-only", "--keybinds-only"]
-            let unknownFlags = flags.filter { !allowedFlags.contains($0.lowercased()) }
-
-            guard unknownFlags.isEmpty else {
-                return .failure([
-                    "success": false,
-                    "command": "list",
-                    "type": "actions",
-                    "error": "Unknown list actions flag: \(unknownFlags[0])"
-                ])
-            }
-
-            let directionsOnly = flags.contains { $0.lowercased() == "--directions-only" }
-            let keybindsOnly = flags.contains { $0.lowercased() == "--keybinds-only" }
-
-            if directionsOnly, keybindsOnly {
-                return .failure([
-                    "success": false,
-                    "command": "list",
-                    "type": "actions",
-                    "error": "--directions-only and --keybinds-only are mutually exclusive"
-                ])
-            }
-
-            if directionsOnly {
-                return .success(.directionsOnly)
-            }
-
-            if keybindsOnly {
-                return .success(.keybindsOnly)
-            }
-
+        guard let subtype = tail.first?.lowercased() else {
             return .success(.all)
+        }
+
+        switch subtype {
+        case "directions":
+            return .success(.directionsOnly)
+        case "keybinds":
+            return .success(.keybindsOnly)
+        default:
+            return .failure(invalidListRouteResponse(parameters))
         }
     }
 
@@ -696,133 +592,36 @@ final class LoopCommandHandler {
         ]
     }
 
-    private func handleExecCommand(_ parameters: [String], params: TargetParams) -> [String: Any] {
-        if parameters.isEmpty {
-            return execUsageError("No exec target specified")
-        }
-
-        var directionSlug: String?
-        var keybindName: String?
-        var identifierValue: String?
-        var index = 0
-
-        while index < parameters.count {
-            let token = parameters[index]
-            switch token.lowercased() {
-            case "--direction":
-                guard index + 1 < parameters.count else {
-                    return execUsageError("--direction requires a value")
-                }
-                directionSlug = parameters[index + 1]
-                index += 2
-
-            case "--keybind":
-                guard index + 1 < parameters.count else {
-                    return execUsageError("--keybind requires a value")
-                }
-                keybindName = parameters[index + 1]
-                index += 2
-
-            case "--id":
-                guard index + 1 < parameters.count else {
-                    return execUsageError("--id requires a value")
-                }
-                identifierValue = parameters[index + 1]
-                index += 2
-
-            default:
-                if token.hasPrefix("--") {
-                    return execUsageError("Unknown exec flag: \(token)")
-                }
-
-                return migrationErrorResponse(
-                    command: "exec",
-                    error: "Positional exec targets have been removed",
-                    availableRoutes: execUsageExamples()
-                )
-            }
-        }
-
-        let selectorCount = [directionSlug, keybindName, identifierValue].compactMap(\.self).count
-        guard selectorCount == 1 else {
-            return execUsageError("exec requires exactly one of --direction, --keybind, or --id")
-        }
-
-        if let directionSlug {
-            if let descriptor = directionActionDescriptor(slug: directionSlug) {
-                return executeAction(.direction(descriptor), params: params, command: "exec")
-            }
-
-            if let descriptor = legacyDirectionDescriptor(for: directionSlug) {
-                return migrationErrorResponse(
-                    command: "exec",
-                    error: "Use the canonical direction slug",
-                    replacement: cliExecDirectionCommand(descriptor.slug)
-                )
-            }
-
+    private func handleIDCommand(_ parameters: [String], params: TargetParams) -> [String: Any] {
+        guard parameters.count == 1 else {
             return [
                 "success": false,
-                "command": "exec",
-                "error": "Unknown direction slug: \(directionSlug)",
-                "replacement": cliCommandString(["list", "actions", "--directions-only"])
+                "command": "id",
+                "error": "ID execution requires exactly one UUID",
+                "replacement": urlCommandString(["list", "actions"])
             ]
         }
 
-        if let keybindName {
-            let matches = keybindActionDescriptors(matchingName: keybindName)
-
-            if let descriptor = matches.only {
-                return executeAction(.keybind(descriptor), params: params, command: "exec")
-            }
-
-            if matches.count > 1 {
-                return [
-                    "success": false,
-                    "command": "exec",
-                    "error": "Multiple keybind actions share the name \"\(keybindName)\". Use --id <uuid> instead.",
-                    "matchingIDs": matches.map(\.idString)
-                ]
-            }
-
-            if let descriptor = keybindActionDescriptor(slug: keybindName) {
-                return migrationErrorResponse(
-                    command: "exec",
-                    error: "--keybind expects the display name, not the slug",
-                    replacement: cliExecKeybindCommand(descriptor.name)
-                )
-            }
-
+        let token = parameters[0]
+        guard let identifier = UUID(uuidString: token) else {
             return [
                 "success": false,
-                "command": "exec",
-                "error": "Unknown keybind name: \(keybindName)",
-                "replacement": cliCommandString(["list", "actions", "--keybinds-only"])
-            ]
-        }
-
-        guard let identifierValue else {
-            return execUsageError("No exec target specified")
-        }
-
-        guard let identifier = UUID(uuidString: identifierValue) else {
-            return [
-                "success": false,
-                "command": "exec",
-                "error": "Invalid UUID: \(identifierValue)"
+                "command": "id",
+                "error": "Invalid UUID: \(token)",
+                "replacement": urlCommandString(["list", "actions"])
             ]
         }
 
         guard let descriptor = executableActionDescriptor(id: identifier) else {
             return [
                 "success": false,
-                "command": "exec",
-                "error": "Unknown action ID: \(identifierValue)",
-                "replacement": cliCommandString(["list", "actions"])
+                "command": "id",
+                "error": "Unknown action ID: \(token)",
+                "replacement": urlCommandString(["list", "actions"])
             ]
         }
 
-        return executeAction(descriptor, params: params, command: "exec")
+        return executeAction(descriptor, params: params, command: "id")
     }
 
     private func executeAction(
@@ -879,12 +678,10 @@ final class LoopCommandHandler {
             "id": descriptor.idString,
             "kind": descriptor.kind,
             "name": descriptor.name,
-            "slug": descriptor.slug
+            "slug": descriptor.slug,
+            "urlPath": descriptor.urlPath,
+            "idPath": descriptor.idPath
         ]
-
-        if command != "exec" {
-            response["urlPath"] = descriptor.urlPath
-        }
 
         if let window = resolvedWindow {
             response["window"] = windowJSON(window)
@@ -912,7 +709,8 @@ final class LoopCommandHandler {
             "kind": "direction",
             "name": descriptor.name,
             "slug": descriptor.slug,
-            "urlPath": descriptor.urlPath
+            "urlPath": descriptor.urlPath,
+            "idPath": descriptor.idPath
         ]
     }
 
@@ -922,7 +720,8 @@ final class LoopCommandHandler {
             "kind": "keybind",
             "name": descriptor.name,
             "slug": descriptor.slug,
-            "urlPath": descriptor.urlPath
+            "urlPath": descriptor.urlPath,
+            "idPath": descriptor.idPath
         ]
     }
 
@@ -979,11 +778,10 @@ final class LoopCommandHandler {
         let groupedByBaseSlug = Dictionary(grouping: candidates, by: \.2)
 
         return candidates.map { action, name, baseSlug in
-            let finalSlug: String
-            if groupedByBaseSlug[baseSlug, default: []].count > 1 {
-                finalSlug = "\(baseSlug)_\(shortIdentifier(for: action.id))"
+            let finalSlug: String = if groupedByBaseSlug[baseSlug, default: []].count > 1 {
+                "\(baseSlug)_\(shortIdentifier(for: action.id))"
             } else {
-                finalSlug = baseSlug
+                baseSlug
             }
 
             return KeybindActionDescriptor(
@@ -997,13 +795,6 @@ final class LoopCommandHandler {
 
     private func keybindActionDescriptor(slug: String) -> KeybindActionDescriptor? {
         keybindActionDescriptors().first { $0.slug == slug.lowercased() }
-    }
-
-    private func keybindActionDescriptors(matchingName name: String) -> [KeybindActionDescriptor] {
-        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        return keybindActionDescriptors().filter {
-            $0.name.caseInsensitiveCompare(trimmedName) == .orderedSame
-        }
     }
 
     private func keybindActionDescriptor(id: UUID) -> KeybindActionDescriptor? {
@@ -1050,79 +841,58 @@ final class LoopCommandHandler {
 
     private func removedLegacyCommandResponse(
         command: String,
-        parameters: [String],
-        source: InvocationSource
+        parameters: [String]
     ) -> (kind: CommandKind, response: [String: Any])? {
         switch command {
         case "windowlist":
-            return (
+            (
                 .read,
                 migrationErrorResponse(
                     command: "windowlist",
                     error: "windowlist has been removed",
-                    replacement: listRouteReplacement(["windows"], source: source)
+                    replacement: listRouteReplacement(["windows"])
                 )
             )
 
         case "screenlist":
-            return (
+            (
                 .read,
                 migrationErrorResponse(
                     command: "screenlist",
                     error: "screenlist has been removed",
-                    replacement: listRouteReplacement(["screens"], source: source)
+                    replacement: listRouteReplacement(["screens"])
                 )
             )
 
         case "execute":
-            return (
+            (
                 .write,
-                removedExecuteResponse(parameters: parameters, source: source)
-            )
-
-        case "direction":
-            guard source == .cli else {
-                return nil
-            }
-
-            return (
-                parameters.first?.lowercased() == "list" ? .read : .write,
-                removedDirectionCLIResponse(parameters: parameters)
-            )
-
-        case "keybind":
-            guard source == .cli else {
-                return nil
-            }
-
-            return (
-                parameters.first?.lowercased() == "list" ? .read : .write,
-                removedKeybindCLIResponse(parameters: parameters)
+                removedExecuteResponse(parameters: parameters)
             )
 
         case "screen":
-            return (
+            (
                 .write,
-                removedScreenResponse(parameters: parameters, source: source)
+                removedScreenResponse(parameters: parameters)
             )
 
         case "action":
-            return (
+            (
                 parameters.first?.lowercased() == "list" ? .read : .write,
-                removedActionResponse(parameters: parameters, source: source)
+                removedActionResponse(parameters: parameters)
             )
 
         default:
-            return nil
+            nil
         }
     }
 
-    private func removedExecuteResponse(parameters: [String], source: InvocationSource) -> [String: Any] {
+    private func removedExecuteResponse(parameters: [String]) -> [String: Any] {
         if parameters.count == 1, let identifier = UUID(uuidString: parameters[0]), let descriptor = executableActionDescriptor(id: identifier) {
             return migrationErrorResponse(
                 command: "execute",
                 error: "execute has been removed",
-                replacement: replacementCommand(for: descriptor, source: source)
+                replacement: urlCommandString(["id", descriptor.idString])
             )
         }
 
@@ -1130,7 +900,7 @@ final class LoopCommandHandler {
             return migrationErrorResponse(
                 command: "execute",
                 error: "execute has been removed",
-                replacement: replacementCommand(for: .direction(descriptor), source: source)
+                replacement: replacementCommand(for: .direction(descriptor))
             )
         }
 
@@ -1138,90 +908,39 @@ final class LoopCommandHandler {
             return migrationErrorResponse(
                 command: "execute",
                 error: "execute has been removed",
-                replacement: replacementCommand(for: .keybind(descriptor), source: source)
+                replacement: replacementCommand(for: .keybind(descriptor))
             )
         }
 
         return migrationErrorResponse(
             command: "execute",
             error: "execute has been removed",
-            availableRoutes: source == .urlScheme ? publicURLWriteRoutes() : execUsageExamples()
+            availableRoutes: publicWriteRoutes()
         )
     }
 
-    private func removedDirectionCLIResponse(parameters: [String]) -> [String: Any] {
-        if parameters.isEmpty || parameters.first?.lowercased() == "list" {
-            return migrationErrorResponse(
-                command: "direction",
-                error: "direction has been removed from loop-cli",
-                replacement: cliCommandString(["list", "actions", "--directions-only"])
-            )
-        }
-
-        if let descriptor = legacyDirectionDescriptor(for: parameters[0]) {
-            return migrationErrorResponse(
-                command: "direction",
-                error: "direction has been removed from loop-cli",
-                replacement: cliExecDirectionCommand(descriptor.slug)
-            )
-        }
-
-        return migrationErrorResponse(
-            command: "direction",
-            error: "direction has been removed from loop-cli",
-            replacement: cliCommandString(["list", "actions", "--directions-only"])
-        )
-    }
-
-    private func removedKeybindCLIResponse(parameters: [String]) -> [String: Any] {
-        if parameters.isEmpty || parameters.first?.lowercased() == "list" {
-            return migrationErrorResponse(
-                command: "keybind",
-                error: "keybind has been removed from loop-cli",
-                replacement: cliCommandString(["list", "actions", "--keybinds-only"])
-            )
-        }
-
-        let matches = legacyKeybindDescriptors(for: parameters[0])
-        if let descriptor = matches.only {
-            return migrationErrorResponse(
-                command: "keybind",
-                error: "keybind has been removed from loop-cli",
-                replacement: cliExecKeybindCommand(descriptor.name)
-            )
-        }
-
-        return migrationErrorResponse(
-            command: "keybind",
-            error: "keybind has been removed from loop-cli",
-            replacement: cliCommandString(["list", "actions", "--keybinds-only"])
-        )
-    }
-
-    private func removedScreenResponse(parameters: [String], source: InvocationSource) -> [String: Any] {
+    private func removedScreenResponse(parameters: [String]) -> [String: Any] {
         if let parameter = parameters.first, let descriptor = legacyDirectionDescriptor(for: parameter) {
             return migrationErrorResponse(
                 command: "screen",
                 error: "screen has been removed",
-                replacement: replacementCommand(for: .direction(descriptor), source: source)
+                replacement: replacementCommand(for: .direction(descriptor))
             )
         }
 
         return migrationErrorResponse(
             command: "screen",
             error: "screen has been removed",
-            replacement: source == .urlScheme
-                ? urlCommandString(["list", "actions", "directions"])
-                : cliCommandString(["list", "actions", "--directions-only"])
+            replacement: urlCommandString(["list", "actions", "directions"])
         )
     }
 
-    private func removedActionResponse(parameters: [String], source: InvocationSource) -> [String: Any] {
+    private func removedActionResponse(parameters: [String]) -> [String: Any] {
         if parameters.isEmpty || parameters.first?.lowercased() == "list" {
             return migrationErrorResponse(
                 command: "action",
                 error: "action has been removed",
-                replacement: listRouteReplacement(["actions"], source: source)
+                replacement: listRouteReplacement(["actions"])
             )
         }
 
@@ -1229,7 +948,7 @@ final class LoopCommandHandler {
             return migrationErrorResponse(
                 command: "action",
                 error: "action has been removed",
-                replacement: replacementCommand(for: .direction(descriptor), source: source)
+                replacement: replacementCommand(for: .direction(descriptor))
             )
         }
 
@@ -1238,117 +957,53 @@ final class LoopCommandHandler {
             return migrationErrorResponse(
                 command: "action",
                 error: "action has been removed",
-                replacement: replacementCommand(for: .keybind(descriptor), source: source)
+                replacement: replacementCommand(for: .keybind(descriptor))
             )
         }
 
         return migrationErrorResponse(
             command: "action",
             error: "action has been removed",
-            replacement: listRouteReplacement(["actions"], source: source)
+            replacement: listRouteReplacement(["actions"])
         )
     }
 
     // MARK: - Response Helpers
 
-    private func publicCommandNames(for source: InvocationSource) -> [String] {
-        switch source {
-        case .urlScheme:
-            ["list", "direction", "keybind"]
-        case .cli:
-            ["list", "exec"]
-        }
+    private func publicCommandNames() -> [String] {
+        ["list", "direction", "keybind", "id"]
     }
 
-    private func publicListRoutes(for source: InvocationSource) -> [String] {
+    private func publicListRoutes() -> [String] {
         [
-            listRouteReplacement(["windows"], source: source),
-            listRouteReplacement(["screens"], source: source),
-            listRouteReplacement(["actions"], source: source),
-            source == .urlScheme
-                ? listRouteReplacement(["actions", "directions"], source: source)
-                : cliCommandString(["list", "actions", "--directions-only"]),
-            source == .urlScheme
-                ? listRouteReplacement(["actions", "keybinds"], source: source)
-                : cliCommandString(["list", "actions", "--keybinds-only"])
+            listRouteReplacement(["windows"]),
+            listRouteReplacement(["screens"]),
+            listRouteReplacement(["actions"]),
+            listRouteReplacement(["actions", "directions"]),
+            listRouteReplacement(["actions", "keybinds"])
         ]
     }
 
-    private func publicURLWriteRoutes() -> [String] {
+    private func publicWriteRoutes() -> [String] {
         [
             urlCommandString(["direction", "right"]),
             urlCommandString(["direction", "maximize"]),
             urlCommandString(["direction", "next_screen"]),
-            urlCommandString(["keybind", "my_layout"])
+            urlCommandString(["keybind", "my_layout"]),
+            urlCommandString(["id", "<uuid>"])
         ]
-    }
-
-    private func execUsageExamples() -> [String] {
-        [
-            cliCommandString(["exec", "--direction", "right"]),
-            cliCommandString(["exec", "--keybind", "\"My Layout\""]),
-            cliCommandString(["exec", "--id", "<uuid>"])
-        ]
-    }
-
-    private func execUsageError(_ error: String) -> [String: Any] {
-        migrationErrorResponse(
-            command: "exec",
-            error: error,
-            availableRoutes: execUsageExamples()
-        )
     }
 
     private func urlCommandString(_ components: [String]) -> String {
         "loop://\(components.joined(separator: "/"))"
     }
 
-    private func cliCommandString(_ arguments: [String]) -> String {
-        "loop-cli " + arguments.joined(separator: " ")
+    private func listRouteReplacement(_ components: [String]) -> String {
+        urlCommandString(["list"] + components)
     }
 
-    private func cliExecDirectionCommand(_ slug: String) -> String {
-        cliCommandString(["exec", "--direction", slug])
-    }
-
-    private func cliExecKeybindCommand(_ name: String) -> String {
-        cliCommandString(["exec", "--keybind", shellQuoted(name)])
-    }
-
-    private func cliExecIDCommand(_ id: String) -> String {
-        cliCommandString(["exec", "--id", id])
-    }
-
-    private func listRouteReplacement(_ components: [String], source: InvocationSource) -> String {
-        switch source {
-        case .urlScheme:
-            return urlCommandString(["list"] + components)
-        case .cli:
-            let args: [String]
-            if components == ["actions", "directions"] {
-                args = ["list", "actions", "--directions-only"]
-            } else if components == ["actions", "keybinds"] {
-                args = ["list", "actions", "--keybinds-only"]
-            } else {
-                args = ["list"] + components
-            }
-
-            return cliCommandString(args)
-        }
-    }
-
-    private func replacementCommand(for descriptor: ExecutableActionDescriptor, source: InvocationSource) -> String {
-        switch source {
-        case .urlScheme:
-            urlCommandString(descriptor.urlPath.split(separator: "/").map(String.init))
-        case .cli:
-            switch descriptor {
-            case let .direction(direction):
-                cliExecDirectionCommand(direction.slug)
-            case let .keybind(keybind):
-                cliExecKeybindCommand(keybind.name)
-            }
-        }
+    private func replacementCommand(for descriptor: ExecutableActionDescriptor) -> String {
+        urlCommandString(descriptor.urlPath.split(separator: "/").map(String.init))
     }
 
     private func migrationErrorResponse(
@@ -1374,43 +1029,43 @@ final class LoopCommandHandler {
         return response
     }
 
-    private func invalidListRootResponse(source: InvocationSource) -> [String: Any] {
+    private func invalidListRootResponse() -> [String: Any] {
         migrationErrorResponse(
             command: "list",
             error: "No list type specified",
-            availableRoutes: publicListRoutes(for: source)
+            availableRoutes: publicListRoutes()
         )
     }
 
-    private func removedListAllResponse(source: InvocationSource) -> [String: Any] {
+    private func removedListAllResponse() -> [String: Any] {
         migrationErrorResponse(
             command: "list",
             error: "list/all has been removed",
-            availableRoutes: publicListRoutes(for: source)
+            availableRoutes: publicListRoutes()
         )
     }
 
-    private func removedListKeybindsResponse(source: InvocationSource) -> [String: Any] {
+    private func removedListKeybindsResponse() -> [String: Any] {
         migrationErrorResponse(
             command: "list",
             error: "list/keybinds has been removed",
-            replacement: listRouteReplacement(["actions", "keybinds"], source: source)
+            replacement: listRouteReplacement(["actions", "keybinds"])
         )
     }
 
-    private func invalidListRouteResponse(_ parameters: [String], source: InvocationSource) -> [String: Any] {
+    private func invalidListRouteResponse(_ parameters: [String]) -> [String: Any] {
         migrationErrorResponse(
             command: "list",
             error: "Unknown list route: list/\(parameters.joined(separator: "/"))",
-            availableRoutes: publicListRoutes(for: source)
+            availableRoutes: publicListRoutes()
         )
     }
 
-    private func unknownCommandResponse(_ command: String?, source: InvocationSource) -> [String: Any] {
+    private func unknownCommandResponse(_ command: String?) -> [String: Any] {
         [
             "success": false,
             "error": "Unknown command: \(command ?? "nil")",
-            "availableCommands": publicCommandNames(for: source)
+            "availableCommands": publicCommandNames()
         ]
     }
 
@@ -1465,83 +1120,6 @@ final class LoopCommandHandler {
                 "height": Int(frame.height)
             ]
         ]
-    }
-
-    // MARK: - Tokenization Helpers
-
-    private func tokenizeCommandLine(_ input: String) -> MessageResult<[String]> {
-        var tokens: [String] = []
-        var current = ""
-        var activeQuote: Character?
-        var isEscaping = false
-        var closedQuotedArgument = false
-
-        for character in input {
-            if isEscaping {
-                current.append(character)
-                isEscaping = false
-                continue
-            }
-
-            if character == "\\" {
-                isEscaping = true
-                continue
-            }
-
-            if let quote = activeQuote {
-                if character == quote {
-                    activeQuote = nil
-                    closedQuotedArgument = true
-                } else {
-                    current.append(character)
-                }
-                continue
-            }
-
-            if character == "\"" || character == "'" {
-                activeQuote = character
-                continue
-            }
-
-            if character.isWhitespace {
-                if !current.isEmpty || closedQuotedArgument {
-                    tokens.append(current)
-                    current.removeAll()
-                    closedQuotedArgument = false
-                }
-                continue
-            }
-
-            current.append(character)
-        }
-
-        if isEscaping {
-            current.append("\\")
-        }
-
-        guard activeQuote == nil else {
-            return .failure("Unterminated quoted argument")
-        }
-
-        if !current.isEmpty || closedQuotedArgument {
-            tokens.append(current)
-        }
-
-        return .success(tokens)
-    }
-
-    private func shellQuoted(_ string: String) -> String {
-        if string.isEmpty {
-            return "\"\""
-        }
-
-        let escaped = string
-            .replacingOccurrences(of: "\\", with: "\\\\")
-            .replacingOccurrences(of: "\"", with: "\\\"")
-
-        return escaped.contains(where: \.isWhitespace) || escaped.contains("\"")
-            ? "\"\(escaped)\""
-            : escaped
     }
 
     // MARK: - Slug and ID Helpers
@@ -1607,13 +1185,13 @@ final class LoopCommandHandler {
     private func isExecutableKeybindAction(_ action: WindowAction) -> Bool {
         switch action.direction {
         case .noAction, .noSelection:
-            return false
+            false
         case .cycle:
-            return !(action.cycle?.isEmpty ?? true)
+            !(action.cycle?.isEmpty ?? true)
         case .stash:
-            return action.stashEdge != nil
+            action.stashEdge != nil
         default:
-            return true
+            true
         }
     }
 
@@ -1756,7 +1334,7 @@ final class LoopCommandHandler {
             return nil
         }
 
-        for _ in 0..<30 {
+        for _ in 0 ..< 30 {
             Thread.sleep(forTimeInterval: 0.1)
             if let window = try? Window(pid: app.processIdentifier) {
                 return window

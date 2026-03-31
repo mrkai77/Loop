@@ -15,7 +15,7 @@ import UserNotifications
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let loopCommandHandler = LoopCommandHandler()
     private lazy var loopSocketManager = LoopSocketManager(handler: loopCommandHandler)
-    private var pendingSettingsWindowOpen: Task<Void, Never>?
+    private var pendingSettingsWindowOpen: Task<(), Never>?
 
     private static let terminateNotificationName = Notification.Name("com.MrKai77.Loop.terminate")
     private var terminateObserver: Any?
@@ -186,7 +186,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         guard !hasVisibleWindows else {
             return false
         }
-        
+
         scheduleSettingsWindowOpen()
         return true
     }
@@ -200,13 +200,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         loopSocketManager.stop()
         return .terminateNow
     }
-    
+
     func application(_: NSApplication, open urls: [URL]) {
         for url in urls {
             processIncomingURL(url)
         }
     }
-    
+
     private func processIncomingURL(_ url: URL, replyEvent: NSAppleEventDescriptor? = nil) {
         cancelPendingSettingsWindowOpen()
         log.info("Received URL: \(url)")

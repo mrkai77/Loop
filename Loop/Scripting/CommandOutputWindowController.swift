@@ -15,10 +15,10 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
     }
 
     private let output: String
-    private let onClose: () -> Void
+    private let onClose: () -> ()
 
-    init(title: String, content: String, onClose: @escaping () -> Void) {
-        output = content
+    init(title: String, content: String, onClose: @escaping () -> ()) {
+        self.output = content
         self.onClose = onClose
 
         let scrollView = NSScrollView()
@@ -85,7 +85,7 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
     }
 
     @available(*, unavailable)
-    required init?(coder: NSCoder) {
+    required init?(coder _: NSCoder) {
         fatalError("init(coder:) has not been implemented")
     }
 

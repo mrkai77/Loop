@@ -10,12 +10,12 @@ import Scribe
 
 /// Listens on a Unix domain socket for commands from loop-cli.
 ///
-/// The server accepts connections, reads a raw command string (newline-terminated),
-/// dispatches it to `LoopCommandHandler.executeRaw()` on the main thread, and writes
+/// The server accepts connections, reads a newline-terminated canonical `loop://...`
+/// request URL, dispatches it to `LoopCommandHandler` on the main thread, and writes
 /// the JSON response back before closing the connection.
 ///
-/// Command format: `<command> [args...] [--window-id <id>] [--bundle-id <id>] [--screen-id <id>]`
-/// Example: `exec --direction right --bundle-id com.apple.Safari`
+/// Request format: `loop://<route>[?windowID=<id>&bundleID=<id>&screenID=<id>]`
+/// Example: `loop://direction/right?bundleID=com.apple.Safari`
 @Loggable
 final class LoopSocketManager {
     // MARK: - Properties
@@ -187,7 +187,7 @@ final class LoopSocketManager {
                 semaphore.signal()
                 return
             }
-            response = self.handler.executeRaw(requestString).jsonResponse
+            response = handler.handleRequestURLString(requestString, source: .cli).jsonResponse
             semaphore.signal()
         }
 

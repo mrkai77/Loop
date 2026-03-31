@@ -420,8 +420,7 @@ struct AdvancedConfigurationView: View {
                 }
                 .luminareRoundingBehavior(top: true, bottom: true)
                 .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
-                .luminareComposeIgnoreSafeArea(edges: .traili
-                                               ng)
+                .luminareComposeIgnoreSafeArea(edges: .trailing)
                 .disabled(!model.canPerformCommandLineToolAction)
             } label: {
                 HStack {
