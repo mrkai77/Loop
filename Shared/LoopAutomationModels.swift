@@ -47,7 +47,6 @@ struct LoopRect: Codable {
             height: rect.height
         )
     }
-
 }
 
 struct LoopWindowSummary: Codable {
@@ -145,30 +144,30 @@ enum LoopAutomationResult: Codable {
 
         switch kind {
         case .windowList:
-            self = .windowList(
+            self = try .windowList(
                 LoopWindowListResult(
-                    windows: try container.decode([LoopWindowSummary].self, forKey: .windows)
+                    windows: container.decode([LoopWindowSummary].self, forKey: .windows)
                 )
             )
         case .screenList:
-            self = .screenList(
+            self = try .screenList(
                 LoopScreenListResult(
-                    screens: try container.decode([LoopScreenSummary].self, forKey: .screens)
+                    screens: container.decode([LoopScreenSummary].self, forKey: .screens)
                 )
             )
         case .actionList:
-            self = .actionList(
+            self = try .actionList(
                 LoopActionListResult(
-                    filter: try container.decode(LoopActionListFilter.self, forKey: .filter),
-                    directionCategories: try container.decode([LoopActionCategory].self, forKey: .directionCategories),
-                    keybindActions: try container.decode([LoopActionDescriptor].self, forKey: .keybindActions)
+                    filter: container.decode(LoopActionListFilter.self, forKey: .filter),
+                    directionCategories: container.decode([LoopActionCategory].self, forKey: .directionCategories),
+                    keybindActions: container.decode([LoopActionDescriptor].self, forKey: .keybindActions)
                 )
             )
         case .execution:
-            self = .execution(
+            self = try .execution(
                 LoopExecutionResult(
-                    action: try container.decode(LoopActionDescriptor.self, forKey: .action),
-                    targetWindow: try container.decodeIfPresent(LoopExecutionTargetWindow.self, forKey: .targetWindow)
+                    action: container.decode(LoopActionDescriptor.self, forKey: .action),
+                    targetWindow: container.decodeIfPresent(LoopExecutionTargetWindow.self, forKey: .targetWindow)
                 )
             )
         }

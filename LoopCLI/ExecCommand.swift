@@ -57,7 +57,7 @@ struct ExecCommand: ParsableCommand, CLIRequestCommand {
         }
     }
 
-    func makeRequest(using application: LoopCLIApplication) throws -> CLIRequest {
+    func makeRequest(using _: LoopCLIApplication) throws -> CLIRequest {
         let queryItems = targetOptions.queryItems
 
         if let direction {

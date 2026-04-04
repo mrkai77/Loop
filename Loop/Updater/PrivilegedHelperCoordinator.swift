@@ -20,7 +20,7 @@ private struct PrivilegedHelperCoordinatorError: LocalizedError {
 
 @Loggable
 final class PrivilegedHelperCoordinator {
-    enum PrivilegedHelperReadiness: Sendable {
+    enum PrivilegedHelperReadiness {
         case available
         case unavailable(reason: String)
     }

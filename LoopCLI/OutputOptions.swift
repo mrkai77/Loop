@@ -14,7 +14,7 @@ struct OutputOptions: ParsableArguments {
     var outputMode: Mode {
         json ? .json : .human
     }
-    
+
     enum Mode {
         case human
         case json

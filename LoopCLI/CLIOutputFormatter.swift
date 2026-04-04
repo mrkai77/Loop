@@ -5,9 +5,9 @@
 //  Created by Kai Azim on 2026-03-30.
 //
 
+import CoreGraphics
 import Darwin
 import Foundation
-import CoreGraphics
 
 struct CLIOutputFormatter {
     private let supportsANSIStyle = isatty(STDOUT_FILENO) != 0
