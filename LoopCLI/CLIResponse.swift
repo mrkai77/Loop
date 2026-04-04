@@ -28,8 +28,4 @@ struct CLIResponse {
     var automationError: LoopAutomationError? {
         automationResponse?.error
     }
-
-    var keybindActions: [LoopActionDescriptor] {
-        automationResponse?.result?.actionList?.keybindActions ?? []
-    }
 }

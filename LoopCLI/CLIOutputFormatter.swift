@@ -124,33 +124,36 @@ struct CLIOutputFormatter {
     }
 
     private func formatExecution(_ result: LoopExecutionResult) -> String {
-        let slug = sanitizeInline(result.action.slug)
+        let name = sanitizeInline(result.action.name)
 
         guard let window = result.targetWindow else {
-            return "Successfully executed \(slug)"
+            return "Successfully executed \(name)"
         }
 
         if let appName = nonEmptyString(window.appName).map(sanitizeInline) {
-            return "Successfully executed \(slug) on \(appName) (Window ID: \(window.id))"
+            return "Successfully executed \(name) on \(appName) (Window ID: \(window.id))"
         }
 
-        return "Successfully executed \(slug) (Window ID: \(window.id))"
+        return "Successfully executed \(name) (Window ID: \(window.id))"
     }
 
     private func formatActionRows(_ actions: [LoopActionDescriptor], showIDs: Bool) -> [String] {
         let rows = actions.map { action in
-            (slug: sanitizeInline(action.slug), id: action.idString)
+            (name: sanitizeInline(action.name), id: action.idString)
         }
 
         guard showIDs else {
-            return rows.map { blue($0.slug) }
+            return rows.map { blue($0.name) }
         }
 
-        let slugColumnWidth = rows.map(\.slug.count).max() ?? 0
+        let nameColumnWidth = rows.map(\.name.count).max() ?? 0
 
         return rows.map { row in
-            let paddedSlug = row.slug.padding(toLength: slugColumnWidth, withPad: " ", startingAt: 0)
-            return "\(blue(paddedSlug))  \(dim(row.id))"
+            let paddedName = row.name.padding(toLength: nameColumnWidth, withPad: " ", startingAt: 0)
+            if let id = row.id {
+                return "\(blue(paddedName))  \(dim(id))"
+            }
+            return blue(paddedName)
         }
     }
 

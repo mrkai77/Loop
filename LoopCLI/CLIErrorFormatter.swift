@@ -26,10 +26,6 @@ struct CLIErrorFormatter {
         self.executableName = executableName
     }
 
-    func runtimeError(_ message: String) -> CLICommandError {
-        CLICommandError(message: message)
-    }
-
     func error(from response: CLIResponse) -> CLICommandError {
         var lines: [String] = []
 

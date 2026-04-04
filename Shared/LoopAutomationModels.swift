@@ -48,9 +48,6 @@ struct LoopRect: Codable {
         )
     }
 
-    var cgRect: CGRect {
-        CGRect(x: x, y: y, width: width, height: height)
-    }
 }
 
 struct LoopWindowSummary: Codable {
@@ -76,15 +73,15 @@ struct LoopScreenSummary: Codable {
 }
 
 struct LoopActionDescriptor: Codable {
-    let id: UUID
+    let id: UUID?
     let kind: LoopActionKind
+    let title: String
     let name: String
-    let slug: String
     let route: String
-    let idRoute: String
+    let idRoute: String?
 
-    var idString: String {
-        id.uuidString.lowercased()
+    var idString: String? {
+        id?.uuidString.lowercased()
     }
 }
 
@@ -140,38 +137,6 @@ enum LoopAutomationResult: Codable {
         case .execution:
             .execution
         }
-    }
-
-    var windowList: LoopWindowListResult? {
-        guard case let .windowList(result) = self else {
-            return nil
-        }
-
-        return result
-    }
-
-    var screenList: LoopScreenListResult? {
-        guard case let .screenList(result) = self else {
-            return nil
-        }
-
-        return result
-    }
-
-    var actionList: LoopActionListResult? {
-        guard case let .actionList(result) = self else {
-            return nil
-        }
-
-        return result
-    }
-
-    var execution: LoopExecutionResult? {
-        guard case let .execution(result) = self else {
-            return nil
-        }
-
-        return result
     }
 
     init(from decoder: Decoder) throws {

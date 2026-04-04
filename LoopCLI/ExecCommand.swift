@@ -29,10 +29,10 @@ struct ExecCommand: ParsableCommand, CLIRequestCommand {
     @Option(name: .customLong("direction"), help: "Execute a built-in direction action")
     var direction: String?
 
-    @Option(name: .customLong("keybind"), help: "Execute a keybind-backed action by display name")
+    @Option(name: .customLong("keybind"), help: "Execute a keybind-backed action by name")
     var keybind: String?
 
-    @Option(name: .customLong("id"), help: "Execute any action by UUID")
+    @Option(name: .customLong("id"), help: "Execute an action by UUID")
     var actionID: ActionIdentifier?
 
     @OptionGroup
@@ -68,9 +68,8 @@ struct ExecCommand: ParsableCommand, CLIRequestCommand {
         }
 
         if let keybind {
-            let descriptor = try application.resolveKeybind(named: keybind)
             return CLIRequest(
-                routeComponents: ["id", descriptor.idString],
+                routeComponents: ["keybind", keybind],
                 queryItems: queryItems
             )
         }

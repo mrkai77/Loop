@@ -53,11 +53,6 @@ struct CLIRequest {
 }
 
 struct CLIOutputConfiguration {
-    let mode: CLIOutputMode
+    let mode: OutputOptions.Mode
     let showIDs: Bool
-
-    static let `default` = CLIOutputConfiguration(
-        mode: .human,
-        showIDs: false
-    )
 }

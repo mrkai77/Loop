@@ -15,8 +15,8 @@
  - loop://list/actions
  - loop://list/actions/directions
  - loop://list/actions/keybinds
- - loop://direction/<slug>
- - loop://keybind/<slug>
+ - loop://direction/<name>
+ - loop://keybind/<name>
  - loop://id/<uuid>
 
  Socket / CLI transport:
@@ -33,7 +33,6 @@
  */
 
 import AppKit
-import CryptoKit
 import Defaults
 import Foundation
 import Scribe
@@ -138,37 +137,27 @@ final class LoopCommandHandler {
     }
 
     private struct DirectionActionDescriptor {
-        let category: String
         let direction: WindowDirection
-        let id: UUID
-        let slug: String
         let name: String
-
-        var idString: String {
-            id.uuidString.lowercased()
-        }
+        let title: String
 
         var urlPath: String {
-            "direction/\(slug)"
-        }
-
-        var idPath: String {
-            "id/\(idString)"
+            "direction/\(name)"
         }
     }
 
     private struct KeybindActionDescriptor {
         let action: WindowAction
         let id: UUID
-        let slug: String
         let name: String
+        let title: String
 
         var idString: String {
             id.uuidString.lowercased()
         }
 
         var urlPath: String {
-            "keybind/\(slug)"
+            "keybind/\(name)"
         }
 
         var idPath: String {
@@ -180,30 +169,12 @@ final class LoopCommandHandler {
         case direction(DirectionActionDescriptor)
         case keybind(KeybindActionDescriptor)
 
-        var id: UUID {
+        var id: UUID? {
             switch self {
-            case let .direction(descriptor):
-                descriptor.id
+            case .direction:
+                nil
             case let .keybind(descriptor):
                 descriptor.id
-            }
-        }
-
-        var idString: String {
-            switch self {
-            case let .direction(descriptor):
-                descriptor.idString
-            case let .keybind(descriptor):
-                descriptor.idString
-            }
-        }
-
-        var slug: String {
-            switch self {
-            case let .direction(descriptor):
-                descriptor.slug
-            case let .keybind(descriptor):
-                descriptor.slug
             }
         }
 
@@ -216,12 +187,12 @@ final class LoopCommandHandler {
             }
         }
 
-        var kind: String {
+        var title: String {
             switch self {
-            case .direction:
-                "direction"
-            case .keybind:
-                "keybind"
+            case let .direction(descriptor):
+                descriptor.title
+            case let .keybind(descriptor):
+                descriptor.title
             }
         }
 
@@ -243,10 +214,10 @@ final class LoopCommandHandler {
             }
         }
 
-        var idPath: String {
+        var idPath: String? {
             switch self {
-            case let .direction(descriptor):
-                descriptor.idPath
+            case .direction:
+                nil
             case let .keybind(descriptor):
                 descriptor.idPath
             }
@@ -279,8 +250,6 @@ final class LoopCommandHandler {
         ("Focus", WindowDirection.focus),
         ("Other", [.initialFrame, .undo])
     ]
-
-    private static let directionIDNamespace = UUID(uuidString: "6c6e0e9d-2da7-4b3d-bf5b-4e868e4b6d7b")!
 
     // MARK: - Public Methods
 
@@ -361,18 +330,6 @@ final class LoopCommandHandler {
 
         let parameters = Array(components.dropFirst())
 
-        if let legacy = removedLegacyCommandResponse(
-            command: commandString,
-            parameters: parameters
-        ) {
-            return makeExecutionResult(
-                source: source,
-                kind: legacy.kind,
-                components: components,
-                response: legacy.response
-            )
-        }
-
         switch commandString {
         case "list":
             return makeExecutionResult(
@@ -443,12 +400,6 @@ final class LoopCommandHandler {
             case let .failure(error):
                 return error
             }
-
-        case "all":
-            return removedListAllResponse()
-
-        case "keybinds":
-            return removedListKeybindsResponse()
 
         default:
             return invalidListRouteResponse(parameters)
@@ -528,60 +479,39 @@ final class LoopCommandHandler {
     private func handleDirectionCommand(_ parameters: [String], params: TargetParams) -> LoopAutomationResponse {
         guard parameters.count == 1 else {
             return failureResponse(
-                message: "Direction execution requires exactly one slug",
+                message: "Direction execution requires exactly one name",
                 replacementRoute: urlCommandString(["list", "actions", "directions"])
             )
         }
 
         let token = parameters[0]
-        if let descriptor = directionActionDescriptor(slug: token) {
-            return executeAction(.direction(descriptor), params: params)
-        }
-
-        if let descriptor = legacyDirectionDescriptor(for: token) {
+        guard let descriptor = directionActionDescriptor(name: token) else {
             return failureResponse(
-                message: "Use the canonical direction slug",
-                replacementRoute: urlCommandString(["direction", descriptor.slug])
+                message: "Unknown direction name: \(token)",
+                replacementRoute: urlCommandString(["list", "actions", "directions"])
             )
         }
 
-        return failureResponse(
-            message: "Unknown direction slug: \(token)",
-            replacementRoute: urlCommandString(["list", "actions", "directions"])
-        )
+        return executeAction(.direction(descriptor), params: params)
     }
 
     private func handleKeybindCommand(_ parameters: [String], params: TargetParams) -> LoopAutomationResponse {
         guard parameters.count == 1 else {
             return failureResponse(
-                message: "Keybind execution requires exactly one slug",
+                message: "Keybind execution requires exactly one name",
                 replacementRoute: urlCommandString(["list", "actions", "keybinds"])
             )
         }
 
         let token = parameters[0]
-        if let descriptor = keybindActionDescriptor(slug: token) {
-            return executeAction(.keybind(descriptor), params: params)
-        }
-
-        let legacyMatches = legacyKeybindDescriptors(for: token)
-        if legacyMatches.count == 1, let descriptor = legacyMatches.first {
+        guard let descriptor = keybindActionDescriptor(name: token) else {
             return failureResponse(
-                message: "Use the canonical keybind slug",
-                replacementRoute: urlCommandString(["keybind", descriptor.slug])
+                message: "Unknown keybind name: \(token)",
+                replacementRoute: urlCommandString(["list", "actions", "keybinds"])
             )
         }
 
-        if legacyMatches.count > 1 {
-            return failureResponse(
-                message: "Multiple keybind actions match \(token). Use list/actions/keybinds to find the canonical slug."
-            )
-        }
-
-        return failureResponse(
-            message: "Unknown keybind slug: \(token)",
-            replacementRoute: urlCommandString(["list", "actions", "keybinds"])
-        )
+        return executeAction(.keybind(descriptor), params: params)
     }
 
     private func handleIDCommand(_ parameters: [String], params: TargetParams) -> LoopAutomationResponse {
@@ -660,36 +590,27 @@ final class LoopCommandHandler {
     }
 
     private func allDirectionActionDescriptors() -> [DirectionActionDescriptor] {
-        Self.directionCategories.flatMap { category, directions in
+        Self.directionCategories.flatMap { _, directions in
             directions.map { direction in
                 DirectionActionDescriptor(
-                    category: category,
                     direction: direction,
-                    id: deterministicDirectionID(for: direction),
-                    slug: canonicalDirectionSlug(for: direction),
-                    name: direction.name
+                    name: canonicalDirectionName(for: direction),
+                    title: direction.name
                 )
             }
         }
     }
 
     private func directionActionDescriptor(for direction: WindowDirection) -> DirectionActionDescriptor {
-        let category = Self.directionCategories.first { $0.1.contains(direction) }?.0 ?? "Actions"
-        return DirectionActionDescriptor(
-            category: category,
+        DirectionActionDescriptor(
             direction: direction,
-            id: deterministicDirectionID(for: direction),
-            slug: canonicalDirectionSlug(for: direction),
-            name: direction.name
+            name: canonicalDirectionName(for: direction),
+            title: direction.name
         )
     }
 
-    private func directionActionDescriptor(slug: String) -> DirectionActionDescriptor? {
-        allDirectionActionDescriptors().first { $0.slug == slug.lowercased() }
-    }
-
-    private func directionActionDescriptor(id: UUID) -> DirectionActionDescriptor? {
-        allDirectionActionDescriptors().first { $0.id == id }
+    private func directionActionDescriptor(name: String) -> DirectionActionDescriptor? {
+        allDirectionActionDescriptors().first { $0.name == name.lowercased() }
     }
 
     private func keybindActionDescriptors() -> [KeybindActionDescriptor] {
@@ -709,26 +630,26 @@ final class LoopCommandHandler {
             return (action, displayName, slugifyDisplayString(displayName))
         }
 
-        let groupedByBaseSlug = Dictionary(grouping: candidates, by: \.2)
+        let groupedByBaseName = Dictionary(grouping: candidates, by: \.2)
 
-        return candidates.map { action, name, baseSlug in
-            let finalSlug: String = if groupedByBaseSlug[baseSlug, default: []].count > 1 {
-                "\(baseSlug)_\(shortIdentifier(for: action.id))"
+        return candidates.map { action, displayName, baseName in
+            let finalName: String = if groupedByBaseName[baseName, default: []].count > 1 {
+                "\(baseName)_\(shortIdentifier(for: action.id))"
             } else {
-                baseSlug
+                baseName
             }
 
             return KeybindActionDescriptor(
                 action: action,
                 id: action.id,
-                slug: finalSlug,
-                name: name
+                name: finalName,
+                title: displayName
             )
         }
     }
 
-    private func keybindActionDescriptor(slug: String) -> KeybindActionDescriptor? {
-        keybindActionDescriptors().first { $0.slug == slug.lowercased() }
+    private func keybindActionDescriptor(name: String) -> KeybindActionDescriptor? {
+        keybindActionDescriptors().first { $0.name == name.lowercased() }
     }
 
     private func keybindActionDescriptor(id: UUID) -> KeybindActionDescriptor? {
@@ -736,158 +657,11 @@ final class LoopCommandHandler {
     }
 
     private func executableActionDescriptor(id: UUID) -> ExecutableActionDescriptor? {
-        if let descriptor = directionActionDescriptor(id: id) {
-            return .direction(descriptor)
-        }
-
         if let descriptor = keybindActionDescriptor(id: id) {
             return .keybind(descriptor)
         }
 
         return nil
-    }
-
-    private func legacyDirectionDescriptor(for token: String) -> DirectionActionDescriptor? {
-        let lowered = token.lowercased()
-
-        switch lowered {
-        case "next":
-            return directionActionDescriptor(for: .nextScreen)
-        case "previous":
-            return directionActionDescriptor(for: .previousScreen)
-        default:
-            return allDirectionActionDescriptors().first { descriptor in
-                descriptor.slug == lowered
-                    || slugifyDisplayString(descriptor.direction.rawValue, treatCamelCaseAsWords: true) == lowered
-                    || descriptor.direction.rawValue.lowercased() == lowered
-            }
-        }
-    }
-
-    private func legacyKeybindDescriptors(for token: String) -> [KeybindActionDescriptor] {
-        let lowered = token.lowercased()
-        return keybindActionDescriptors().filter {
-            $0.slug == lowered || $0.name.caseInsensitiveCompare(token) == .orderedSame
-        }
-    }
-
-    // MARK: - Removed Public Commands
-
-    private func removedLegacyCommandResponse(
-        command: String,
-        parameters: [String]
-    ) -> (kind: CommandKind, response: LoopAutomationResponse)? {
-        switch command {
-        case "windowlist":
-            (
-                .read,
-                failureResponse(
-                    message: "windowlist has been removed",
-                    replacementRoute: listRouteReplacement(["windows"])
-                )
-            )
-
-        case "screenlist":
-            (
-                .read,
-                failureResponse(
-                    message: "screenlist has been removed",
-                    replacementRoute: listRouteReplacement(["screens"])
-                )
-            )
-
-        case "execute":
-            (
-                .write,
-                removedExecuteResponse(parameters: parameters)
-            )
-
-        case "screen":
-            (
-                .write,
-                removedScreenResponse(parameters: parameters)
-            )
-
-        case "action":
-            (
-                parameters.first?.lowercased() == "list" ? .read : .write,
-                removedActionResponse(parameters: parameters)
-            )
-
-        default:
-            nil
-        }
-    }
-
-    private func removedExecuteResponse(parameters: [String]) -> LoopAutomationResponse {
-        if parameters.count == 1, let identifier = UUID(uuidString: parameters[0]), let descriptor = executableActionDescriptor(id: identifier) {
-            return failureResponse(
-                message: "execute has been removed",
-                replacementRoute: urlCommandString(["id", descriptor.idString])
-            )
-        }
-
-        if parameters.count == 2, parameters[0].lowercased() == "direction", let descriptor = legacyDirectionDescriptor(for: parameters[1]) {
-            return failureResponse(
-                message: "execute has been removed",
-                replacementRoute: replacementCommand(for: .direction(descriptor))
-            )
-        }
-
-        if parameters.count == 2, parameters[0].lowercased() == "keybind", let descriptor = keybindActionDescriptor(slug: parameters[1]) ?? legacyKeybindDescriptors(for: parameters[1]).only {
-            return failureResponse(
-                message: "execute has been removed",
-                replacementRoute: replacementCommand(for: .keybind(descriptor))
-            )
-        }
-
-        return failureResponse(
-            message: "execute has been removed",
-            availableRoutes: publicWriteRoutes()
-        )
-    }
-
-    private func removedScreenResponse(parameters: [String]) -> LoopAutomationResponse {
-        if let parameter = parameters.first, let descriptor = legacyDirectionDescriptor(for: parameter) {
-            return failureResponse(
-                message: "screen has been removed",
-                replacementRoute: replacementCommand(for: .direction(descriptor))
-            )
-        }
-
-        return failureResponse(
-            message: "screen has been removed",
-            replacementRoute: urlCommandString(["list", "actions", "directions"])
-        )
-    }
-
-    private func removedActionResponse(parameters: [String]) -> LoopAutomationResponse {
-        if parameters.isEmpty || parameters.first?.lowercased() == "list" {
-            return failureResponse(
-                message: "action has been removed",
-                replacementRoute: listRouteReplacement(["actions"])
-            )
-        }
-
-        if let descriptor = legacyDirectionDescriptor(for: parameters[0]) {
-            return failureResponse(
-                message: "action has been removed",
-                replacementRoute: replacementCommand(for: .direction(descriptor))
-            )
-        }
-
-        let keybindMatches = legacyKeybindDescriptors(for: parameters[0])
-        if let descriptor = keybindMatches.only {
-            return failureResponse(
-                message: "action has been removed",
-                replacementRoute: replacementCommand(for: .keybind(descriptor))
-            )
-        }
-
-        return failureResponse(
-            message: "action has been removed",
-            replacementRoute: listRouteReplacement(["actions"])
-        )
     }
 
     // MARK: - Response Helpers
@@ -898,11 +672,11 @@ final class LoopCommandHandler {
 
     private func publicListRoutes() -> [String] {
         [
-            listRouteReplacement(["windows"]),
-            listRouteReplacement(["screens"]),
-            listRouteReplacement(["actions"]),
-            listRouteReplacement(["actions", "directions"]),
-            listRouteReplacement(["actions", "keybinds"])
+            urlCommandString(["list", "windows"]),
+            urlCommandString(["list", "screens"]),
+            urlCommandString(["list", "actions"]),
+            urlCommandString(["list", "actions", "directions"]),
+            urlCommandString(["list", "actions", "keybinds"])
         ]
     }
 
@@ -918,14 +692,6 @@ final class LoopCommandHandler {
 
     private func urlCommandString(_ components: [String]) -> String {
         "loop://\(components.joined(separator: "/"))"
-    }
-
-    private func listRouteReplacement(_ components: [String]) -> String {
-        urlCommandString(["list"] + components)
-    }
-
-    private func replacementCommand(for descriptor: ExecutableActionDescriptor) -> String {
-        urlCommandString(descriptor.urlPath.split(separator: "/").map(String.init))
     }
 
     private func failureResponse(
@@ -946,20 +712,6 @@ final class LoopCommandHandler {
         failureResponse(
             message: "No list type specified",
             availableRoutes: publicListRoutes()
-        )
-    }
-
-    private func removedListAllResponse() -> LoopAutomationResponse {
-        failureResponse(
-            message: "list/all has been removed",
-            availableRoutes: publicListRoutes()
-        )
-    }
-
-    private func removedListKeybindsResponse() -> LoopAutomationResponse {
-        failureResponse(
-            message: "list/keybinds has been removed",
-            replacementRoute: listRouteReplacement(["actions", "keybinds"])
         )
     }
 
@@ -1042,14 +794,14 @@ final class LoopCommandHandler {
         LoopActionDescriptor(
             id: descriptor.id,
             kind: descriptor.actionKind,
+            title: descriptor.title,
             name: descriptor.name,
-            slug: descriptor.slug,
             route: urlCommandString(descriptor.urlPath.split(separator: "/").map(String.init)),
-            idRoute: urlCommandString(descriptor.idPath.split(separator: "/").map(String.init))
+            idRoute: descriptor.idPath.map { urlCommandString($0.split(separator: "/").map(String.init)) }
         )
     }
 
-    // MARK: - Slug and ID Helpers
+    // MARK: - Name and ID Helpers
 
     private func slugifyDisplayString(_ string: String, treatCamelCaseAsWords: Bool = false) -> String {
         let source = if treatCamelCaseAsWords {
@@ -1077,30 +829,8 @@ final class LoopCommandHandler {
         return slug.isEmpty ? "unnamed" : slug
     }
 
-    private func canonicalDirectionSlug(for direction: WindowDirection) -> String {
+    private func canonicalDirectionName(for direction: WindowDirection) -> String {
         slugifyDisplayString(direction.rawValue, treatCamelCaseAsWords: true)
-    }
-
-    private func deterministicDirectionID(for direction: WindowDirection) -> UUID {
-        uuidV5(namespace: Self.directionIDNamespace, name: direction.rawValue)
-    }
-
-    private func uuidV5(namespace: UUID, name: String) -> UUID {
-        var namespaceUUID = namespace.uuid
-        let namespaceData = withUnsafeBytes(of: &namespaceUUID) { Data($0) }
-        let nameData = Data(name.utf8)
-        let digest = Insecure.SHA1.hash(data: namespaceData + nameData)
-
-        var bytes = Array(digest.prefix(16))
-        bytes[6] = (bytes[6] & 0x0F) | 0x50
-        bytes[8] = (bytes[8] & 0x3F) | 0x80
-
-        return UUID(uuid: (
-            bytes[0], bytes[1], bytes[2], bytes[3],
-            bytes[4], bytes[5], bytes[6], bytes[7],
-            bytes[8], bytes[9], bytes[10], bytes[11],
-            bytes[12], bytes[13], bytes[14], bytes[15]
-        ))
     }
 
     private func shortIdentifier(for uuid: UUID) -> String {
@@ -1289,11 +1019,5 @@ final class LoopCommandHandler {
             return "Could not find or launch app: \(bundleID)"
         }
         return "No frontmost window found"
-    }
-}
-
-private extension Array {
-    var only: Element? {
-        count == 1 ? first : nil
     }
 }

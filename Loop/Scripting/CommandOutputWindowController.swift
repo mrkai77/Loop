@@ -2,7 +2,7 @@
 //  CommandOutputWindowController.swift
 //  Loop
 //
-//  Created by Codex on 2026-03-28.
+//  Created by Kai Azim on 2026-03-28.
 //
 
 import AppKit

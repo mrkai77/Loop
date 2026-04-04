@@ -36,47 +36,4 @@ final class LoopCLIApplication {
 
         print(outputFormatter.format(response, configuration: outputConfiguration))
     }
-
-    func resolveKeybind(named displayName: String) throws -> LoopActionDescriptor {
-        let response = try socketClient.send(
-            CLIRequest(routeComponents: ["list", "actions", "keybinds"])
-        )
-
-        guard response.isSuccess else {
-            throw errorFormatter.error(from: response)
-        }
-
-        let normalizedDisplayName = displayName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let matches = response.keybindActions.filter {
-            $0.name.caseInsensitiveCompare(normalizedDisplayName) == .orderedSame
-        }
-
-        if let match = matches.only {
-            return match
-        }
-
-        if matches.isEmpty {
-            throw errorFormatter.runtimeError(
-                """
-                Unknown keybind name: \(displayName)
-                Try: \(Self.executableName) list actions --keybinds
-                """
-            )
-        }
-
-        let matchingIdentifiers = matches.map(\.idString).joined(separator: ", ")
-        throw errorFormatter.runtimeError(
-            """
-            Multiple keybind actions share the name "\(displayName)".
-            Matching IDs: \(matchingIdentifiers)
-            Try: \(Self.executableName) exec --id <uuid>
-            """
-        )
-    }
-}
-
-private extension Array {
-    var only: Element? {
-        count == 1 ? first : nil
-    }
 }
