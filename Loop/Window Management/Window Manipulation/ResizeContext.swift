@@ -107,6 +107,15 @@ final class ResizeContext {
         resolvedRecord = target.resolvedRecord
         lastAppliedFrame = nil
 
+        // Reset the cached base frame to the new window's actual frame. Otherwise a sequence
+        // like `focus to another window > grow` would resize the newly-focused window using
+        // the *previous* window's cached frame — grow/shrink/move read `cachedTargetFrame.raw`
+        // as their base until a frame has been applied.
+        if let window {
+            let frame = window.frame
+            cachedTargetFrame = ComputedFrame(raw: frame, normalized: .zero, padded: frame)
+        }
+
         needsRecompute = true
 
         log.info("Set window to \(window?.description ?? "nil")")
@@ -202,10 +211,10 @@ final class ResizeContext {
         // until the stack overflows.
         needsRecompute = false
 
-        // No-op / no-frame actions return a zero-size sentinel from `getFrame`; caching it would
-        // clobber the base frame that a later grow/shrink/move reads. Keep the real cached frame.
-        let noFrameActions: [WindowDirection] = [.noAction, .noSelection, .cycle, .minimize, .hide]
-        guard !noFrameActions.contains(action.direction), !action.direction.willFocusWindow else {
+        // Actions with no target frame return a zero-size sentinel from `getFrame`; caching it
+        // would clobber the base frame that a later grow/shrink/move reads. Keep the real cached
+        // frame. (Uses `WindowDirection.hasTargetFrame`, shared with `WindowFrameResolver`.)
+        guard action.direction.hasTargetFrame else {
             return
         }
 
