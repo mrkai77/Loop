@@ -20,7 +20,13 @@ extension MultitouchTrigger {
         } else {
             let direction = directionalSwipeKind(angle: swipe.angle)
             let directionalGesture = entry.directionalGestures.first { $0.kind == direction }
-            if directionalGesture != nil || entry.session.hasGestureBegun {
+            let isTerminal = switch swipe.phase {
+            case .ended(_), .cancelled:
+                true
+            default:
+                false
+            }
+            if directionalGesture != nil || entry.session.hasGestureBegun || isTerminal {
                 await handleDirectionalSwipe(
                     swipe,
                     fingerCount: fingerCount,
@@ -73,6 +79,7 @@ extension MultitouchTrigger {
                 for: fingerCount,
                 forceClose: reason == .fingerCountChanged(.increased)
             )
+
         case .cancelled:
             resetLoopState(for: fingerCount)
 
@@ -138,6 +145,7 @@ extension MultitouchTrigger {
                 for: fingerCount,
                 forceClose: reason == .fingerCountChanged(.increased)
             )
+
         case .cancelled:
             resetLoopState(for: fingerCount)
 

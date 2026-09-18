@@ -19,6 +19,7 @@ final class MultitouchGestureSession {
     private(set) var isGestureRejected = false
     private(set) var hasActivated = false
     private(set) var hasGestureBegun = false
+    private(set) var ownsGestureBlocker = false
     /// The gesture currently driving this stroke. Swapped on direction reversal
     private(set) var resolvedGesture: GestureBinding?
     private(set) var pendingTargetWindow: Window?
@@ -33,6 +34,7 @@ final class MultitouchGestureSession {
         isGestureRejected = false
         hasActivated = false
         hasGestureBegun = false
+        ownsGestureBlocker = false
         resolvedGesture = nil
         pendingTargetWindow = nil
         lastCommittedAction = nil
@@ -60,6 +62,16 @@ final class MultitouchGestureSession {
 
     func reject() {
         isGestureRejected = true
+    }
+
+    func acquireGestureBlocker() {
+        ownsGestureBlocker = true
+    }
+
+    func releaseGestureBlocker() -> Bool {
+        guard ownsGestureBlocker else { return false }
+        ownsGestureBlocker = false
+        return true
     }
 
     func markActivated(openedLoop: Bool) {

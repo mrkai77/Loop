@@ -65,7 +65,6 @@ final class MultitouchTrigger {
 
         startSystemGestureReconciliation()
         reconcileSystemGestures()
-        gestureMonitor.start()
         rebuildRecognizers()
         radialMenuActions = RadialMenuAction.userConfiguredActions
 
@@ -95,9 +94,8 @@ final class MultitouchTrigger {
         radialMenuActionsObservationTask?.cancel()
         radialMenuActionsObservationTask = nil
 
-        handleStopResults(recognizerRegistry.stopAll())
-
         gestureMonitor.stop()
+        handleStopResults(recognizerRegistry.stopAll())
         targetResolver.reset()
     }
 
@@ -135,6 +133,11 @@ final class MultitouchTrigger {
 
     private func rebuildRecognizers() {
         handleStopResults(recognizerRegistry.rebuild(with: Defaults[.gestures]))
+        if recognizerRegistry.hasRecognizers {
+            gestureMonitor.start()
+        } else {
+            gestureMonitor.stop()
+        }
     }
 
     private func handleStopResults(_ stopResults: [MultitouchRecognizerRegistry.StopResult]) {
@@ -142,7 +145,13 @@ final class MultitouchTrigger {
             if stopResult.didOpenLoopWithGesture {
                 closeCallback(false)
             }
-            gestureBlocker.stop()
+            if stopResult.didAcquireGestureBlocker {
+                gestureBlocker.stop()
+            }
+        }
+
+        if !stopResults.isEmpty {
+            targetResolver.resetGestureState()
         }
     }
 
@@ -171,6 +180,7 @@ final class MultitouchTrigger {
         let loopWasAlreadyOpen = checkIfLoopOpen()
 
         guard let session = recognizerRegistry.session(for: fingerCount) else { return }
+        releaseGestureBlocker(for: session)
         guard session.begin(targetWindow: window, loopWasAlreadyOpen: loopWasAlreadyOpen) else {
             return
         }
@@ -178,6 +188,7 @@ final class MultitouchTrigger {
         targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: allowsRapidRepeat)
 
         gestureBlocker.start()
+        session.acquireGestureBlocker()
     }
 
     private func handleEarlyRadialMenuGesture(
@@ -219,25 +230,40 @@ final class MultitouchTrigger {
             } catch {
                 if recognizerRegistry.contains(session: session, for: fingerCount) {
                     session.reject()
-                    gestureBlocker.stop()
+                    releaseGestureBlocker(for: session)
                 }
                 return false
             }
         }
 
-        guard recognizerRegistry.contains(session: session, for: fingerCount) else { return false }
+        guard recognizerRegistry.contains(session: session, for: fingerCount) else {
+            if openedLoop {
+                closeCallback(true)
+            }
+            return false
+        }
         session.markActivated(openedLoop: openedLoop)
         return true
     }
 
     func resetLoopState(for fingerCount: Int, forceClose: Bool = false) {
-        if recognizerRegistry.session(for: fingerCount)?.didOpenLoopWithThisGesture == true {
+        guard let session = recognizerRegistry.session(for: fingerCount) else {
+            return
+        }
+
+        if session.didOpenLoopWithThisGesture {
             closeCallback(forceClose)
         }
 
-        gestureBlocker.stop()
-        recognizerRegistry.session(for: fingerCount)?.reset()
+        releaseGestureBlocker(for: session)
+        session.reset()
         targetResolver.resetGestureState()
+    }
+
+    private func releaseGestureBlocker(for session: MultitouchGestureSession) {
+        if session.releaseGestureBlocker() {
+            gestureBlocker.stop()
+        }
     }
 }
 

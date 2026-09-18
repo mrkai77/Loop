@@ -34,6 +34,7 @@ final class MultitouchRecognizerRegistry {
 
     struct StopResult {
         let didOpenLoopWithGesture: Bool
+        let didAcquireGestureBlocker: Bool
     }
 
     private let gestureMonitor: SubsurfaceMonitor
@@ -100,6 +101,10 @@ final class MultitouchRecognizerRegistry {
         entries[fingerCount]?.session === session
     }
 
+    var hasRecognizers: Bool {
+        !entries.isEmpty
+    }
+
     private func startRecognizer(
         for fingerCount: Int,
         radial: GestureBinding?,
@@ -137,7 +142,10 @@ final class MultitouchRecognizerRegistry {
         guard let entry = entries[fingerCount] else { return nil }
         entry.task?.cancel()
         entry.recognizer.reset()
-        return StopResult(didOpenLoopWithGesture: entry.session.didOpenLoopWithThisGesture)
+        return StopResult(
+            didOpenLoopWithGesture: entry.session.didOpenLoopWithThisGesture,
+            didAcquireGestureBlocker: entry.session.releaseGestureBlocker()
+        )
     }
 }
 

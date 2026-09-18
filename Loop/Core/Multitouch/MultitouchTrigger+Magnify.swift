@@ -86,6 +86,7 @@ extension MultitouchTrigger {
                 for: fingerCount,
                 forceClose: reason == .fingerCountChanged(.increased)
             )
+
         case .cancelled:
             resetLoopState(for: fingerCount)
 
@@ -127,6 +128,7 @@ extension MultitouchTrigger {
                 for: fingerCount,
                 forceClose: reason == .fingerCountChanged(.increased)
             )
+
         case .cancelled:
             resetLoopState(for: fingerCount)
 

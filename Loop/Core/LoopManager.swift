@@ -131,14 +131,20 @@ final class LoopManager {
         },
         advanceSelectedAction: { [weak self] selectedAction in
             Task {
+                guard let self else { return }
+
+                if let selectedAction, selectedAction.id != self.resizeContext.action.id {
+                    return
+                }
+
                 if let selectedAction {
-                    await self?.changeAction(
+                    await self.changeAction(
                         selectedAction,
                         disableHapticFeedback: true,
                         canAdvanceCycle: false
                     )
-                } else if let parent = self?.resizeContext.parentAction {
-                    await self?.changeAction(
+                } else if let parent = self.resizeContext.parentAction {
+                    await self.changeAction(
                         parent,
                         disableHapticFeedback: true,
                         canAdvanceCycle: true
@@ -153,6 +159,14 @@ final class LoopManager {
     )
 
     func start() {
+        if !Defaults[.enableGestures] || !AccessibilityManager.shared.isGranted {
+            SystemGestureManager.reconcile(
+                enableGestures: false,
+                disableConflicts: Defaults[.disableConflictingSystemGestures],
+                gestures: Defaults[.gestures]
+            )
+        }
+
         accessibilityCheckerTask = Task(priority: .background) { [weak self] in
             for await status in AccessibilityManager.shared.stream(initial: true) {
                 guard let self, !Task.isCancelled else {
@@ -399,9 +413,9 @@ extension LoopManager {
             return
         }
 
-        let allowsRepeatedSelection = newAction.allowsRepeatedSelection
+        let incomingAllowsRepeatedSelection = newAction.allowsRepeatedSelection
 
-        guard originatingContext.action.id != newAction.id || allowsRepeatedSelection else {
+        guard originatingContext.action.id != newAction.id || incomingAllowsRepeatedSelection else {
             return
         }
 
@@ -578,7 +592,7 @@ extension LoopManager {
             return
         }
 
-        if newAction != resizeContext.action || allowsRepeatedSelection {
+        if newAction != resizeContext.action || newAction.allowsRepeatedSelection {
             if !disableHapticFeedback {
                 performHapticFeedback()
             }

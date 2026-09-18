@@ -346,6 +346,18 @@ final class SystemGestureManager {
                 continue
             }
 
+            let currentValue = identifier.normalized(identifier.get())
+            let lastManagedValue = ledger.managedValues[
+                identifier.compositeKey
+            ].map(identifier.normalized)
+
+            if let lastManagedValue, currentValue != lastManagedValue {
+                // the user or another process changed this while Loop managed it
+                ledger.backups.removeValue(forKey: identifier.compositeKey)
+                ledger.managedValues.removeValue(forKey: identifier.compositeKey)
+                continue
+            }
+
             identifier.set(backupValue)
             ledger.backups.removeValue(forKey: identifier.compositeKey)
             ledger.managedValues.removeValue(forKey: identifier.compositeKey)

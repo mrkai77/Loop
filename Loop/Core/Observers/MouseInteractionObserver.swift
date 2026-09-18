@@ -235,8 +235,11 @@ final class MouseInteractionObserver {
 
         if let pendingRepeatableAction {
             advanceSelectedAction(pendingRepeatableAction)
+            self.pendingRepeatableAction = nil
             return .ignore
         }
+
+        pendingRepeatableAction = nil
 
         guard canSelectNextCycleitem() else {
             return .forward
