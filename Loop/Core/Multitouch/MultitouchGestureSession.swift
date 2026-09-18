@@ -23,6 +23,7 @@ final class MultitouchGestureSession {
     /// The gesture currently driving this stroke. Swapped on direction reversal
     private(set) var resolvedGesture: GestureBinding?
     private(set) var pendingTargetWindow: Window?
+    private var activationContext: MultitouchGestureActivationContext?
 
     private var lastCommittedAction: ActionKey?
     private var lastCommitSwipeDistance: CGFloat = 0
@@ -37,6 +38,7 @@ final class MultitouchGestureSession {
         ownsGestureBlocker = false
         resolvedGesture = nil
         pendingTargetWindow = nil
+        activationContext = nil
         lastCommittedAction = nil
         lastCommitSwipeDistance = 0
         lastCommitMagnifyDistance = 0
@@ -44,16 +46,22 @@ final class MultitouchGestureSession {
     }
 
     func begin(
-        targetWindow: Window?,
+        activationContext: MultitouchGestureActivationContext,
+        gesture: GestureBinding,
         loopWasAlreadyOpen: Bool
     ) -> Bool {
-        guard targetWindow != nil || loopWasAlreadyOpen else {
+        reset()
+        self.activationContext = activationContext
+
+        guard activationContext.allows(gesture),
+              activationContext.targetWindow != nil || loopWasAlreadyOpen
+        else {
             reject()
             return false
         }
 
-        reset()
-        pendingTargetWindow = targetWindow
+        pendingTargetWindow = activationContext.targetWindow
+        resolvedGesture = gesture
         hasGestureBegun = true
         // Loop is already on screen, so no activation threshold to cross.
         hasActivated = loopWasAlreadyOpen
@@ -163,21 +171,27 @@ final class MultitouchGestureSession {
         }
     }
 
-    func setResolvedGesture(_ gesture: GestureBinding) {
-        resolvedGesture = gesture
+    func canActivate(_ gesture: GestureBinding) -> Bool {
+        hasGestureBegun &&
+            !isGestureRejected &&
+            activationContext?.allows(gesture) == true
     }
 
-    func switchSwipeGesture(to gesture: GestureBinding, distance: CGFloat) {
+    func switchSwipeGesture(to gesture: GestureBinding, distance: CGFloat) -> Bool {
+        guard canActivate(gesture) else { return false }
         resolvedGesture = gesture
         lastCommittedAction = .gesture(gesture.id)
         lastCommitSwipeDistance = distance
+        return true
     }
 
-    func switchMagnifyGesture(to gesture: GestureBinding, distance: CGFloat) {
+    func switchMagnifyGesture(to gesture: GestureBinding, distance: CGFloat) -> Bool {
+        guard canActivate(gesture) else { return false }
         resolvedGesture = gesture
         lastCommittedAction = .gesture(gesture.id)
         magnificationKind = gesture.kind
         lastCommitMagnifyDistance = distance
+        return true
     }
 
     func updateLastCommitSwipeDistance(_ distance: CGFloat) {

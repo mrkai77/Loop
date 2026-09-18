@@ -115,6 +115,10 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
 // MARK: - Naming
 
 extension GestureBinding {
+    var effectiveActivationZone: ActivationZone {
+        fingerCount <= 2 ? .titlebar : activationZone
+    }
+
     var defaultName: String {
         switch kind {
         case .radialMenu:

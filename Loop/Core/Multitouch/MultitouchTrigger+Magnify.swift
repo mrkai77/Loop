@@ -34,8 +34,9 @@ extension MultitouchTrigger {
                 guard let initialGesture else {
                     return
                 }
-                handleGestureBegan(fingerCount: fingerCount, gesture: initialGesture)
-                recognizerRegistry.session(for: fingerCount)?.setResolvedGesture(initialGesture)
+                guard handleGestureBegan(fingerCount: fingerCount, gesture: initialGesture) else {
+                    return
+                }
             }
 
             guard let session = recognizerRegistry.session(for: fingerCount), !session.isGestureRejected,
@@ -163,14 +164,18 @@ extension MultitouchTrigger {
     ) {
         if let oppositeGesture {
             guard let session = recognizerRegistry.session(for: fingerCount) else { return }
-            session.switchMagnifyGesture(to: oppositeGesture, distance: distance)
-            triggerSingleAction(from: oppositeGesture, reverse: false)
+            if session.switchMagnifyGesture(to: oppositeGesture, distance: distance) {
+                triggerSingleAction(from: oppositeGesture, reverse: false)
 
-            if let window = session.pendingTargetWindow,
-               resolvedWindowAction(from: oppositeGesture)?.allowsRapidRepeat == true {
-                targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
+                if let window = session.pendingTargetWindow,
+                   resolvedWindowAction(from: oppositeGesture)?.allowsRapidRepeat == true {
+                    targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
+                }
+                return
             }
-        } else if isCycleAction(currentGesture) {
+        }
+
+        if isCycleAction(currentGesture) {
             triggerSingleAction(from: currentGesture, reverse: true)
             recognizerRegistry.session(for: fingerCount)?.updateLastCommitMagnifyDistance(distance)
         } else {

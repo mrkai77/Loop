@@ -149,10 +149,6 @@ final class MultitouchTrigger {
                 gestureBlocker.stop()
             }
         }
-
-        if !stopResults.isEmpty {
-            targetResolver.resetGestureState()
-        }
     }
 
     private func handleGestureEvent(_ event: SubsurfaceGestureEvent, fingerCount: Int) async {
@@ -173,22 +169,34 @@ final class MultitouchTrigger {
     /// Begins a gesture session by resolving its target window and blocking trackpad events.
     /// Radial-menu sessions begin during `.determining`; directional swipe and magnify sessions
     /// begin after Subsurface recognizes the gesture. Opening Loop may still be gated separately.
-    func handleGestureBegan(fingerCount: Int, gesture: GestureBinding) {
+    @discardableResult
+    func handleGestureBegan(fingerCount: Int, gesture: GestureBinding) -> Bool {
         let allowsRapidRepeat = resolvedWindowAction(from: gesture)?.allowsRapidRepeat == true
-        let window = targetResolver.targetWindow(for: gesture, allowsRapidRepeat: allowsRapidRepeat)
+        let activationContext = targetResolver.activationContext(
+            for: gesture,
+            allowsRapidRepeat: allowsRapidRepeat
+        )
 
         let loopWasAlreadyOpen = checkIfLoopOpen()
 
-        guard let session = recognizerRegistry.session(for: fingerCount) else { return }
+        guard let session = recognizerRegistry.session(for: fingerCount) else { return false }
         releaseGestureBlocker(for: session)
-        guard session.begin(targetWindow: window, loopWasAlreadyOpen: loopWasAlreadyOpen) else {
-            return
+        guard session.begin(
+            activationContext: activationContext,
+            gesture: gesture,
+            loopWasAlreadyOpen: loopWasAlreadyOpen
+        ) else {
+            return false
         }
 
-        targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: allowsRapidRepeat)
+        targetResolver.rememberRepeatableWindow(
+            activationContext.targetWindow,
+            allowsRapidRepeat: allowsRapidRepeat
+        )
 
         gestureBlocker.start()
         session.acquireGestureBlocker()
+        return true
     }
 
     private func handleEarlyRadialMenuGesture(
@@ -201,8 +209,16 @@ final class MultitouchTrigger {
 
         switch phase {
         case .determining, .began, .changed:
-            if recognizerRegistry.session(for: fingerCount)?.hasGestureBegun != true {
-                handleGestureBegan(fingerCount: fingerCount, gesture: gesture)
+            guard let session = recognizerRegistry.session(for: fingerCount),
+                  !session.isGestureRejected
+            else {
+                return
+            }
+
+            if !session.hasGestureBegun {
+                guard handleGestureBegan(fingerCount: fingerCount, gesture: gesture) else {
+                    return
+                }
             }
             _ = await activateGestureIfNeeded(fingerCount: fingerCount)
 
@@ -257,7 +273,6 @@ final class MultitouchTrigger {
 
         releaseGestureBlocker(for: session)
         session.reset()
-        targetResolver.resetGestureState()
     }
 
     private func releaseGestureBlocker(for session: MultitouchGestureSession) {

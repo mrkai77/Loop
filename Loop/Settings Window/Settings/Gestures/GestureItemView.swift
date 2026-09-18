@@ -74,14 +74,14 @@ struct GestureItemView: View {
 
     var body: some View {
         ZStack {
+            actionSelection
+                .frame(maxWidth: .infinity, alignment: .leading)
+
             gestureConfiguration
                 .luminareToolTip(attachedTo: .topTrailing, hidden: !hasConflict) {
                     Text(String(localized: "There are other gestures that conflict with this gesture.", comment: "Tooltip shown on a conflicting gesture in settings"))
                         .padding(6)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-            actionSelection
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, 12)
@@ -96,11 +96,31 @@ struct GestureItemView: View {
         .onChange(of: gesture) { externalGesture = $0 }
     }
 
+    
+    private var actionSelection: some View {
+        actionIndicator
+            .luminarePopover(
+                isPresented: $isActionPickerPresented,
+                arrowEdge: .top,
+                attachmentAnchor: .topLeading,
+                shouldHideAnchor: true,
+                shouldAnimate: false
+            ) {
+                RadialMenuActionPickerView(selection: actionTypeBinding)
+                    .frame(width: 300, height: 300)
+            }
+            .onChange(of: isActionPickerPresented) { _ in
+                if !isActionPickerPresented {
+                    PickerListEventMonitorManager.shared.removeAllMonitors()
+                }
+            }
+    }
+
     private var gestureConfiguration: some View {
         Button {
             isGestureConfigPresented = true
         } label: {
-            VStack(alignment: .leading, spacing: 2) {
+            VStack(alignment: .trailing, spacing: 2) {
                 Text(gesture.displayName)
                     .fontWeight(.regular)
                     .lineLimit(1)
@@ -131,25 +151,6 @@ struct GestureItemView: View {
             .frame(width: 380)
         }
         .luminareModalCornerRadius(24)
-    }
-
-    private var actionSelection: some View {
-        actionIndicator
-            .luminarePopover(
-                isPresented: $isActionPickerPresented,
-                arrowEdge: .top,
-                attachmentAnchor: .topTrailing,
-                shouldHideAnchor: true,
-                shouldAnimate: false
-            ) {
-                RadialMenuActionPickerView(selection: actionTypeBinding)
-                    .frame(width: 300, height: 300)
-            }
-            .onChange(of: isActionPickerPresented) { _ in
-                if !isActionPickerPresented {
-                    PickerListEventMonitorManager.shared.removeAllMonitors()
-                }
-            }
     }
 
     private var actionIndicator: some View {

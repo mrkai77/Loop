@@ -102,8 +102,9 @@ extension MultitouchTrigger {
 
             if !session.hasGestureBegun {
                 guard let matchedGesture else { return }
-                handleGestureBegan(fingerCount: fingerCount, gesture: matchedGesture)
-                recognizerRegistry.session(for: fingerCount)?.setResolvedGesture(matchedGesture)
+                guard handleGestureBegan(fingerCount: fingerCount, gesture: matchedGesture) else {
+                    return
+                }
             }
 
             guard await activateGestureIfNeeded(fingerCount: fingerCount),
@@ -125,7 +126,14 @@ extension MultitouchTrigger {
                         hasCrossedOrigin: hasSwipeCrossedOrigin(translation: swipe.translation, currentGesture: activeGesture)
                     )
                 } else if let matchedGesture {
-                    switchSwipeGesture(fingerCount: fingerCount, to: matchedGesture, distance: swipe.distance)
+                    guard switchSwipeGesture(
+                        fingerCount: fingerCount,
+                        to: matchedGesture,
+                        distance: swipe.distance
+                    ) else {
+                        resetLoopState(for: fingerCount, forceClose: true)
+                        return
+                    }
                 } else {
                     resetLoopState(for: fingerCount, forceClose: true)
                 }
@@ -190,15 +198,20 @@ extension MultitouchTrigger {
         fingerCount: Int,
         to gesture: GestureBinding,
         distance: CGFloat
-    ) {
-        guard let session = recognizerRegistry.session(for: fingerCount) else { return }
-        session.switchSwipeGesture(to: gesture, distance: distance)
+    ) -> Bool {
+        guard let session = recognizerRegistry.session(for: fingerCount),
+              session.switchSwipeGesture(to: gesture, distance: distance)
+        else {
+            return false
+        }
         triggerSingleAction(from: gesture, reverse: false)
 
         if let window = session.pendingTargetWindow,
            resolvedWindowAction(from: gesture)?.allowsRapidRepeat == true {
             targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
         }
+
+        return true
     }
 
     private func handleSwipeReversal(
@@ -210,14 +223,18 @@ extension MultitouchTrigger {
     ) {
         if hasCrossedOrigin, let oppositeGesture {
             guard let session = recognizerRegistry.session(for: fingerCount) else { return }
-            session.switchSwipeGesture(to: oppositeGesture, distance: distance)
-            triggerSingleAction(from: oppositeGesture, reverse: false)
+            if session.switchSwipeGesture(to: oppositeGesture, distance: distance) {
+                triggerSingleAction(from: oppositeGesture, reverse: false)
 
-            if let window = session.pendingTargetWindow,
-               resolvedWindowAction(from: oppositeGesture)?.allowsRapidRepeat == true {
-                targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
+                if let window = session.pendingTargetWindow,
+                   resolvedWindowAction(from: oppositeGesture)?.allowsRapidRepeat == true {
+                    targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
+                }
+                return
             }
-        } else if isCycleAction(currentGesture) {
+        }
+
+        if isCycleAction(currentGesture) {
             triggerSingleAction(from: currentGesture, reverse: true)
             recognizerRegistry.session(for: fingerCount)?.updateLastCommitSwipeDistance(distance)
         } else {
