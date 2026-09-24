@@ -47,6 +47,19 @@ enum WindowUtility {
         guard let app = NSWorkspace.shared.frontmostApplication else {
             return nil
         }
+
+        // NSRunningApplication can occasionally report a pid of -1, so fall back to
+        // asking the AX API for the focused application instead.
+        if app.processIdentifier <= 0 {
+            log.warn("Frontmost app '\(app.localizedName ?? "<unknown>")' reported invalid pid \(app.processIdentifier), falling back to focused application")
+
+            guard let focusedApp: AXUIElement = try AXUIElement.systemWide.getValue(NSAccessibility.Attribute(rawValue: kAXFocusedApplicationAttribute)) else {
+                return nil
+            }
+
+            return try Window(pid: focusedApp.getPID())
+        }
+
         return try Window(pid: app.processIdentifier)
     }
 
