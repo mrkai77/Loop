@@ -25,12 +25,14 @@ final class LoopManager {
     private let updater = Updater.shared
 
     private var accessibilityCheckerTask: Task<(), Never>?
+    private var gestureToggleTask: Task<(), Never>?
 
     /// Opening prepares resizeContext asynchronously. We track that setup separately
     /// so rapid trigger events cannot act on the previous/default context.
     private var isLoopOpening: Bool = false
     private var pendingOpeningAction: WindowAction?
     private var shouldCancelOpening: Bool = false
+    private var hideIndicatorOnNoSelection = false
     private var actionRevision: UInt64 = 0
 
     private(set) var isLoopActive: Bool = false {
@@ -60,7 +62,10 @@ final class LoopManager {
         windowActionCache: windowActionCache,
         openCallback: { [weak self] action in
             Task {
-                await self?.openLoop(startingAction: action)
+                try? await self?.openLoop(
+                    startingAction: action,
+                    hideIndicatorOnNoSelection: Defaults[.hideOnNoSelectionForKeybinds]
+                )
             }
         },
         closeCallback: { [weak self] forceClose in
@@ -76,7 +81,10 @@ final class LoopManager {
     private(set) lazy var middleClickTrigger = MiddleClickTrigger(
         openCallback: { [weak self] action in
             Task {
-                await self?.openLoop(startingAction: action)
+                try? await self?.openLoop(
+                    startingAction: action,
+                    hideIndicatorOnNoSelection: Defaults[.hideOnNoSelectionForKeybinds]
+                )
             }
         },
         closeCallback: { [weak self] forceClose in
@@ -85,6 +93,31 @@ final class LoopManager {
             }
         },
         checkIfLoopOpen: { [weak self] in self?.isLoopActiveAtomic ?? false }
+    )
+
+    private(set) lazy var multitouchTrigger = MultitouchTrigger(
+        windowActionCache: windowActionCache,
+        openCallback: { [weak self] action, window in
+            guard let self else { return .cancelled }
+            return try await openLoop(
+                startingAction: action,
+                window: window,
+                hideIndicatorOnNoSelection: Defaults[.hideOnNoSelectionForGestures]
+            )
+        },
+        closeCallback: { [weak self] forceClose in
+            Task {
+                await self?.closeLoop(forceClose: forceClose)
+            }
+        },
+        changeAction: { [weak self] action, reverse, canAdvanceCycle in
+            Task {
+                await self?.changeAction(action, canAdvanceCycle: canAdvanceCycle, reverse: reverse)
+            }
+        },
+        checkIfLoopOpen: { [weak self] in
+            self?.isLoopActive ?? false
+        }
     )
 
     private(set) lazy var mouseInteractionObserver = MouseInteractionObserver(
@@ -96,10 +129,26 @@ final class LoopManager {
                 await self?.changeAction(newAction, canAdvanceCycle: false)
             }
         },
-        selectNextCycleItem: { [weak self] in
+        advanceSelectedAction: { [weak self] selectedAction in
             Task {
-                if let parent = self?.resizeContext.parentAction {
-                    await self?.changeAction(parent, disableHapticFeedback: true)
+                guard let self else { return }
+
+                if let selectedAction, selectedAction.id != self.resizeContext.action.id {
+                    return
+                }
+
+                if let selectedAction {
+                    await self.changeAction(
+                        selectedAction,
+                        disableHapticFeedback: true,
+                        canAdvanceCycle: false
+                    )
+                } else if let parent = self.resizeContext.parentAction {
+                    await self.changeAction(
+                        parent,
+                        disableHapticFeedback: true,
+                        canAdvanceCycle: true
+                    )
                 }
             }
         },
@@ -119,9 +168,25 @@ final class LoopManager {
                 if status {
                     await keybindTrigger.start()
                     middleClickTrigger.start()
+                    if Defaults[.enableGestures] {
+                        multitouchTrigger.start()
+                    }
                 } else {
                     keybindTrigger.stop()
                     middleClickTrigger.stop()
+                    multitouchTrigger.stop()
+                }
+            }
+        }
+
+        gestureToggleTask = Task(priority: .background) { [weak self] in
+            for await enabled in Defaults.updates(.enableGestures, initial: false) {
+                guard let self, !Task.isCancelled else { break }
+
+                if enabled, AccessibilityManager.shared.isGranted {
+                    multitouchTrigger.start()
+                } else {
+                    multitouchTrigger.stop()
                 }
             }
         }
@@ -132,12 +197,15 @@ final class LoopManager {
 
         accessibilityCheckerTask?.cancel()
         accessibilityCheckerTask = nil
+        gestureToggleTask?.cancel()
+        gestureToggleTask = nil
 
         indicatorService.closeAll()
 
         keybindTrigger.stop()
         middleClickTrigger.stop()
         mouseInteractionObserver.stop()
+        multitouchTrigger.shutdown()
         triggerKeyTimeoutTimer.cancel()
 
         isLoopOpening = false
@@ -148,19 +216,54 @@ final class LoopManager {
     }
 }
 
+enum LoopManagerError: LocalizedError {
+    case accessibilityNotGranted
+    case appExcluded
+    case fullscreenWindow
+    case missionControlShowing
+
+    var errorDescription: String? {
+        switch self {
+        case .accessibilityNotGranted:
+            "Cannot open Loop: accessibility permission not granted"
+        case .appExcluded:
+            "Cannot open Loop: app is excluded"
+        case .fullscreenWindow:
+            "Cannot open Loop: target window is fullscreen"
+        case .missionControlShowing:
+            "Cannot open Loop: Mission Control or App Exposé is showing"
+        }
+    }
+}
+
+enum LoopOpenResult {
+    case opened
+    case alreadyOpening
+    case alreadyOpen
+    case cancelled
+}
+
 // MARK: - Opening/Closing Loop
 
 extension LoopManager {
-    private func openLoop(startingAction: WindowAction) async {
+    private func openLoop(
+        startingAction: WindowAction,
+        window: Window? = nil,
+        hideIndicatorOnNoSelection: Bool
+    ) async throws -> LoopOpenResult {
         guard AccessibilityManager.shared.isGranted else {
-            return
+            throw LoopManagerError.accessibilityNotGranted
+        }
+
+        guard !MissionControl.isShowing else {
+            throw LoopManagerError.missionControlShowing
         }
 
         guard !isLoopOpening else {
             if startingAction.direction != .noSelection {
                 pendingOpeningAction = startingAction
             }
-            return
+            return .alreadyOpening
         }
 
         guard !isLoopActive else {
@@ -172,20 +275,22 @@ extension LoopManager {
                 await changeAction(startingAction, disableHapticFeedback: true)
             }
 
-            return
+            return .alreadyOpen
         }
 
-        let window = WindowUtility.userDefinedTargetWindow()
+        let window = window ?? WindowUtility.userDefinedTargetWindow()
 
-        guard
-            window?.isAppExcluded != true,
-            (window?.fullscreen ?? false && Defaults[.ignoreFullscreen]) == false
-        else {
-            return
+        guard window?.isAppExcluded != true else {
+            throw LoopManagerError.appExcluded
+        }
+
+        guard (window?.fullscreen ?? false && Defaults[.ignoreFullscreen]) == false else {
+            throw LoopManagerError.fullscreenWindow
         }
 
         actionRevision += 1
         isLoopOpening = true
+        self.hideIndicatorOnNoSelection = hideIndicatorOnNoSelection
         pendingOpeningAction = nil
         shouldCancelOpening = false
         hasParentCycleActionMirror.withLock { $0 = false }
@@ -220,7 +325,7 @@ extension LoopManager {
         await resizeContext.refreshResolvedState()
 
         guard !shouldCancelOpening else {
-            return
+            return .cancelled
         }
 
         if !Defaults[.disableCursorInteraction] {
@@ -228,11 +333,12 @@ extension LoopManager {
         }
 
         isLoopActive = true
-        indicatorService.openAndUpdate(context: resizeContext)
+        indicatorService.openAndUpdate(context: resizeContext, hideOnNoSelection: hideIndicatorOnNoSelection)
 
         await changeAction(pendingOpeningAction ?? startingAction, disableHapticFeedback: true)
 
         triggerKeyTimeoutTimer.start()
+        return .opened
     }
 
     private func closeLoop(forceClose: Bool) async {
@@ -291,7 +397,8 @@ extension LoopManager {
         _ newAction: WindowAction,
         triggeredFromScreenChange: Bool = false,
         disableHapticFeedback: Bool = false,
-        canAdvanceCycle: Bool = true
+        canAdvanceCycle: Bool = true,
+        reverse: Bool = false
     ) async {
         let originatingContext = resizeContext
 
@@ -305,12 +412,9 @@ extension LoopManager {
             return
         }
 
-        if StashManager.shared.handleIfStashed(newAction, screen: currentScreen) {
-            actionRevision += 1
-            return
-        }
+        let incomingAllowsRepeatedSelection = newAction.allowsRepeatedSelection
 
-        guard originatingContext.action.id != newAction.id || newAction.canRepeat else {
+        guard originatingContext.action.id != newAction.id || incomingAllowsRepeatedSelection else {
             return
         }
 
@@ -326,7 +430,11 @@ extension LoopManager {
 
         if newAction.direction == .cycle {
             newParentAction = newAction
-            cycleProposal = proposeCycleAction(newAction, canAdvance: canAdvanceCycle)
+            cycleProposal = proposeCycleAction(
+                newAction,
+                canAdvance: canAdvanceCycle,
+                reverse: reverse
+            )
             if let cycleProposal {
                 newAction = cycleProposal.action
             } else if !canAdvanceCycle {
@@ -357,7 +465,7 @@ extension LoopManager {
                newAction == resizeContext.action,
                !canAdvanceCycle || (
                    !newAction.direction.willChangeScreen &&
-                       !newAction.canRepeat
+                       !newAction.allowsRepeatedSelection
                ),
                let newParentAction {
                 if resizeContext.parentAction != newParentAction {
@@ -368,6 +476,18 @@ extension LoopManager {
         } else {
             // By removing the parent cycle action, a left click will not advance the user's previously set cycle.
             newParentAction = nil
+        }
+
+        if let stashedWindow = StashManager.shared.stashedWindow(for: newAction, on: currentScreen) {
+            let preparedTarget = await ResizeContext.prepareWindowTarget(stashedWindow.window)
+
+            guard resizeContext === originatingContext,
+                  actionRevision == originatingRevision
+            else {
+                return
+            }
+
+            originatingContext.commitWindowTarget(preparedTarget)
         }
 
         if newAction.direction.willChangeScreen {
@@ -449,7 +569,7 @@ extension LoopManager {
             }
 
             resizeContext.setScreen(to: newScreen)
-            indicatorService.openAndUpdate(context: resizeContext)
+            indicatorService.openAndUpdate(context: resizeContext, hideOnNoSelection: hideIndicatorOnNoSelection)
 
             if let parent = newParentAction {
                 setResizeAction(to: newAction, parent: newParentAction)
@@ -471,7 +591,7 @@ extension LoopManager {
             return
         }
 
-        if newAction != resizeContext.action || newAction.canRepeat {
+        if newAction != resizeContext.action || newAction.allowsRepeatedSelection {
             if !disableHapticFeedback {
                 performHapticFeedback()
             }
@@ -481,7 +601,7 @@ extension LoopManager {
             if !Defaults[.previewVisibility], !previousActionWasNoOp {
                 await resizeContext.refreshResolvedState()
             }
-            indicatorService.openAndUpdate(context: resizeContext)
+            indicatorService.openAndUpdate(context: resizeContext, hideOnNoSelection: hideIndicatorOnNoSelection)
 
             Task { [weak self, originatingContext] in
                 // If the action is to focus a window in a specific direction, find and activate that window
@@ -515,7 +635,8 @@ extension LoopManager {
 
     private func proposeCycleAction(
         _ action: WindowAction,
-        canAdvance: Bool
+        canAdvance: Bool,
+        reverse: Bool
     ) -> CycleActionCoordinator.Proposal? {
         // Allow cycling backwards only if:
         // - Shift is not part of the action's keybind (eligibleForReverseCycle)
@@ -526,7 +647,7 @@ extension LoopManager {
             && Defaults[.cycleBackwardsOnShiftPressed]
 
         let mode: CycleActionCoordinator.SelectionMode = if canAdvance {
-            allowReverseCycle && keybindTrigger.effectiveEventFlags.contains(.maskShift)
+            reverse || (allowReverseCycle && keybindTrigger.effectiveEventFlags.contains(.maskShift))
                 ? .advance(.backward)
                 : .advance(.forward)
         } else {
@@ -572,7 +693,7 @@ extension LoopManager {
 
         if !resizeContext.action.direction.isNoOp {
             // If a screen was previously not selected, then the preview needs to be opened.
-            indicatorService.openAndUpdate(context: resizeContext)
+            indicatorService.openAndUpdate(context: resizeContext, hideOnNoSelection: hideIndicatorOnNoSelection)
         }
 
         return targetScreen

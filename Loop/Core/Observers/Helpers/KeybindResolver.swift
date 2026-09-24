@@ -156,7 +156,7 @@ enum KeybindResolver {
         isRepeat: Bool
     ) -> Decision {
         let shouldActivate = !isRepeat || (
-            action.direction != .cycle && action.canRepeat
+            action.direction != .cycle && action.allowsRapidRepeat
         )
 
         return .init(

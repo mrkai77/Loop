@@ -17,7 +17,7 @@ final class MouseInteractionObserver {
     // Parameters
     private let windowActionCache: WindowActionCache
     private let changeAction: (WindowAction) -> ()
-    private let selectNextCycleItem: () -> ()
+    private let advanceSelectedAction: (WindowAction?) -> ()
     private let canSelectNextCycleitem: () -> Bool
     private let checkIfLoopOpen: () -> Bool
 
@@ -27,6 +27,7 @@ final class MouseInteractionObserver {
     // State-keeping for previous calculations
     private var previousAngleToMouse: Angle = .zero
     private var previousDistanceToMouse: CGFloat = .zero
+    private var pendingRepeatableAction: WindowAction?
 
     private var screenBounds: CGRect?
     private var shouldAccountForAbsoluteMousePosition: Bool = false
@@ -42,13 +43,13 @@ final class MouseInteractionObserver {
     init(
         windowActionCache: WindowActionCache,
         changeAction: @escaping (WindowAction) -> (),
-        selectNextCycleItem: @escaping () -> (),
+        advanceSelectedAction: @escaping (WindowAction?) -> (),
         canSelectNextCycleitem: @escaping () -> Bool,
         checkIfLoopOpen: @escaping () -> Bool
     ) {
         self.windowActionCache = windowActionCache
         self.changeAction = changeAction
-        self.selectNextCycleItem = selectNextCycleItem
+        self.advanceSelectedAction = advanceSelectedAction
         self.canSelectNextCycleitem = canSelectNextCycleitem
         self.checkIfLoopOpen = checkIfLoopOpen
     }
@@ -104,6 +105,7 @@ final class MouseInteractionObserver {
 
         previousAngleToMouse = .zero
         previousDistanceToMouse = .zero
+        pendingRepeatableAction = nil
 
         screenBounds = nil
         shouldAccountForAbsoluteMousePosition = false
@@ -151,17 +153,23 @@ final class MouseInteractionObserver {
                 newAction = radialMenuActions.last
             }
 
-            switch newAction?.type {
+            let resolvedAction: WindowAction? = switch newAction?.type {
             case let .custom(windowAction):
-                changeAction(windowAction)
+                windowAction
             case let .keybindReference(id):
-                if let action = windowActionCache.actionsByIdentifier[id] {
-                    changeAction(action)
-                } else {
-                    changeAction(Self.failedToResolveKeybindAction)
-                }
+                windowActionCache.actionsByIdentifier[id] ?? Self.failedToResolveKeybindAction
             case nil:
-                changeAction(.init(.noSelection))
+                .init(.noSelection)
+            }
+
+            if let resolvedAction, resolvedAction.allowsRapidRepeat {
+                if pendingRepeatableAction?.id != resolvedAction.id {
+                    changeAction(resolvedAction)
+                }
+                pendingRepeatableAction = resolvedAction
+            } else {
+                pendingRepeatableAction = nil
+                changeAction(resolvedAction ?? .init(.noSelection))
             }
         }
     }
@@ -221,11 +229,23 @@ final class MouseInteractionObserver {
             return .forward
         }
 
-        guard checkIfLoopOpen(), canSelectNextCycleitem() else {
+        guard checkIfLoopOpen() else {
             return .forward
         }
 
-        selectNextCycleItem()
+        if let pendingRepeatableAction {
+            advanceSelectedAction(pendingRepeatableAction)
+            self.pendingRepeatableAction = nil
+            return .ignore
+        }
+
+        pendingRepeatableAction = nil
+
+        guard canSelectNextCycleitem() else {
+            return .forward
+        }
+
+        advanceSelectedAction(nil)
 
         return .ignore
     }

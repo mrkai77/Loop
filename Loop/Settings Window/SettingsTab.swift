@@ -20,6 +20,7 @@ enum SettingsTab: @MainActor LuminareTabItem, CaseIterable {
 
     case behavior
     case keybinds
+    case gestures
 
     case advanced
     case excludedApps
@@ -43,6 +44,8 @@ enum SettingsTab: @MainActor LuminareTabItem, CaseIterable {
             Color(#colorLiteral(red: 0.4373228079, green: 0.6609574352, blue: 0.2663080928, alpha: 1))
         case .keybinds:
             Color(#colorLiteral(red: 0.3882352941, green: 0.2823529412, blue: 0.1960784314, alpha: 1))
+        case .gestures:
+            Color(#colorLiteral(red: 0.2352941176, green: 0.5568627451, blue: 0.5882352941, alpha: 1))
         case .advanced:
             Color(#colorLiteral(red: 0.4823529412, green: 0.4745098039, blue: 0.6588235294, alpha: 1))
         case .excludedApps:
@@ -60,6 +63,7 @@ enum SettingsTab: @MainActor LuminareTabItem, CaseIterable {
         case .preview: .init(localized: "Settings tab: Preview", defaultValue: "Preview")
         case .behavior: .init(localized: "Settings tab: Behavior", defaultValue: "Behavior")
         case .keybinds: .init(localized: "Settings tab: Keybindings", defaultValue: "Keybinds")
+        case .gestures: .init(localized: "Settings tab: Gestures", defaultValue: "Gestures")
         case .advanced: .init(localized: "Settings tab: Advanced", defaultValue: "Advanced")
         case .excludedApps: .init(localized: "Settings tab: Excluded Apps", defaultValue: "Excluded Apps")
         case .about: .init(localized: "Settings tab: About", defaultValue: "About")
@@ -74,6 +78,7 @@ enum SettingsTab: @MainActor LuminareTabItem, CaseIterable {
         case .preview: Image(systemName: "inset.filled.center.rectangle")
         case .behavior: Image(systemName: "gearshape.fill")
         case .keybinds: Image(systemName: "keyboard.fill")
+        case .gestures: Image(systemName: "hand.draw.fill")
         case .advanced: Image(systemName: "wrench.adjustable.fill")
         case .excludedApps: Image(systemName: "xmark.octagon.fill")
         case .about: Image(systemName: "info.circle.fill")
@@ -95,6 +100,7 @@ enum SettingsTab: @MainActor LuminareTabItem, CaseIterable {
         case .preview: PreviewConfigurationView()
         case .behavior: BehaviorConfigurationView()
         case .keybinds: KeybindsConfigurationView()
+        case .gestures: GesturesConfigurationView()
         case .advanced: AdvancedConfigurationView()
         case .excludedApps: ExcludedAppsConfigurationView()
         case .about: AboutConfigurationView()
@@ -102,7 +108,7 @@ enum SettingsTab: @MainActor LuminareTabItem, CaseIterable {
     }
 
     static let themingTabs: [Self] = [.icon, .accentColor, .radialMenu, .preview]
-    static let settingsTabs: [Self] = [.behavior, .keybinds]
+    static let settingsTabs: [Self] = [.behavior, .keybinds, .gestures]
     static let loopTabs: [Self] = [.advanced, .excludedApps, .about]
 }
 

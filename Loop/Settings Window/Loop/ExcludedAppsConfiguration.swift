@@ -37,15 +37,11 @@ struct ExcludedAppsConfigurationView: View {
                     ExcludedListAppView(url: item.wrappedValue)
                         .equatable()
                 } emptyView: {
-                    HStack {
-                        Spacer()
-                        VStack {
-                            Text("No excluded applications")
-                                .font(.title3)
-                            Text("Press \"Add\" to add an application")
-                                .font(.caption)
-                        }
-                        Spacer()
+                    VStack {
+                        Text("No excluded applications")
+                            .font(.title3)
+                        Text("Press \"Add\" to add an application")
+                            .font(.caption)
                     }
                     .foregroundStyle(.secondary)
                     .padding()

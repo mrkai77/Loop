@@ -58,15 +58,12 @@ final class ActiveEventMonitor: BaseEventTapMonitor {
         super.init()
 
         let eventsOfInterest = events.reduce(CGEventMask(0)) { $0 | (1 << $1.rawValue) }
-        let callback: CGEventTapCallBack = { _, _, event, refcon in
-            // Try and obtain a reference to self, but if we fail, just return the unprocessed event.
-            guard let refcon else {
-                return Unmanaged.passUnretained(event)
-            }
+        let callback: CGEventTapCallBack = { _, eventType, event, refcon in
+            guard let refcon else { return nil }
             let observer = Unmanaged<ActiveEventMonitor>.fromOpaque(refcon).takeUnretainedValue()
 
-            if event.type == .tapDisabledByTimeout {
-                // Tap timed out, schedule a restart on the tap thread so the circuit breaker can run
+            // Tap management notifications carry a null event, so read eventType, not event.type
+            if eventType == .tapDisabledByTimeout {
                 if observer.isEnabled {
                     let tapRunLoop = EventTapThread.shared.runLoop
                     CFRunLoopPerformBlock(tapRunLoop, CFRunLoopMode.commonModes as CFTypeRef) {
@@ -74,18 +71,18 @@ final class ActiveEventMonitor: BaseEventTapMonitor {
                     }
                     CFRunLoopWakeUp(tapRunLoop)
                 }
-                return Unmanaged.passUnretained(event)
+                return nil
             }
 
-            if event.type == .tapDisabledByUserInput {
-                // Explicitly disabled by the user/system, don't auto-restart
-                return Unmanaged.passUnretained(event)
+            if eventType == .tapDisabledByUserInput {
+                return nil
             }
 
+            guard unsafeBitCast(event, to: UnsafeRawPointer?.self) != nil else { return nil }
             return observer.handleEvent(event: event)
         }
 
-        let userInfo = Unmanaged.passUnretained(self).toOpaque()
+        let userInfo = Unmanaged.passRetained(self).toOpaque()
 
         if let eventTap = CGEvent.tapCreate(
             tap: tapLocation,
@@ -98,6 +95,7 @@ final class ActiveEventMonitor: BaseEventTapMonitor {
             setupRunLoopSource(eventTap: eventTap, readableIdentifier: name)
         } else {
             log.info("Failed to create event tap")
+            Unmanaged.passUnretained(self).release()
         }
     }
 

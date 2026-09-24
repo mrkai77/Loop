@@ -16,8 +16,12 @@ final class RadialMenuController: WindowActionIndicator {
     private var controller: NSWindowController?
     private var closeTask: Task<(), Never>?
 
+    func update(context: ResizeContext) {
+        viewModel.updateContext(with: context)
+    }
+
     func open(context: ResizeContext) {
-        defer { viewModel.updateContext(with: context) }
+        update(context: context)
 
         closeTask?.cancel()
         closeTask = nil

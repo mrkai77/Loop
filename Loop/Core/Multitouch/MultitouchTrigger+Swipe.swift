@@ -1,0 +1,329 @@
+//
+//  MultitouchTrigger+Swipe.swift
+//  Loop
+//
+//  Created by Kai Azim on 2026-01-30.
+//
+
+import CoreGraphics
+import Subsurface
+
+/// Swipe handling lives separately from the main trigger as it has its own
+/// gesture-selection rules: angle-to-direction mapping, origin-crossing reversal,
+/// and radial-menu slot selection all build on swipe-specific geometry
+extension MultitouchTrigger {
+    func handleSwipe(_ swipe: SubsurfaceGestureEvent.SwipeEvent, fingerCount: Int) async {
+        guard let entry = recognizerRegistry.entry(for: fingerCount) else { return }
+
+        #if DEBUG
+            beginDebugGestureIfNeeded(centroid: swipe.centroid, fingerCount: swipe.fingerCount)
+            debugOverlayController.updateSwipe(
+                centroid: swipe.centroid,
+                translation: swipe.translation,
+                angle: swipe.angle,
+                distance: swipe.distance,
+                fingerCount: swipe.fingerCount
+            )
+        #endif
+
+        if let radialMenuGesture = entry.radialMenuGesture {
+            await handleRadialMenuSwipe(swipe, fingerCount: fingerCount, gesture: radialMenuGesture)
+        } else {
+            let direction = directionalSwipeKind(angle: swipe.angle)
+            let directionalGesture = entry.directionalGestures.first { $0.kind == direction }
+            let isTerminal = switch swipe.phase {
+            case .ended(_), .cancelled:
+                true
+            default:
+                false
+            }
+            if directionalGesture != nil || entry.session.hasGestureBegun || isTerminal {
+                await handleDirectionalSwipe(
+                    swipe,
+                    fingerCount: fingerCount,
+                    direction: direction,
+                    matchedGesture: directionalGesture
+                )
+            } else if swipe.phase == .began {
+                // No binding for this direction, so the stroke belongs to the Dock
+                systemGestureFilter.releaseCurrentTouch(fingerCount: fingerCount)
+            }
+        }
+    }
+
+    private func handleRadialMenuSwipe(
+        _ swipe: SubsurfaceGestureEvent.SwipeEvent,
+        fingerCount: Int,
+        gesture: GestureBinding
+    ) async {
+        switch swipe.phase {
+        case .began, .changed:
+            if swipe.phase == .began, recognizerRegistry.session(for: fingerCount)?.hasGestureBegun != true {
+                handleGestureBegan(fingerCount: fingerCount, gesture: gesture)
+            }
+            guard await activateGestureIfNeeded(fingerCount: fingerCount),
+                  let session = recognizerRegistry.session(for: fingerCount), !session.isGestureRejected
+            else {
+                return
+            }
+
+            let normalizedAngle = RadialGestureGeometry.normalizedAngle(fromSubsurfaceAngle: swipe.angle)
+            let actions = radialMenuActions.dropLast()
+            guard actions.count > 1 else { return }
+
+            let newIndex = RadialGestureGeometry.slotIndex(
+                angle: normalizedAngle,
+                actionCount: actions.count
+            )
+
+            if resetSwipeActionIfNeeded(fingerCount: fingerCount, distance: swipe.distance) {
+                return
+            }
+
+            #if DEBUG
+                var didCommit = false
+            #endif
+            session.commitSwipe(
+                distance: swipe.distance,
+                newKey: .radialSlot(newIndex),
+                step: swipeCycleStepSize
+            ) { reverse in
+                #if DEBUG
+                    didCommit = true
+                #endif
+                triggerRadialMenuAction(
+                    at: newIndex,
+                    from: actions,
+                    reverse: reverse,
+                    canAdvanceCycle: !session.isRevisitingAction
+                )
+            }
+
+            #if DEBUG
+                if didCommit {
+                    debugOverlayController.recordSwipeCommit(distance: swipe.distance, slot: newIndex)
+                }
+            #endif
+
+        case let .ended(reason):
+            endStroke(for: fingerCount, reason: reason)
+
+        case .cancelled:
+            endStroke(for: fingerCount, reason: nil)
+
+        default:
+            break
+        }
+    }
+
+    private func handleDirectionalSwipe(
+        _ swipe: SubsurfaceGestureEvent.SwipeEvent,
+        fingerCount: Int,
+        direction: GestureBinding.Kind,
+        matchedGesture: GestureBinding?
+    ) async {
+        guard let entry = recognizerRegistry.entry(for: fingerCount) else { return }
+
+        switch swipe.phase {
+        case .began, .changed:
+            guard let session = recognizerRegistry.session(for: fingerCount) else { return }
+
+            if !session.hasGestureBegun {
+                guard let matchedGesture else { return }
+                guard handleGestureBegan(fingerCount: fingerCount, gesture: matchedGesture) else {
+                    return
+                }
+            }
+
+            // Selecting from no selection requires crossing the threshold while moving
+            // outward, so heading back to the center can't briefly commit an action
+            if !session.hasCommittedSwipeAction,
+               swipe.distance <= entry.recognizer.minimumSwipeTranslation ||
+               !isSwipeMovingOutward(swipe) {
+                return
+            }
+
+            guard await activateGestureIfNeeded(fingerCount: fingerCount),
+                  let session = recognizerRegistry.session(for: fingerCount), !session.isGestureRejected,
+                  let activeGesture = session.resolvedGesture ?? matchedGesture
+            else {
+                return
+            }
+
+            if resetSwipeActionIfNeeded(fingerCount: fingerCount, distance: swipe.distance) {
+                return
+            }
+
+            if direction != activeGesture.kind {
+                if let oppositeDirection = oppositeDirectionalSwipeKind(of: activeGesture.kind),
+                   direction == oppositeDirection {
+                    let oppositeGesture = entry.directionalGestures.first { $0.kind == oppositeDirection }
+                    handleSwipeReversal(
+                        fingerCount: fingerCount,
+                        currentGesture: activeGesture,
+                        oppositeGesture: oppositeGesture,
+                        distance: swipe.distance,
+                        hasCrossedOrigin: hasSwipeCrossedOrigin(translation: swipe.translation, currentGesture: activeGesture)
+                    )
+                } else if let matchedGesture {
+                    guard switchSwipeGesture(
+                        fingerCount: fingerCount,
+                        to: matchedGesture,
+                        distance: swipe.distance
+                    ) else {
+                        if !session.hasSwipeActionReset {
+                            resetLoopState(for: fingerCount, forceClose: true, endsStroke: false)
+                        }
+                        return
+                    }
+                } else {
+                    // An unbound direction deselects, but stays part of the current stroke
+                    clearSwipeAction(fingerCount: fingerCount)
+                }
+                return
+            }
+
+            #if DEBUG
+                var didCommit = false
+            #endif
+            session.commitSwipe(
+                distance: swipe.distance,
+                newKey: .gesture(activeGesture.id),
+                step: swipeCycleStepSize
+            ) { reverse in
+                #if DEBUG
+                    didCommit = true
+                #endif
+                triggerSingleAction(
+                    from: activeGesture,
+                    reverse: reverse,
+                    canAdvanceCycle: !session.isRevisitingAction
+                )
+            }
+
+            #if DEBUG
+                if didCommit {
+                    debugOverlayController.recordSwipeCommit(distance: swipe.distance)
+                }
+            #endif
+
+        case let .ended(reason):
+            endStroke(for: fingerCount, reason: reason)
+
+        case .cancelled:
+            endStroke(for: fingerCount, reason: nil)
+
+        default:
+            break
+        }
+    }
+
+    private func oppositeDirectionalSwipeKind(of kind: GestureBinding.Kind) -> GestureBinding.Kind? {
+        switch kind {
+        case .swipeUp:
+            .swipeDown
+        case .swipeDown:
+            .swipeUp
+        case .swipeLeft:
+            .swipeRight
+        case .swipeRight:
+            .swipeLeft
+        default:
+            nil
+        }
+    }
+
+    private func hasSwipeCrossedOrigin(translation: CGPoint, currentGesture: GestureBinding) -> Bool {
+        let projection: CGFloat = switch currentGesture.kind {
+        case .swipeUp:
+            translation.y
+        case .swipeDown:
+            -translation.y
+        case .swipeRight:
+            translation.x
+        case .swipeLeft:
+            -translation.x
+        default:
+            0
+        }
+
+        return projection < 0
+    }
+
+    private func switchSwipeGesture(
+        fingerCount: Int,
+        to gesture: GestureBinding,
+        distance: CGFloat
+    ) -> Bool {
+        guard let session = recognizerRegistry.session(for: fingerCount),
+              session.switchSwipeGesture(to: gesture, distance: distance)
+        else {
+            return false
+        }
+        #if DEBUG
+            debugOverlayController.recordSwipeCommit(distance: distance)
+        #endif
+        triggerSwitchedGesture(gesture, session: session)
+        return true
+    }
+
+    private func handleSwipeReversal(
+        fingerCount: Int,
+        currentGesture: GestureBinding,
+        oppositeGesture: GestureBinding?,
+        distance: CGFloat,
+        hasCrossedOrigin: Bool
+    ) {
+        if oppositeGesture == nil {
+            // There is no action to reverse into. Keep the current stroke and
+            // overlay alive while the fingers travel through this direction.
+            clearSwipeAction(fingerCount: fingerCount)
+            return
+        }
+
+        if hasCrossedOrigin, let oppositeGesture {
+            guard let session = recognizerRegistry.session(for: fingerCount) else { return }
+            if session.switchSwipeGesture(to: oppositeGesture, distance: distance) {
+                #if DEBUG
+                    debugOverlayController.recordSwipeCommit(distance: distance)
+                #endif
+                triggerSwitchedGesture(oppositeGesture, session: session)
+                return
+            }
+
+            if session.hasSwipeActionReset { return }
+        }
+
+        if isCycleAction(currentGesture) {
+            triggerSingleAction(from: currentGesture, reverse: true)
+            recognizerRegistry.session(for: fingerCount)?.synchronizeSwipeStepIndex(distance: distance)
+        } else {
+            resetLoopState(for: fingerCount, forceClose: true, endsStroke: false)
+        }
+    }
+
+    private func clearSwipeAction(fingerCount: Int) {
+        guard recognizerRegistry.session(for: fingerCount)?.clearSwipeAction() == true else { return }
+        clearActionSelection()
+    }
+
+    private func directionalSwipeKind(angle: CGFloat) -> GestureBinding.Kind {
+        let normalizedAngle = RadialGestureGeometry.normalizedAngle(fromSubsurfaceAngle: angle)
+
+        if normalizedAngle >= 7 * .pi / 4 || normalizedAngle < .pi / 4 {
+            return .swipeUp
+        } else if normalizedAngle >= .pi / 4, normalizedAngle < 3 * .pi / 4 {
+            return .swipeRight
+        } else if normalizedAngle >= 3 * .pi / 4, normalizedAngle < 5 * .pi / 4 {
+            return .swipeDown
+        } else {
+            return .swipeLeft
+        }
+    }
+
+    private func isSwipeMovingOutward(_ swipe: SubsurfaceGestureEvent.SwipeEvent) -> Bool {
+        let radialVelocity = swipe.translation.x * swipe.velocity.x +
+            swipe.translation.y * swipe.velocity.y
+        return radialVelocity >= 0
+    }
+}

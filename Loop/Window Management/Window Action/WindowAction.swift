@@ -183,8 +183,20 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
         return false
     }
 
-    var canRepeat: Bool {
-        willManipulateExistingWindowFrame || direction.willFocusWindow || direction == .undo
+    /// Whether held keys or continuous gestures may repeatedly trigger this action.
+    ///
+    /// Keyboard events can arrive repeatedly while a keybind is held down, and gesture
+    /// recognizers can commit repeatedly as movement crosses step thresholds.
+    var allowsRapidRepeat: Bool {
+        willManipulateExistingWindowFrame || direction.willFocusWindow
+    }
+
+    /// Whether selecting this same action again should still run through Loop's action pipeline.
+    ///
+    /// Undo and stash are not rapid-repeat actions, but selecting them again should still
+    /// apply: undo walks back another recorded action, and stash toggles an existing stashed window.
+    var allowsRepeatedSelection: Bool {
+        allowsRapidRepeat || direction == .undo || direction == .stash
     }
 
     var forceProportionalFrameOnScreenChange: Bool {

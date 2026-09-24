@@ -236,6 +236,29 @@ enum SkyLightToolBelt {
         return hitWindowID != 0 ? hitWindowID : nil
     }
 
+    /// Checks whether a specific window has valid SkyLight tags and no parent window.
+    static func areWindowTagsValid(windowID: CGWindowID) -> Bool {
+        guard let SLSWindowQueryWindows = SkyLightSymbolLoader.SLSWindowQueryWindows,
+              let SLSWindowQueryResultCopyWindows = SkyLightSymbolLoader.SLSWindowQueryResultCopyWindows,
+              let SLSWindowIteratorAdvance = SkyLightSymbolLoader.SLSWindowIteratorAdvance,
+              let SLSWindowIteratorGetWindowID = SkyLightSymbolLoader.SLSWindowIteratorGetWindowID,
+              let SLSMainConnectionID = SkyLightSymbolLoader.SLSMainConnectionID
+        else {
+            log.error("Failed to load symbols in \(#function)")
+            return false
+        }
+
+        let query = SLSWindowQueryWindows(SLSMainConnectionID(), [windowID] as CFArray, 0)
+        let iterator = SLSWindowQueryResultCopyWindows(query)
+
+        while SLSWindowIteratorAdvance(iterator) {
+            guard SLSWindowIteratorGetWindowID(iterator) == windowID else { continue }
+            return areWindowTagsValid(iterator)
+        }
+
+        return false
+    }
+
     /// Captures images for each of the windows that are passed in.
     /// - Parameter windowIDs: The `CGWindowID`s for each of the windows to capture.
     /// - Returns: An array of `CGImage`s for each window, in the same order as the windows that were passed in.
@@ -416,7 +439,7 @@ enum SkyLightToolBelt {
         let iterator = SLSWindowQueryResultCopyWindows(query)
 
         while SLSWindowIteratorAdvance(iterator) {
-            guard checkIfWindowIsValid(iterator), SLSWindowIteratorGetWindowID(iterator) == windowID else {
+            guard areWindowTagsValid(iterator), SLSWindowIteratorGetWindowID(iterator) == windowID else {
                 continue
             }
 
@@ -463,10 +486,10 @@ enum SkyLightToolBelt {
         config.perform(saveSelector)
     }
 
-    /// Checks if the current window in a `SLSWindowIterator` is valid for Loop to use.
+    /// Checks if the current window in an `SLSWindowIterator` has valid tags and no parent window.
     /// - Parameter iterator: The `SLSWindowIterator` object
     /// - Returns: Whether this window is valid.
-    private static func checkIfWindowIsValid(_ iterator: CFTypeRef) -> Bool {
+    private static func areWindowTagsValid(_ iterator: CFTypeRef) -> Bool {
         guard let SLSWindowIteratorGetParentID = SkyLightSymbolLoader.SLSWindowIteratorGetParentID,
               let SLSWindowIteratorGetTags = SkyLightSymbolLoader.SLSWindowIteratorGetTags
         else {

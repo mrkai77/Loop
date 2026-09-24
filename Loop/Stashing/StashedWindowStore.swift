@@ -10,6 +10,7 @@ import Foundation
 import Scribe
 import SwiftUI
 
+@MainActor
 protocol StashedWindowsStoreDelegate: AnyObject {
     var stashedWindowVisiblePadding: CGFloat { get }
     func onStashedWindowsRestored()
@@ -18,6 +19,7 @@ protocol StashedWindowsStoreDelegate: AnyObject {
 /// Keep the stashed windows and the revealed window ids both in memory and in Defaults.
 /// Restore windows stashed from a previous session.
 @Loggable
+@MainActor
 final class StashedWindowsStore {
     weak var delegate: StashedWindowsStoreDelegate?
 

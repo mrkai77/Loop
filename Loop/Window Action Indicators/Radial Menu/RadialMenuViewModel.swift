@@ -47,13 +47,25 @@ final class RadialMenuViewModel: ObservableObject {
         radialMenuActions.last
     }
 
+    /// Directional swipe gestures act like slots, pointing the radial menu the way the fingers moved
+    private func directionalGestureAngle(for action: WindowAction) -> Angle? {
+        guard Defaults[.enableGestures] else { return nil }
+
+        return Defaults[.gestures].lazy.compactMap { gesture -> Angle? in
+            guard case let .singleAction(actionType) = gesture.action, actionType.id == action.id else { return nil }
+            return gesture.kind.radialMenuAngle
+        }.first
+    }
+
     var shouldFillRadialMenu: Bool {
         // If the user has the center action selected, then fill the radial menu
         if effectiveWindowAction.id == centerRadialMenuAction?.associatedActionId {
             return true
         }
 
-        guard !directionalRadialMenuActions.contains(where: { $0.associatedActionId == effectiveWindowAction.id }) else {
+        guard !directionalRadialMenuActions.contains(where: { $0.associatedActionId == effectiveWindowAction.id }),
+              directionalGestureAngle(for: effectiveWindowAction) == nil
+        else {
             return false
         }
 
@@ -62,8 +74,9 @@ final class RadialMenuViewModel: ObservableObject {
     }
 
     var shouldHideDirectionSelector: Bool {
-        // If the current action is a user-set radial menu action, always show the direction selector
-        if radialMenuActions.contains(where: { $0.associatedActionId == effectiveWindowAction.id }) {
+        // If the current action is a user-set radial menu or directional gesture action, always show the direction selector
+        if radialMenuActions.contains(where: { $0.associatedActionId == effectiveWindowAction.id }) ||
+            directionalGestureAngle(for: effectiveWindowAction) != nil {
             return false
         }
 
@@ -132,6 +145,10 @@ final class RadialMenuViewModel: ObservableObject {
             return Angle(degrees: CGFloat(index) * actionAngleSpan - 90)
         }
 
+        if let gestureAngle = directionalGestureAngle(for: effectiveWindowAction) {
+            return gestureAngle
+        }
+
         // Otherwise, default to the current action's radial menu angle
         return currentAction.radialMenuAngle(context: context)
     }
@@ -140,7 +157,9 @@ final class RadialMenuViewModel: ObservableObject {
         guard abs(closestAngle.degrees) < 179 else { return false }
 
         if let previousAction {
-            return directionalRadialMenuActions.contains(where: { $0.associatedActionId == previousAction.id }) || previousAction.direction.hasRadialMenuAngle
+            return directionalRadialMenuActions.contains(where: { $0.associatedActionId == previousAction.id }) ||
+                directionalGestureAngle(for: previousAction) != nil ||
+                previousAction.direction.hasRadialMenuAngle
         }
 
         return false

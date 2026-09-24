@@ -17,22 +17,25 @@ enum WindowUtility {
     static func userDefinedTargetWindow() -> Window? {
         var result: Window?
 
-        log.info("Getting window at cursor...")
+        if Defaults[.resizeWindowUnderCursor] {
+            log.info("Getting window at cursor...")
 
-        if Defaults[.resizeWindowUnderCursor],
-           let mouseLocation = CGEvent.mouseLocation,
-           let window = windowAtPosition(mouseLocation) {
-            result = window
+            if let mouseLocation = CGEvent.mouseLocation,
+               let window = windowAtPosition(mouseLocation) {
+                result = window
+            }
         }
 
         if result == nil {
             do {
-                log.info("Getting frontmost window...")
-
                 result = try frontmostWindow()
             } catch {
                 log.warn("Failed to get frontmost window: \(error.localizedDescription)")
             }
+        }
+
+        if let result {
+            log.debug("Determined target window: \(result)")
         }
 
         return result
@@ -44,6 +47,19 @@ enum WindowUtility {
         guard let app = NSWorkspace.shared.frontmostApplication else {
             return nil
         }
+
+        // NSRunningApplication can occasionally report a pid of -1, so fall back to
+        // asking the AX API for the focused application instead.
+        if app.processIdentifier <= 0 {
+            log.warn("Frontmost app '\(app.localizedName ?? "<unknown>")' reported invalid pid \(app.processIdentifier), falling back to focused application")
+
+            guard let focusedApp: AXUIElement = try AXUIElement.systemWide.getValue(NSAccessibility.Attribute(rawValue: kAXFocusedApplicationAttribute)) else {
+                return nil
+            }
+
+            return try Window(pid: focusedApp.getPID())
+        }
+
         return try Window(pid: app.processIdentifier)
     }
 
@@ -51,10 +67,17 @@ enum WindowUtility {
     /// - Parameter position: The position to check for
     /// - Returns: The window at the given position, if any
     static func windowAtPosition(_ position: CGPoint) -> Window? {
-        // Try SkyLight first, as it is faster and doesn't deadlock on own process
-        if let windowID = SkyLightToolBelt.windowIDAtPosition(position),
-           let window = try? Window.fromWindowID(windowID) {
-            return window
+        do {
+            // Try SkyLight first, as it is faster and doesn't deadlock on own process
+            if let windowID = SkyLightToolBelt.windowIDAtPosition(position) {
+                return try Window.fromWindowID(windowID)
+            }
+        } catch {
+            if let windowError = error as? WindowError,
+               case .blockedBundleID = windowError {
+                // no sense in looking deeper if we find a valid-but-blocked window
+                return nil
+            }
         }
 
         do {
@@ -64,6 +87,12 @@ enum WindowUtility {
                 return try Window(element: windowElement)
             }
         } catch {
+            if let windowError = error as? WindowError,
+               case .blockedBundleID = windowError {
+                // no sense in looking deeper if we find a valid-but-blocked window
+                return nil
+            }
+
             log.warn("Failed to determine element at position: \(error.localizedDescription)")
         }
 

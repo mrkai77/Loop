@@ -621,6 +621,20 @@
         }
       }
     },
+    "%lld-finger %@" : {
+      "comment" : "Default title describing a gesture. First argument is the finger count, second is the gesture kind name (e.g. 'Magnify In', 'Swipe Up').",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "%1$lld-finger %2$@"
+          }
+        }
+      }
+    },
+    "%lld-finger Swipe or Magnify" : {
+      "comment" : "Default title describing how to activate a radial menu gesture. Argument is the finger count."
+    },
     "A single %@ action can only track one window. To stash\nmultiple windows, add additional %@ actions." : {
       "comment" : "Information in a popover displaying how a stash action can only keep track of a single window. Both %1$@ and %2$@ are replaced with the language's localization of the \"Stash\" action.",
       "localizations" : {
@@ -1153,7 +1167,7 @@
       }
     },
     "Add" : {
-      "comment" : "Used to add items to a list",
+      "comment" : "Button to add a new gesture",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -1860,6 +1874,9 @@
         }
       }
     },
+    "Anywhere" : {
+      "comment" : "Gesture activation zone covers the entire window"
+    },
     "App icon is locked" : {
       "localizations" : {
         "ar" : {
@@ -2389,6 +2406,9 @@
           }
         }
       }
+    },
+    "Both" : {
+      "comment" : "Gesture category label: swipe and magnify gestures\nGesture kind: swipe and magnify gestures; opens the radial menu"
     },
     "Bottom" : {
       "comment" : "Label for a slider in Loop’s padding settings",
@@ -4165,6 +4185,9 @@
         }
       }
     },
+    "Continue the swipe or magnify gesture to step through cycle actions." : {
+      "comment" : "Section footer shown in settings"
+    },
     "Contributors on GitHub" : {
       "localizations" : {
         "ar" : {
@@ -4787,7 +4810,7 @@
       }
     },
     "Customize this action's custom frame." : {
-      "comment" : "A help text describing the customization option for a custom-direction action.",
+      "comment" : "Help text on the slider icon next to a gesture action with a custom frame",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -4874,6 +4897,12 @@
           }
         }
       }
+    },
+    "Customize this gesture." : {
+      "comment" : "Help text shown when hovering a gesture configuration button"
+    },
+    "Customize this gesture's action." : {
+      "comment" : "Help text shown when hovering a gesture's action button"
     },
     "Customize this keybind's action." : {
       "localizations" : {
@@ -4964,7 +4993,7 @@
       }
     },
     "Customize what this action cycles through." : {
-      "comment" : "A description for a button that appears when configuring a cycling window action.",
+      "comment" : "Help text on the cycle icon next to a gesture action that cycles",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -5585,6 +5614,9 @@
         }
       }
     },
+    "Direction" : {
+      "comment" : "Label for the swipe direction picker in the gesture configuration modal"
+    },
     "Disable cursor interaction" : {
       "localizations" : {
         "ar" : {
@@ -5937,6 +5969,9 @@
         }
       }
     },
+    "Down" : {
+      "comment" : "Swipe direction picker option: down"
+    },
     "Enable blur" : {
       "comment" : "Text for enabling the blur effect on the preview.",
       "localizations" : {
@@ -6025,6 +6060,9 @@
           }
         }
       }
+    },
+    "Enable trackpad gestures" : {
+      "comment" : "Toggle in gestures settings"
     },
     "Enable window snapping" : {
       "comment" : "A label for a toggle that enables or disables window snapping. The text is presented as a popover when the toggle is hovered over.",
@@ -6733,6 +6771,9 @@
           }
         }
       }
+    },
+    "Fingers" : {
+      "comment" : "Label for the finger-count stepper in the gesture configuration popover"
     },
     "First Fourth" : {
       "comment" : "Window action",
@@ -7800,6 +7841,12 @@
           }
         }
       }
+    },
+    "Gesture" : {
+      "comment" : "Label for the magnify gesture picker in the gesture configuration modal"
+    },
+    "Gestures" : {
+      "comment" : "Section header shown in gestures settings"
     },
     "Go Back" : {
       "comment" : "Section header in the action picker of the Keybinds tab",
@@ -9044,7 +9091,7 @@
       }
     },
     "Hide when no action is selected" : {
-      "comment" : "Toggle label for hiding the radial menu when no action is selected.",
+      "comment" : "Toggle to hide the radial menu whenever no action is selected",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -12845,7 +12892,7 @@
       }
     },
     "Left" : {
-      "comment" : "Label for a slider in Loop’s padding settings\nSide of a trigger key",
+      "comment" : "Label for a slider in Loop’s padding settings\nSide of a trigger key\nSwipe direction picker option: left",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -16653,6 +16700,9 @@
         }
       }
     },
+    "Magnify" : {
+      "comment" : "Gesture category label: magnify"
+    },
     "Maximize" : {
       "comment" : "Window action",
       "localizations" : {
@@ -18342,7 +18392,7 @@
       }
     },
     "No Action" : {
-      "comment" : "Window action: no selection",
+      "comment" : "Label shown for a gesture with no configured action\nWindow action: no selection",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -18517,6 +18567,9 @@
           }
         }
       }
+    },
+    "No gestures" : {
+      "comment" : "Empty state title in gestures settings"
     },
     "No keybinds" : {
       "localizations" : {
@@ -23627,6 +23680,9 @@
         }
       }
     },
+    "Pinch" : {
+      "comment" : "Gesture kind: magnify outward\nMagnify gesture picker option: pinch"
+    },
     "Please include at least one modifier key." : {
       "comment" : "An error message displayed when a custom keybind is created but does not include at least one modifier key.",
       "localizations" : {
@@ -23979,6 +24035,9 @@
           }
         }
       }
+    },
+    "Press \"Add\" to add a gesture" : {
+      "comment" : "Empty state subtitle in gestures settings"
     },
     "Press \"Add\" to add a keybind" : {
       "localizations" : {
@@ -24867,7 +24926,7 @@
       }
     },
     "Radial Menu" : {
-      "comment" : "Section header shown in settings",
+      "comment" : "Label shown for a gesture configured to open the radial menu\nSection header shown in settings",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -25222,7 +25281,7 @@
       }
     },
     "Remove" : {
-      "comment" : "Used to remove items from a list",
+      "comment" : "Button to remove selected gestures",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -26018,7 +26077,7 @@
       }
     },
     "Right" : {
-      "comment" : "Label for a slider in Loop’s padding settings\nSide of a trigger key",
+      "comment" : "Label for a slider in Loop’s padding settings\nSide of a trigger key\nSwipe direction picker option: right",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -27872,6 +27931,19 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "排除的應用程式"
+          }
+        }
+      }
+    },
+    "Settings tab: Gestures" : {
+      "comment" : "Title of the gestures settings tab.",
+      "extractionState" : "extracted_with_value",
+      "isCommentAutoGenerated" : true,
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "new",
+            "value" : "Gestures"
           }
         }
       }
@@ -30089,6 +30161,9 @@
         }
       }
     },
+    "Spread" : {
+      "comment" : "Gesture kind: magnify inward\nMagnify gesture picker option: spread"
+    },
     "Stage Manager" : {
       "comment" : "Section header shown in settings",
       "localizations" : {
@@ -30621,6 +30696,21 @@
         }
       }
     },
+    "Swipe" : {
+      "comment" : "Gesture category label: swipe"
+    },
+    "Swipe Down" : {
+      "comment" : "Gesture kind: directional swipe"
+    },
+    "Swipe Left" : {
+      "comment" : "Gesture kind: directional swipe"
+    },
+    "Swipe Right" : {
+      "comment" : "Gesture kind: directional swipe"
+    },
+    "Swipe Up" : {
+      "comment" : "Gesture kind: directional swipe"
+    },
     "Sync Wallpaper" : {
       "localizations" : {
         "ar" : {
@@ -31149,6 +31239,9 @@
           }
         }
       }
+    },
+    "There are other gestures that conflict with this gesture." : {
+      "comment" : "Tooltip shown on a conflicting gesture in settings"
     },
     "There are other keybinds that conflict with this key combination." : {
       "localizations" : {
@@ -31770,6 +31863,9 @@
           }
         }
       }
+    },
+    "Titlebar Only" : {
+      "comment" : "Gesture activation zone restricted to a window's titlebar"
     },
     "To save power, window animations are\nunavailable in Low Power Mode." : {
       "localizations" : {
@@ -33279,6 +33375,9 @@
           }
         }
       }
+    },
+    "Up" : {
+      "comment" : "Swipe direction picker option: up"
     },
     "Update from: %@" : {
       "comment" : "A label at the bottom of the update view that indicates the current app version and a message suggesting an update. The argument is the current app version.",
@@ -35674,5 +35773,5 @@
       }
     }
   },
-  "version" : "1.0"
+  "version" : "1.1"
 }

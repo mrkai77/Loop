@@ -36,6 +36,7 @@ import SwiftUI
 /// ## Considerations:
 /// - Currently supports only one revealed window at a time.
 @Loggable
+@MainActor
 final class StashManager {
     static let shared = StashManager()
     private init() {}
@@ -110,32 +111,31 @@ final class StashManager {
         }
     }
 
-    /// Determines whether the given window action should be intercepted by the StashManager.
-    ///
-    /// If the action targets a stashed window that is no longer visible, the currently focused
-    /// window will be stashed in its place. The stashed window is then either revealed or hidden,
-    /// depending on its current state. This allows the StashManager to take over the behavior,
-    /// bypassing the default flow handled by the LoopManager.
-    ///
-    /// - Parameter action: The window action triggered.
-    /// - Returns: `true` if the action is handled by the StashManager and the normal flow should be bypassed; otherwise, `false`.
-    @discardableResult
-    func handleIfStashed(_ action: WindowAction, screen: NSScreen) -> Bool {
+    /// Returns the stashed window matching the given action and screen, if one exists.
+    func stashedWindow(for action: WindowAction, on screen: NSScreen) -> StashedWindowInfo? {
         guard action.direction == .stash,
               let stashedWindow = store.stashedWindow(for: action, on: screen),
               !stashedWindow.window.isWindowHidden, !stashedWindow.window.isApplicationHidden
         else {
+            return nil
+        }
+
+        return stashedWindow
+    }
+
+    /// Toggles the stashed window matching the given action and screen, if one exists.
+    @discardableResult
+    func toggleStashedWindow(for action: WindowAction, on screen: NSScreen) async -> Bool {
+        guard let stashedWindow = stashedWindow(for: action, on: screen) else {
             return false
         }
 
-        log.info("Intercepting window action for stashed window \(stashedWindow.window.description)")
+        log.info("Toggling stashed window \(stashedWindow.window.description)")
 
-        Task {
-            if store.isWindowRevealed(stashedWindow.window.cgWindowID) {
-                await hideWindow(stashedWindow)
-            } else {
-                await revealWindow(stashedWindow)
-            }
+        if store.isWindowRevealed(stashedWindow.window.cgWindowID) {
+            await hideWindow(stashedWindow)
+        } else {
+            await revealWindow(stashedWindow)
         }
 
         return true
@@ -434,7 +434,9 @@ private extension StashManager {
                 .leftMouseDragged // Dragging items to stashed windows
             ],
             callback: { [weak self] cgEvent in
-                self?.handleMouseMoved(cgEvent: cgEvent)
+                Task { @MainActor in
+                    self?.handleMouseMoved(cgEvent: cgEvent)
+                }
             }
         )
         monitor.start()

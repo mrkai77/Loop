@@ -27,12 +27,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_: Notification) {
         configureLogging()
+        DefaultsiCloudSyncRegistrar.register()
 
         // Register before broadcasting so other instances can receive the signal
         registerTerminateObserver()
 
-        Task {
+        let dataPatcherTask = Task { @MainActor in
             await Defaults.iCloud.waitForSyncCompletion()
+            DataPatcher.run()
         }
 
         // Show settings window only if not launched as login item AND startHidden is disabled
@@ -43,7 +45,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             SettingsWindowManager.shared.close()
         }
 
-        DataPatcher.run()
         IconManager.refreshCurrentAppIcon()
         LaunchAtLoginManager.shared.start()
 
@@ -58,10 +59,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             andEventID: AEEventID(kAEGetURL)
         )
 
-        let stalePIDs = broadcastTerminateToOtherInstances()
-
         // Wait for other instances to fully exit before installing event taps to prevent conflicts
         Task { @MainActor in
+            await dataPatcherTask.value
+
+            let stalePIDs = broadcastTerminateToOtherInstances()
             await waitForInstancesToExit(pids: stalePIDs, timeout: .seconds(3))
             LoopManager.shared.start()
             WindowDragManager.shared.addObservers()

@@ -120,26 +120,23 @@ struct KeybindItemView: View {
             .font(.title3)
             .foregroundStyle(.secondary)
         }
-        .background(alignment: .leading) {
-            Color.clear
-                .frame(width: 300 - 24)
-                .luminarePopover(
-                    isPresented: $isDirectionPickerPresented,
-                    arrowEdge: .top,
-                    shouldHideAnchor: true,
-                    shouldAnimate: false
-                ) {
-                    DirectionPickerView(
-                        direction: $action.direction,
-                        isInCycle: cycleIndex != nil
-                    )
-                    .frame(width: 300, height: 300)
-                }
-                .onChange(of: isDirectionPickerPresented) { _ in
-                    if !isDirectionPickerPresented {
-                        PickerListEventMonitorManager.shared.removeAllMonitors()
-                    }
-                }
+        .luminarePopover(
+            isPresented: $isDirectionPickerPresented,
+            arrowEdge: .top,
+            attachmentAnchor: .topLeading,
+            shouldHideAnchor: true,
+            shouldAnimate: false
+        ) {
+            DirectionPickerView(
+                direction: $action.direction,
+                isInCycle: cycleIndex != nil
+            )
+            .frame(width: 300, height: 300)
+        }
+        .onChange(of: isDirectionPickerPresented) { _ in
+            if !isDirectionPickerPresented {
+                PickerListEventMonitorManager.shared.removeAllMonitors()
+            }
         }
     }
 

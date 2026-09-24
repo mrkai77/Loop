@@ -88,15 +88,11 @@ struct RadialMenuConfigurationView: View {
                             moveDown: { moveAction(action.wrappedValue, down: true) }
                         )
                     } emptyView: {
-                        HStack {
-                            Spacer()
-                            VStack {
-                                Text("No radial menu actions")
-                                    .font(.title3)
-                                Text("Press \"Add\" to add an action")
-                                    .font(.caption)
-                            }
-                            Spacer()
+                        VStack {
+                            Text("No radial menu actions")
+                                .font(.title3)
+                            Text("Press \"Add\" to add an action")
+                                .font(.caption)
                         }
                         .foregroundStyle(.secondary)
                         .padding()

@@ -16,7 +16,14 @@ struct DirectionPickerView: View {
     private let isInCycle: Bool
 
     private var sections: [PickerSection<WindowDirection>] {
-        PickerSection.windowDirections
+        let sections = PickerSection.windowDirections
+
+        guard isInCycle else { return sections }
+        return sections.compactMap { section in
+            // Remove repeatable actions; we're already in a cycle
+            let items = section.items.filter { !WindowAction($0).allowsRapidRepeat }
+            return items.isEmpty ? nil : PickerSection(section.title, items)
+        }
     }
 
     private var moreSection: PickerSection<WindowDirection> {

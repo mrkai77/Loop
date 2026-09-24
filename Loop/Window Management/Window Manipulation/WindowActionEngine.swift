@@ -117,6 +117,12 @@ final class WindowActionEngine {
             return .noOp
         }
 
+        if direction == .stash,
+           let screen = context.screen,
+           await StashManager.shared.toggleStashedWindow(for: context.action, on: screen) {
+            return .noOp
+        }
+
         // Quick actions that don't require resize logic
         if let result = handleQuickAction(context.action, window: context.window) {
             return result

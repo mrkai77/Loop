@@ -160,6 +160,12 @@ struct CycleProgressStore {
             return Selection(action: children[index], index: index, key: key)
         }
 
+        // Coming from outside the cycle resumes where it was left, rather than restarting it
+        if let cursor = cursors[key],
+           let index = validatedIndex(for: cursor, in: children) {
+            return Selection(action: children[index], index: index, key: key)
+        }
+
         return Selection(action: children[0], index: 0, key: key)
     }
 

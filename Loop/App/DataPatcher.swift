@@ -40,6 +40,14 @@ enum DataPatcher {
             Defaults[.hideOnNoSelection] = Defaults[.hideUntilDirectionIsChosen]
             Defaults.reset(.hideUntilDirectionIsChosen)
         }
+
+        runPatchIfNeeded(patch: .splitRadialMenuPresentationPolicies, initialPatches: initialPatches) {
+            let hideOnNoSelection = Defaults[.hideOnNoSelection] || Defaults[.hideUntilDirectionIsChosen]
+            Defaults[.hideOnNoSelectionForKeybinds] = hideOnNoSelection
+            Defaults[.hideOnNoSelectionForGestures] = hideOnNoSelection
+            Defaults.reset(.hideOnNoSelection)
+            Defaults.reset(.hideUntilDirectionIsChosen)
+        }
     }
 
     private static func runPatchIfNeeded(patch: Patches, initialPatches: Patches, with callback: () -> ()) {
@@ -62,6 +70,9 @@ enum DataPatcher {
 
         /// Key was renamed from `hideUntilDirectionIsChosen` to `hideOnNoSelection` with slightly different behavior
         static let changeTohideOnNoSelection = Self(rawValue: 1 << 2)
+
+        /// Split the global no-selection setting into trigger-specific presentation policies.
+        static let splitRadialMenuPresentationPolicies = Self(rawValue: 1 << 3)
     }
 }
 
@@ -77,5 +88,6 @@ private extension Defaults.Keys {
     static let processWallpaper = Key<Bool>("processWallpaper", default: false)
 
     // IndicatorService
+    static let hideOnNoSelection = Key<Bool>("hideOnNoSelection", default: false)
     static let hideUntilDirectionIsChosen = Key<Bool>("hideUntilDirectionIsChosen", default: false)
 }
