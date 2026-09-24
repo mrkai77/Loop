@@ -15,6 +15,20 @@ extension MultitouchTrigger {
     func handleMagnify(_ magnify: SubsurfaceGestureEvent.MagnifyEvent, fingerCount: Int) async {
         guard let entry = recognizerRegistry.entry(for: fingerCount) else { return }
 
+#if DEBUG
+        if magnify.phase == .began || magnify.phase == .changed {
+            // Keep the processed centroid synchronized with the raw contact dots
+            // regardless of whether this gesture is eligible to activate.
+            beginDebugGestureIfNeeded(centroid: magnify.centroid, fingerCount: magnify.fingerCount)
+            debugOverlayController.updateMagnify(
+                centroid: magnify.centroid,
+                distance: magnify.distance,
+                originDistance: magnify.originDistance,
+                fingerCount: magnify.fingerCount
+            )
+        }
+#endif
+
         // Radial menu magnify triggers the center action regardless of direction.
         if let radialMenuGesture = entry.radialMenuGesture {
             await handleRadialMenuMagnify(magnify, fingerCount: fingerCount, gesture: radialMenuGesture)
@@ -45,15 +59,27 @@ extension MultitouchTrigger {
                 return
             }
 
-            guard hasCrossedActivationThreshold(magnify),
-                  await activateGestureIfNeeded(fingerCount: fingerCount),
-                  let session = recognizerRegistry.session(for: fingerCount),
-                  !session.isGestureRejected
-            else {
+            if resetMagnifyActionIfNeeded(session: session, magnify: magnify) {
                 return
             }
 
-            if magnifyReversalDetected(currentGesture: activeGesture, magnify: magnify) {
+            let crossedActivationThreshold = hasCrossedActivationThreshold(magnify)
+            if !session.hasCommittedMagnifyAction {
+                guard crossedActivationThreshold,
+                      await activateGestureIfNeeded(fingerCount: fingerCount)
+                else {
+                    return
+                }
+            } else if !session.hasActivated {
+                return
+            }
+
+            guard let session = recognizerRegistry.session(for: fingerCount), !session.isGestureRejected else {
+                return
+            }
+
+            if crossedActivationThreshold,
+               magnifyReversalDetected(currentGesture: activeGesture, magnify: magnify) {
                 let opposite = activeGesture.kind == .magnifyIn ? entry.magnifyOutGesture : entry.magnifyInGesture
                 handleMagnifyReversal(
                     fingerCount: fingerCount,
@@ -71,6 +97,7 @@ extension MultitouchTrigger {
             session.commitMagnify(
                 gesture: activeGesture,
                 distance: magnify.distance,
+                originDistance: magnify.originDistance,
                 step: magnifyStepSize,
                 allowsRapidRepeat: allowsRapidRepeatAction
             ) { reverse in
@@ -107,22 +134,44 @@ extension MultitouchTrigger {
             if magnify.phase == .began, recognizerRegistry.session(for: fingerCount)?.hasGestureBegun != true {
                 handleGestureBegan(fingerCount: fingerCount, gesture: gesture)
             }
-            guard hasCrossedActivationThreshold(magnify),
-                  await activateGestureIfNeeded(fingerCount: fingerCount)
-            else { return }
+            guard let session = recognizerRegistry.session(for: fingerCount), !session.isGestureRejected else { return }
+            if resetMagnifyActionIfNeeded(session: session, magnify: magnify) {
+                return
+            }
+            if !session.hasCommittedMagnifyAction {
+                guard hasCrossedActivationThreshold(magnify),
+                      await activateGestureIfNeeded(fingerCount: fingerCount)
+                else {
+                    return
+                }
+            } else if !session.hasActivated {
+                return
+            }
             guard let session = recognizerRegistry.session(for: fingerCount), !session.isGestureRejected else { return }
 
             let actions = radialMenuActions
             guard !actions.isEmpty else { return }
             let centerActionIndex = actions.count - 1
 
+#if DEBUG
+            var didCommit = false
+#endif
             session.commitRadialMagnify(
                 distance: magnify.distance,
                 originDistance: magnify.originDistance,
                 step: magnifyStepSize
             ) { reverse in
+#if DEBUG
+                didCommit = true
+#endif
                 triggerRadialMenuAction(at: centerActionIndex, from: actions[...], reverse: reverse)
             }
+
+#if DEBUG
+            if didCommit {
+                debugOverlayController.recordMagnifyCommit(distance: magnify.distance)
+            }
+#endif
 
         case let .ended(reason):
             resetLoopState(
@@ -156,6 +205,22 @@ extension MultitouchTrigger {
         abs(magnify.distance - magnify.originDistance) >= magnifyStepSize
     }
 
+    private func resetMagnifyActionIfNeeded(
+        session: MultitouchGestureSession,
+        magnify: SubsurfaceGestureEvent.MagnifyEvent
+    ) -> Bool {
+        let hadCommittedAction = session.hasCommittedMagnifyAction
+        let isInsideNoSelectionZone = session.resetMagnifyActionIfNeeded(
+            distance: magnify.distance,
+            originDistance: magnify.originDistance,
+            step: magnifyStepSize
+        )
+        if isInsideNoSelectionZone, hadCommittedAction {
+            clearActionSelection()
+        }
+        return isInsideNoSelectionZone
+    }
+
     private func handleMagnifyReversal(
         fingerCount: Int,
         currentGesture: GestureBinding,
@@ -177,7 +242,10 @@ extension MultitouchTrigger {
 
         if isCycleAction(currentGesture) {
             triggerSingleAction(from: currentGesture, reverse: true)
-            recognizerRegistry.session(for: fingerCount)?.updateLastCommitMagnifyDistance(distance)
+            recognizerRegistry.session(for: fingerCount)?.synchronizeMagnifyStepIndex(
+                distance: distance,
+                step: magnifyStepSize
+            )
         } else {
             resetLoopState(for: fingerCount, forceClose: true)
         }

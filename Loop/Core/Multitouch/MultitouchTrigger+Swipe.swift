@@ -15,6 +15,17 @@ extension MultitouchTrigger {
     func handleSwipe(_ swipe: SubsurfaceGestureEvent.SwipeEvent, fingerCount: Int) async {
         guard let entry = recognizerRegistry.entry(for: fingerCount) else { return }
 
+#if DEBUG
+        beginDebugGestureIfNeeded(centroid: swipe.centroid, fingerCount: swipe.fingerCount)
+        debugOverlayController.updateSwipe(
+            centroid: swipe.centroid,
+            translation: swipe.translation,
+            angle: swipe.angle,
+            distance: swipe.distance,
+            fingerCount: swipe.fingerCount
+        )
+#endif
+
         if let radialMenuGesture = entry.radialMenuGesture {
             await handleRadialMenuSwipe(swipe, fingerCount: fingerCount, gesture: radialMenuGesture)
         } else {
@@ -53,26 +64,38 @@ extension MultitouchTrigger {
                 return
             }
 
-            let normalizedAngle = normalizedAngle(fromSubsurfaceAngle: swipe.angle)
+            let normalizedAngle = RadialGestureGeometry.normalizedAngle(fromSubsurfaceAngle: swipe.angle)
             let actions = radialMenuActions.dropLast()
             guard actions.count > 1 else { return }
 
-            let newIndex: Int
-            if actions.count == cardinalBiasedRadialMenuActionCount {
-                newIndex = indexWithCardinalBias(angle: normalizedAngle, actionCount: actions.count)
-            } else {
-                let actionAngleSpan = (.pi * 2) / CGFloat(actions.count)
-                let halfAngleSpan = actionAngleSpan / 2.0
-                newIndex = Int((normalizedAngle + halfAngleSpan) / actionAngleSpan) % actions.count
+            let newIndex = RadialGestureGeometry.slotIndex(
+                angle: normalizedAngle,
+                actionCount: actions.count
+            )
+
+            if resetSwipeActionIfNeeded(fingerCount: fingerCount, distance: swipe.distance) {
+                return
             }
 
+#if DEBUG
+            var didCommit = false
+#endif
             session.commitSwipe(
                 distance: swipe.distance,
                 newKey: .radialSlot(newIndex),
                 step: swipeCycleStepSize
             ) { reverse in
+#if DEBUG
+                didCommit = true
+#endif
                 triggerRadialMenuAction(at: newIndex, from: actions, reverse: reverse)
             }
+
+#if DEBUG
+            if didCommit {
+                debugOverlayController.recordSwipeCommit(distance: swipe.distance, slot: newIndex)
+            }
+#endif
 
         case let .ended(reason):
             resetLoopState(
@@ -98,7 +121,11 @@ extension MultitouchTrigger {
 
         switch swipe.phase {
         case .began, .changed:
-            guard let session = recognizerRegistry.session(for: fingerCount), !session.isGestureRejected else { return }
+            guard let session = recognizerRegistry.session(for: fingerCount) else { return }
+
+            // A directional candidate can be rejected by its own activation
+            // zone while another direction in the same stroke is valid. Keep
+            // the session retryable so a later Anywhere gesture can begin.
 
             if !session.hasGestureBegun {
                 guard let matchedGesture else { return }
@@ -107,10 +134,26 @@ extension MultitouchTrigger {
                 }
             }
 
+            // A binding discovered while returning toward the origin must not
+            // fire just because its direction became eligible. Initial action
+            // activation requires crossing the fixed threshold while moving
+            // outward; this prevents a brief action commit on the way back to
+            // the no-selection center.
+            if !session.hasActivated,
+               swipe.distance <= entry.recognizer.minimumSwipeTranslation ||
+                !isSwipeMovingOutward(swipe)
+            {
+                return
+            }
+
             guard await activateGestureIfNeeded(fingerCount: fingerCount),
                   let session = recognizerRegistry.session(for: fingerCount), !session.isGestureRejected,
                   let activeGesture = session.resolvedGesture ?? matchedGesture
             else {
+                return
+            }
+
+            if resetSwipeActionIfNeeded(fingerCount: fingerCount, distance: swipe.distance) {
                 return
             }
 
@@ -131,22 +174,39 @@ extension MultitouchTrigger {
                         to: matchedGesture,
                         distance: swipe.distance
                     ) else {
-                        resetLoopState(for: fingerCount, forceClose: true)
+                        if !session.hasSwipeActionReset {
+                            resetLoopState(for: fingerCount, forceClose: true)
+                        }
                         return
                     }
                 } else {
-                    resetLoopState(for: fingerCount, forceClose: true)
+                    // An unbound direction is still part of the current stroke.
+                    // Keep the session and debug overlay alive so the crosshair
+                    // follows the actual centroid instead of restarting at the
+                    // origin on the next event.
                 }
                 return
             }
 
+#if DEBUG
+            var didCommit = false
+#endif
             session.commitSwipe(
                 distance: swipe.distance,
                 newKey: .gesture(activeGesture.id),
                 step: swipeCycleStepSize
             ) { reverse in
+#if DEBUG
+                didCommit = true
+#endif
                 triggerSingleAction(from: activeGesture, reverse: reverse)
             }
+
+#if DEBUG
+            if didCommit {
+                debugOverlayController.recordSwipeCommit(distance: swipe.distance)
+            }
+#endif
 
         case let .ended(reason):
             resetLoopState(
@@ -204,6 +264,9 @@ extension MultitouchTrigger {
         else {
             return false
         }
+#if DEBUG
+        debugOverlayController.recordSwipeCommit(distance: distance)
+#endif
         triggerSingleAction(from: gesture, reverse: false)
 
         if let window = session.pendingTargetWindow,
@@ -221,9 +284,18 @@ extension MultitouchTrigger {
         distance: CGFloat,
         hasCrossedOrigin: Bool
     ) {
+        if oppositeGesture == nil {
+            // There is no action to reverse into. Keep the current stroke and
+            // overlay alive while the fingers travel through this direction.
+            return
+        }
+
         if hasCrossedOrigin, let oppositeGesture {
             guard let session = recognizerRegistry.session(for: fingerCount) else { return }
             if session.switchSwipeGesture(to: oppositeGesture, distance: distance) {
+#if DEBUG
+                debugOverlayController.recordSwipeCommit(distance: distance)
+#endif
                 triggerSingleAction(from: oppositeGesture, reverse: false)
 
                 if let window = session.pendingTargetWindow,
@@ -232,18 +304,20 @@ extension MultitouchTrigger {
                 }
                 return
             }
+
+            if session.hasSwipeActionReset { return }
         }
 
         if isCycleAction(currentGesture) {
             triggerSingleAction(from: currentGesture, reverse: true)
-            recognizerRegistry.session(for: fingerCount)?.updateLastCommitSwipeDistance(distance)
+            recognizerRegistry.session(for: fingerCount)?.synchronizeSwipeStepIndex(distance: distance)
         } else {
             resetLoopState(for: fingerCount, forceClose: true)
         }
     }
 
     private func directionalSwipeKind(angle: CGFloat) -> GestureBinding.Kind {
-        let normalizedAngle = normalizedAngle(fromSubsurfaceAngle: angle)
+        let normalizedAngle = RadialGestureGeometry.normalizedAngle(fromSubsurfaceAngle: angle)
 
         if normalizedAngle >= 7 * .pi / 4 || normalizedAngle < .pi / 4 {
             return .swipeUp
@@ -256,35 +330,9 @@ extension MultitouchTrigger {
         }
     }
 
-    private func normalizedAngle(fromSubsurfaceAngle angle: CGFloat) -> CGFloat {
-        // Subsurface emits y-up angles (counterclockwise from +x); Loop uses 0 = up, growing clockwise.
-        var normalizedAngle = (.pi / 2 - angle).truncatingRemainder(dividingBy: 2 * .pi)
-        if normalizedAngle < 0 { normalizedAngle += 2 * .pi }
-        return normalizedAngle
-    }
-
-    private func indexWithCardinalBias(angle: CGFloat, actionCount: Int, cardinalBias: CGFloat = 0.1) -> Int {
-        let baseAngleSpan = (.pi * 2) / CGFloat(actionCount)
-        let halfAngleSpan = baseAngleSpan / 2.0
-
-        let adjustedAngle = (angle + halfAngleSpan).truncatingRemainder(dividingBy: .pi * 2)
-        let rawSegment = Int(adjustedAngle / baseAngleSpan) % actionCount
-
-        let segmentAngle = adjustedAngle.truncatingRemainder(dividingBy: baseAngleSpan)
-        let normalizedPosition = segmentAngle / baseAngleSpan
-
-        let isCurrentCardinal = rawSegment % 2 == 0
-
-        if isCurrentCardinal {
-            return rawSegment
-        } else {
-            if normalizedPosition < cardinalBias / 2 {
-                return (rawSegment - 1 + actionCount) % actionCount
-            } else if normalizedPosition > 1.0 - cardinalBias / 2 {
-                return (rawSegment + 1) % actionCount
-            } else {
-                return rawSegment
-            }
-        }
+    private func isSwipeMovingOutward(_ swipe: SubsurfaceGestureEvent.SwipeEvent) -> Bool {
+        let radialVelocity = swipe.translation.x * swipe.velocity.x +
+            swipe.translation.y * swipe.velocity.y
+        return radialVelocity >= 0
     }
 }
