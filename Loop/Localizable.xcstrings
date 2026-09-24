@@ -31867,9 +31867,6 @@
     "Titlebar Only" : {
       "comment" : "Gesture activation zone restricted to a window's titlebar"
     },
-    "To avoid conflicts with Loop, some macOS trackpad gestures may be disabled." : {
-      "comment" : "Section footer warning that Loop disables conflicting macOS trackpad gestures"
-    },
     "To save power, window animations are\nunavailable in Low Power Mode." : {
       "localizations" : {
         "ar" : {

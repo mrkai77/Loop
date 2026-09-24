@@ -18,23 +18,10 @@ struct GesturesConfigurationView: View {
     @StateObject private var model = GesturesConfigurationModel()
 
     @Default(.enableGestures) private var enableGestures
-    @Default(.disableConflictingSystemGestures) private var disableConflictingSystemGestures
-    @Default(.systemGesturePreferenceBackups) private var systemGesturePreferenceBackups
-    @Default(.systemGestureManagedValues) private var systemGestureManagedValues
     @Default(.gestures) private var gestures
-    @Default(.gestureTitlebarHeight) private var gestureTitlebarHeight
 
     private var conflictingGestureIDs: Set<UUID> {
         GestureBinding.conflictingActionableIDs(in: gestures)
-    }
-
-    private var shouldShowSystemGestureWarning: Bool {
-        enableGestures &&
-            disableConflictingSystemGestures &&
-            SystemGestureManager.PreferenceLedger(
-                backups: systemGesturePreferenceBackups,
-                managedValues: systemGestureManagedValues
-            ).hasDisabledSystemGestures
     }
 
     var body: some View {
@@ -102,18 +89,8 @@ struct GesturesConfigurationView: View {
             Text("Gestures", comment: "Section header shown in gestures settings")
                 .fontWeight(.medium)
         } footer: {
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Continue the swipe or magnify gesture to step through cycle actions.", comment: "Section footer shown in settings")
-
-                if shouldShowSystemGestureWarning {
-                    Text(
-                        "To avoid conflicts with Loop, some macOS trackpad gestures may be disabled.",
-                        comment: "Section footer warning that Loop disables conflicting macOS trackpad gestures"
-                    )
-                }
-            }
-            .font(.caption)
-            .animation(luminareAnimation, value: shouldShowSystemGestureWarning)
+            Text("Continue the swipe or magnify gesture to step through cycle actions.", comment: "Section footer shown in settings")
+                .font(.caption)
         }
     }
 }

@@ -44,6 +44,9 @@ extension MultitouchTrigger {
                     direction: direction,
                     matchedGesture: directionalGesture
                 )
+            } else if swipe.phase == .began {
+                // No binding for this direction, so the stroke belongs to the Dock
+                systemGestureFilter.releaseCurrentTouch(fingerCount: fingerCount)
             }
         }
     }
@@ -88,7 +91,12 @@ extension MultitouchTrigger {
 #if DEBUG
                 didCommit = true
 #endif
-                triggerRadialMenuAction(at: newIndex, from: actions, reverse: reverse)
+                triggerRadialMenuAction(
+                    at: newIndex,
+                    from: actions,
+                    reverse: reverse,
+                    canAdvanceCycle: !session.isRevisitingAction
+                )
             }
 
 #if DEBUG
@@ -98,13 +106,10 @@ extension MultitouchTrigger {
 #endif
 
         case let .ended(reason):
-            resetLoopState(
-                for: fingerCount,
-                forceClose: reason == .fingerCountChanged(.increased)
-            )
+            endStroke(for: fingerCount, reason: reason)
 
         case .cancelled:
-            resetLoopState(for: fingerCount)
+            endStroke(for: fingerCount, reason: nil)
 
         default:
             break
@@ -122,10 +127,6 @@ extension MultitouchTrigger {
         switch swipe.phase {
         case .began, .changed:
             guard let session = recognizerRegistry.session(for: fingerCount) else { return }
-
-            // A directional candidate can be rejected by its own activation
-            // zone while another direction in the same stroke is valid. Keep
-            // the session retryable so a later Anywhere gesture can begin.
 
             if !session.hasGestureBegun {
                 guard let matchedGesture else { return }
@@ -175,7 +176,7 @@ extension MultitouchTrigger {
                         distance: swipe.distance
                     ) else {
                         if !session.hasSwipeActionReset {
-                            resetLoopState(for: fingerCount, forceClose: true)
+                            resetLoopState(for: fingerCount, forceClose: true, endsStroke: false)
                         }
                         return
                     }
@@ -199,7 +200,11 @@ extension MultitouchTrigger {
 #if DEBUG
                 didCommit = true
 #endif
-                triggerSingleAction(from: activeGesture, reverse: reverse)
+                triggerSingleAction(
+                    from: activeGesture,
+                    reverse: reverse,
+                    canAdvanceCycle: !session.isRevisitingAction
+                )
             }
 
 #if DEBUG
@@ -209,13 +214,10 @@ extension MultitouchTrigger {
 #endif
 
         case let .ended(reason):
-            resetLoopState(
-                for: fingerCount,
-                forceClose: reason == .fingerCountChanged(.increased)
-            )
+            endStroke(for: fingerCount, reason: reason)
 
         case .cancelled:
-            resetLoopState(for: fingerCount)
+            endStroke(for: fingerCount, reason: nil)
 
         default:
             break
@@ -267,13 +269,7 @@ extension MultitouchTrigger {
 #if DEBUG
         debugOverlayController.recordSwipeCommit(distance: distance)
 #endif
-        triggerSingleAction(from: gesture, reverse: false)
-
-        if let window = session.pendingTargetWindow,
-           resolvedWindowAction(from: gesture)?.allowsRapidRepeat == true {
-            targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
-        }
-
+        triggerSwitchedGesture(gesture, session: session)
         return true
     }
 
@@ -296,12 +292,7 @@ extension MultitouchTrigger {
 #if DEBUG
                 debugOverlayController.recordSwipeCommit(distance: distance)
 #endif
-                triggerSingleAction(from: oppositeGesture, reverse: false)
-
-                if let window = session.pendingTargetWindow,
-                   resolvedWindowAction(from: oppositeGesture)?.allowsRapidRepeat == true {
-                    targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
-                }
+                triggerSwitchedGesture(oppositeGesture, session: session)
                 return
             }
 
@@ -312,7 +303,7 @@ extension MultitouchTrigger {
             triggerSingleAction(from: currentGesture, reverse: true)
             recognizerRegistry.session(for: fingerCount)?.synchronizeSwipeStepIndex(distance: distance)
         } else {
-            resetLoopState(for: fingerCount, forceClose: true)
+            resetLoopState(for: fingerCount, forceClose: true, endsStroke: false)
         }
     }
 

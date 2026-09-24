@@ -66,15 +66,6 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
             }
         }
 
-        var isSwipe: Bool {
-            switch self {
-            case .radialMenu, .swipeUp, .swipeDown, .swipeLeft, .swipeRight:
-                true
-            case .magnifyOut, .magnifyIn:
-                false
-            }
-        }
-
         var isDirectionalSwipe: Bool {
             switch self {
             case .swipeUp, .swipeDown, .swipeLeft, .swipeRight:
@@ -162,6 +153,12 @@ extension GestureBinding {
     /// Returns IDs for actionable gestures that conflict with at least one other actionable gesture.
     static func conflictingActionableIDs(in gestures: [GestureBinding]) -> Set<UUID> {
         conflictingIDs(in: gestures.filter { !$0.resolvesToNoAction })
+    }
+
+    /// Returns gestures that don't conflict with another actionable gesture.
+    static func activeGestures(in gestures: [GestureBinding]) -> [GestureBinding] {
+        let conflictingIDs = conflictingActionableIDs(in: gestures)
+        return gestures.filter { !conflictingIDs.contains($0.id) }
     }
 
     /// Two gestures conflict when they have the same finger count and their kinds overlap.

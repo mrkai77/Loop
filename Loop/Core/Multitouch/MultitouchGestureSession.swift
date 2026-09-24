@@ -24,9 +24,15 @@ final class MultitouchGestureSession {
     private(set) var resolvedGesture: GestureBinding?
     private(set) var pendingTargetWindow: Window?
     private var activationContext: MultitouchGestureActivationContext?
-    private var rejectedGestureID: UUID?
+    /// Set once Loop rejects or abandons the stroke, as the Dock may already be acting on it
+    private var isStrokeLocked = false
+    /// Bindings excluded by their activation zone, treated as unbound so another direction can still begin
+    private var ineligibleGestureIDs: Set<UUID> = []
 
     private var lastCommittedAction: ActionKey?
+    private var visitedActions: Set<ActionKey> = []
+    /// Returning to an action this gesture already committed shouldn't advance its cycle
+    private(set) var isRevisitingAction = false
     private var lastCommittedSwipeStepIndex: Int?
     private var swipeStepDistance: CGFloat?
     private var swipeActivationDistance: CGFloat?
@@ -39,7 +45,7 @@ final class MultitouchGestureSession {
     private var magnificationKind: GestureBinding.Kind?
     private var magnifyActionResetActive = false
 
-    func reset(clearRejectedGesture: Bool = true) {
+    func reset(endsStroke: Bool = true) {
         didOpenLoopWithThisGesture = false
         isGestureRejected = false
         hasActivated = false
@@ -48,10 +54,13 @@ final class MultitouchGestureSession {
         resolvedGesture = nil
         pendingTargetWindow = nil
         activationContext = nil
-        if clearRejectedGesture {
-            rejectedGestureID = nil
+        if endsStroke {
+            isStrokeLocked = false
+            ineligibleGestureIDs.removeAll()
         }
         lastCommittedAction = nil
+        visitedActions.removeAll()
+        isRevisitingAction = false
         lastCommittedSwipeStepIndex = nil
         swipeStepDistance = nil
         swipeActivationDistance = nil
@@ -70,24 +79,23 @@ final class MultitouchGestureSession {
         gesture: GestureBinding,
         loopWasAlreadyOpen: Bool
     ) -> Bool {
-        // Do not retry the same rejected candidate on every changed event.
-        // A different directional binding can still retry within this stroke.
-        guard rejectedGestureID != gesture.id else { return false }
+        guard shouldAttemptBegin(with: gesture) else { return false }
 
-        reset(clearRejectedGesture: false)
+        reset(endsStroke: false)
         self.activationContext = activationContext
 
-        let activationAllowed = activationContext.allows(gesture)
-        let hasTarget = activationContext.targetWindow != nil || loopWasAlreadyOpen
-        guard activationAllowed, hasTarget
-        else {
-            rejectedGestureID = gesture.id
+        guard activationContext.allows(gesture) else {
+            ineligibleGestureIDs.insert(gesture.id)
+            isGestureRejected = true
+            return false
+        }
+
+        guard activationContext.targetWindow != nil || loopWasAlreadyOpen else {
             reject()
             return false
         }
 
         pendingTargetWindow = activationContext.targetWindow
-        rejectedGestureID = nil
         resolvedGesture = gesture
         hasGestureBegun = true
         // Loop is already on screen, so no activation threshold to cross.
@@ -96,11 +104,17 @@ final class MultitouchGestureSession {
     }
 
     func shouldAttemptBegin(with gesture: GestureBinding) -> Bool {
-        rejectedGestureID != gesture.id
+        !isStrokeLocked && !ineligibleGestureIDs.contains(gesture.id)
     }
 
     func reject() {
         isGestureRejected = true
+        isStrokeLocked = true
+    }
+
+    func abandonStroke() {
+        reset(endsStroke: false)
+        isStrokeLocked = true
     }
 
     func acquireGestureBlocker() {
@@ -148,11 +162,13 @@ final class MultitouchGestureSession {
             guard crossedStepCount != 0 else { return }
 
             lastCommittedSwipeStepIndex = newStepIndex
+            isRevisitingAction = false
             for _ in 0..<abs(crossedStepCount) {
                 fire(crossedStepCount < 0)
             }
         } else {
             lastCommittedAction = newKey
+            enterAction(newKey)
             let initialDistance = firstCommitSwipeDistance ?? swipeActivationDistance ?? distance
             if firstCommitSwipeDistance == nil {
                 firstCommitSwipeDistance = initialDistance
@@ -165,6 +181,10 @@ final class MultitouchGestureSession {
             swipeActionResetActive = false
             fire(false)
         }
+    }
+
+    private func enterAction(_ key: ActionKey) {
+        isRevisitingAction = !visitedActions.insert(key).inserted
     }
 
     func setSwipeActivationDistance(_ distance: CGFloat?) {
@@ -253,6 +273,7 @@ final class MultitouchGestureSession {
 
         if lastCommittedAction != .radialCenter {
             lastCommittedAction = .radialCenter
+            enterAction(.radialCenter)
             lastCommittedMagnifyStepIndex = newStepIndex
             fire(distance < originDistance)
             return
@@ -263,6 +284,7 @@ final class MultitouchGestureSession {
         guard crossedStepCount != 0 else { return }
 
         lastCommittedMagnifyStepIndex = newStepIndex
+        isRevisitingAction = false
         for _ in 0..<abs(crossedStepCount) {
             fire(crossedStepCount < 0)
         }
@@ -289,6 +311,7 @@ final class MultitouchGestureSession {
         if lastCommittedAction != newKey {
             magnificationKind = gesture.kind
             lastCommittedAction = newKey
+            enterAction(newKey)
             lastCommittedMagnifyStepIndex = newStepIndex
             fire(false)
             return
@@ -301,6 +324,7 @@ final class MultitouchGestureSession {
         guard crossedStepCount != 0 else { return }
 
         lastCommittedMagnifyStepIndex = newStepIndex
+        isRevisitingAction = false
         for _ in 0..<abs(crossedStepCount) {
             fire(crossedStepCount < 0)
         }
@@ -316,6 +340,7 @@ final class MultitouchGestureSession {
         guard canActivate(gesture) else { return false }
         resolvedGesture = gesture
         lastCommittedAction = .gesture(gesture.id)
+        enterAction(.gesture(gesture.id))
         swipeActionResetActive = false
         let initialDistance = firstCommitSwipeDistance ?? swipeActivationDistance ?? distance
         if firstCommitSwipeDistance == nil {
@@ -337,6 +362,7 @@ final class MultitouchGestureSession {
         guard canActivate(gesture) else { return false }
         resolvedGesture = gesture
         lastCommittedAction = .gesture(gesture.id)
+        enterAction(.gesture(gesture.id))
         magnificationKind = gesture.kind
         if let magnifyOriginDistance, let magnifyStepDistance {
             lastCommittedMagnifyStepIndex = directionalMagnifyStepIndex(

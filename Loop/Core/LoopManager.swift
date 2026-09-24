@@ -110,9 +110,9 @@ final class LoopManager {
                 await self?.closeLoop(forceClose: forceClose)
             }
         },
-        changeAction: { [weak self] action, reverse in
+        changeAction: { [weak self] action, reverse, canAdvanceCycle in
             Task {
-                await self?.changeAction(action, reverse: reverse)
+                await self?.changeAction(action, canAdvanceCycle: canAdvanceCycle, reverse: reverse)
             }
         },
         checkIfLoopOpen: { [weak self] in
@@ -159,14 +159,6 @@ final class LoopManager {
     )
 
     func start() {
-        if !Defaults[.enableGestures] || !AccessibilityManager.shared.isGranted {
-            SystemGestureManager.reconcile(
-                enableGestures: false,
-                disableConflicts: Defaults[.disableConflictingSystemGestures],
-                gestures: Defaults[.gestures]
-            )
-        }
-
         accessibilityCheckerTask = Task(priority: .background) { [weak self] in
             for await status in AccessibilityManager.shared.stream(initial: true) {
                 guard let self, !Task.isCancelled else {
@@ -228,6 +220,7 @@ enum LoopManagerError: LocalizedError {
     case accessibilityNotGranted
     case appExcluded
     case fullscreenWindow
+    case missionControlShowing
 
     var errorDescription: String? {
         switch self {
@@ -237,6 +230,8 @@ enum LoopManagerError: LocalizedError {
             "Cannot open Loop: app is excluded"
         case .fullscreenWindow:
             "Cannot open Loop: target window is fullscreen"
+        case .missionControlShowing:
+            "Cannot open Loop: Mission Control or App Exposé is showing"
         }
     }
 }
@@ -258,6 +253,10 @@ extension LoopManager {
     ) async throws -> LoopOpenResult {
         guard AccessibilityManager.shared.isGranted else {
             throw LoopManagerError.accessibilityNotGranted
+        }
+
+        guard !MissionControl.isShowing else {
+            throw LoopManagerError.missionControlShowing
         }
 
         guard !isLoopOpening else {

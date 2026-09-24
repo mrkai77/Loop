@@ -74,8 +74,6 @@ extension Defaults.Keys {
     // Gestures
     static let enableGestures = Key<Bool>("enableGestures", default: false)
     static let gestures = Key<[GestureBinding]>("gestures", default: GestureBinding.defaults)
-    static let systemGesturePreferenceBackups = Key<[String: SystemGesturePreferenceValue]>("systemGesturePreferenceBackups", default: [:], iCloud: false)
-    static let systemGestureManagedValues = Key<[String: SystemGesturePreferenceValue]>("systemGestureManagedValues", default: [:], iCloud: false)
 
     // Advanced
     static let useSystemWindowManagerWhenAvailable = Key<Bool>("useSystemWindowManagerWhenAvailable", default: false)
@@ -158,11 +156,6 @@ extension Defaults.Keys {
     /// Adjust with `defaults write com.MrKai77.Loop gestureTitlebarHeight -float x`
     /// Reset with `defaults delete com.MrKai77.Loop gestureTitlebarHeight`
     static let gestureTitlebarHeight = Key<CGFloat>("gestureTitlebarHeight", default: 50)
-
-    /// Disable conflicting macOS system gestures while Loop gestures are enabled.
-    /// Adjust with `defaults write com.MrKai77.Loop disableConflictingSystemGestures -bool false`
-    /// Reset with `defaults delete com.MrKai77.Loop disableConflictingSystemGestures`
-    static let disableConflictingSystemGestures = Key<Bool>("disableConflictingSystemGestures", default: true)
 
     /// Whether to sync all Loop settings to iCloud.
     /// Adjust with `defaults write com.MrKai77.Loop enableiCloudSync -bool false`

@@ -58,9 +58,7 @@ final class MultitouchRecognizerRegistry {
     }
 
     func rebuild(with gestures: [GestureBinding]) -> [StopResult] {
-        let conflictingIDs = GestureBinding.conflictingActionableIDs(in: gestures)
-        let activeGestures = gestures.filter { !conflictingIDs.contains($0.id) }
-        let gesturesByFingerCount = Dictionary(grouping: activeGestures, by: \.fingerCount)
+        let gesturesByFingerCount = Dictionary(grouping: GestureBinding.activeGestures(in: gestures), by: \.fingerCount)
         let neededFingerCounts = Set(gesturesByFingerCount.keys)
 
         var stopResults: [StopResult] = []

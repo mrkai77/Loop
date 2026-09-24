@@ -17,11 +17,16 @@ final class MultitouchTrigger {
     private let windowActionCache: WindowActionCache
     private let openCallback: (WindowAction, Window) async throws -> LoopOpenResult
     private let closeCallback: (Bool) -> ()
-    private let changeAction: (WindowAction, Bool) -> ()
+    private let changeActionCallback: (WindowAction, _ reverse: Bool, _ canAdvanceCycle: Bool) -> ()
     private let checkIfLoopOpen: () -> Bool
 
     private let gestureMonitor = SubsurfaceMonitor()
     private let gestureBlocker: MultitouchGestureBlocker = .init()
+    private(set) lazy var systemGestureFilter = SystemGestureFilter(
+        gestureMonitor: gestureMonitor,
+        isCursorInTitlebar: { [weak self] touchID in self?.targetResolver.isCursorInTitlebar(touchID: touchID) ?? false }
+    )
+
 #if DEBUG
     let debugOverlayController = GestureDebugOverlayController()
     private var debugContactsTask: Task<(), Never>?
@@ -37,7 +42,6 @@ final class MultitouchTrigger {
 
     private var gesturesObservationTask: Task<(), Never>?
     private var radialMenuActionsObservationTask: Task<(), Never>?
-    private var systemGestureReconciliationTask: Task<(), Never>?
     private var isStarted = false
 
     let swipeCycleStepSize: CGFloat = 0.15
@@ -51,24 +55,20 @@ final class MultitouchTrigger {
         windowActionCache: WindowActionCache,
         openCallback: @escaping (WindowAction, Window) async throws -> LoopOpenResult,
         closeCallback: @escaping (Bool) -> (),
-        changeAction: @escaping (WindowAction, Bool) -> (),
+        changeAction: @escaping (WindowAction, _ reverse: Bool, _ canAdvanceCycle: Bool) -> (),
         checkIfLoopOpen: @escaping () -> Bool
     ) {
         self.windowActionCache = windowActionCache
         self.openCallback = openCallback
         self.closeCallback = closeCallback
-        self.changeAction = changeAction
+        self.changeActionCallback = changeAction
         self.checkIfLoopOpen = checkIfLoopOpen
-
-        startSystemGestureReconciliation()
     }
 
     func start() {
         guard !isStarted else { return }
         isStarted = true
 
-        startSystemGestureReconciliation()
-        reconcileSystemGestures()
         rebuildRecognizers()
         radialMenuActions = RadialMenuAction.userConfiguredActions
 
@@ -92,12 +92,12 @@ final class MultitouchTrigger {
         guard isStarted else { return }
         isStarted = false
 
-        reconcileSystemGestures()
         gesturesObservationTask?.cancel()
         gesturesObservationTask = nil
         radialMenuActionsObservationTask?.cancel()
         radialMenuActionsObservationTask = nil
 
+        systemGestureFilter.stop()
         gestureMonitor.stop()
 #if DEBUG
         closeDebugOverlay(force: true)
@@ -108,34 +108,15 @@ final class MultitouchTrigger {
 
     func shutdown() {
         stop()
-        systemGestureReconciliationTask?.cancel()
-        systemGestureReconciliationTask = nil
-        SystemGestureManager.restore()
     }
 
-    private func startSystemGestureReconciliation() {
-        guard systemGestureReconciliationTask == nil else { return }
-
-        systemGestureReconciliationTask = Task(priority: .background) { [weak self] in
-            let updates = Defaults.updates(
-                .enableGestures,
-                .disableConflictingSystemGestures,
-                .gestures
-            )
-
-            for await _ in updates {
-                guard !Task.isCancelled, let self else { break }
-                reconcileSystemGestures()
-            }
+    private func updateSystemGestureFilter() {
+        guard isStarted, recognizerRegistry.hasRecognizers else {
+            systemGestureFilter.stop()
+            return
         }
-    }
 
-    private func reconcileSystemGestures() {
-        SystemGestureManager.reconcile(
-            enableGestures: isStarted && Defaults[.enableGestures],
-            disableConflicts: Defaults[.disableConflictingSystemGestures],
-            gestures: Defaults[.gestures]
-        )
+        systemGestureFilter.start(claiming: SystemGestureFilter.claims(for: Defaults[.gestures]))
     }
 
     private func rebuildRecognizers() {
@@ -148,6 +129,7 @@ final class MultitouchTrigger {
         } else {
             gestureMonitor.stop()
         }
+        updateSystemGestureFilter()
     }
 
     private func handleStopResults(_ stopResults: [MultitouchRecognizerRegistry.StopResult]) {
@@ -199,21 +181,35 @@ final class MultitouchTrigger {
         let allowsRapidRepeat = resolvedWindowAction(from: gesture)?.allowsRapidRepeat == true
         let activationContext = targetResolver.activationContext(
             for: gesture,
+            touchID: systemGestureFilter.currentTouchID,
             allowsRapidRepeat: allowsRapidRepeat
         )
 
         let loopWasAlreadyOpen = checkIfLoopOpen()
 
         releaseGestureBlocker(for: session)
+
+        guard systemGestureFilter.canClaimCurrentTouch(fingerCount: fingerCount) else {
+            session.abandonStroke()
+            return false
+        }
+
         guard session.begin(
             activationContext: activationContext,
             gesture: gesture,
             loopWasAlreadyOpen: loopWasAlreadyOpen
         ) else {
+            systemGestureFilter.releaseCurrentTouch(fingerCount: fingerCount)
             // Keep the DEBUG overlay alive for rejected gestures. It represents
             // the trackpad stroke, including gestures rejected by activation
             // policy, and closing it here would make the next event recreate
             // the origin at the current finger position.
+            return false
+        }
+
+        // Claimed only once accepted, so the filter never sees Loop own a stroke it's about to reject
+        guard systemGestureFilter.claimCurrentTouch(fingerCount: fingerCount) else {
+            session.reject()
             return false
         }
 
@@ -254,8 +250,11 @@ final class MultitouchTrigger {
             }
             _ = await activateGestureIfNeeded(fingerCount: fingerCount)
 
-        case .ended(_), .cancelled:
-            resetLoopState(for: fingerCount)
+        case let .ended(reason):
+            endStroke(for: fingerCount, reason: reason)
+
+        case .cancelled:
+            endStroke(for: fingerCount, reason: nil)
 
         default:
             break
@@ -266,6 +265,8 @@ final class MultitouchTrigger {
     /// Swipe and magnify updates are handled in their own handlers, after
     /// their recognizer entry is resolved.
     private func updateDebugOverlay(for event: SubsurfaceGestureEvent) {
+        guard GestureDebugOverlayController.isEnabled else { return }
+
         switch event {
         case let .determining(centroid, fingerCount):
             // The overlay visualizes the physical stroke, even when activation
@@ -294,7 +295,8 @@ final class MultitouchTrigger {
     }
 
     func beginDebugGestureIfNeeded(centroid: CGPoint, fingerCount: Int) {
-        guard let entry = recognizerRegistry.entry(for: fingerCount),
+        guard GestureDebugOverlayController.isEnabled,
+              let entry = recognizerRegistry.entry(for: fingerCount),
               entry.radialMenuGesture != nil ||
                 !entry.directionalGestures.isEmpty ||
                 entry.magnifyOutGesture != nil ||
@@ -368,6 +370,7 @@ final class MultitouchTrigger {
                 if recognizerRegistry.contains(session: session, for: fingerCount) {
                     session.reject()
                     releaseGestureBlocker(for: session)
+                    systemGestureFilter.releaseCurrentTouch(fingerCount: fingerCount)
                 }
 #if DEBUG
                 closeDebugOverlay(force: true)
@@ -386,7 +389,13 @@ final class MultitouchTrigger {
         return true
     }
 
-    func resetLoopState(for fingerCount: Int, forceClose: Bool = false) {
+    /// An added finger starts a different gesture, so it force-closes Loop
+    func endStroke(for fingerCount: Int, reason: SubsurfaceGestureEvent.GestureEndReason?) {
+        resetLoopState(for: fingerCount, forceClose: reason == .fingerCountChanged(.increased))
+    }
+
+    /// - Parameter endsStroke: false when Loop abandons a stroke still in progress, keeping it locked
+    func resetLoopState(for fingerCount: Int, forceClose: Bool = false, endsStroke: Bool = true) {
         guard let session = recognizerRegistry.session(for: fingerCount) else {
             return
         }
@@ -396,7 +405,11 @@ final class MultitouchTrigger {
         }
 
         releaseGestureBlocker(for: session)
-        session.reset()
+        if endsStroke {
+            session.reset()
+        } else {
+            session.abandonStroke()
+        }
 #if DEBUG
         closeDebugOverlay(force: true)
 #endif
@@ -409,7 +422,7 @@ final class MultitouchTrigger {
         }
 
         if session.resetSwipeActionIfNeeded(distance: distance) {
-            changeAction(.init(.noSelection), false)
+            changeAction(.init(.noSelection))
 #if DEBUG
             debugOverlayController.recordSwipeActionReset()
 #endif
@@ -430,14 +443,23 @@ final class MultitouchTrigger {
 
 extension MultitouchTrigger {
     func clearActionSelection() {
-        changeAction(.init(.noSelection), false)
+        changeAction(.init(.noSelection))
+    }
+
+    private func changeAction(_ action: WindowAction, reverse: Bool = false, canAdvanceCycle: Bool = true) {
+        changeActionCallback(action, reverse, canAdvanceCycle)
     }
 
     func isCycleAction(_ gesture: GestureBinding) -> Bool {
         resolvedWindowAction(from: gesture)?.direction == .cycle
     }
 
-    func triggerRadialMenuAction(at index: Int, from actions: ArraySlice<RadialMenuAction>, reverse: Bool = false) {
+    func triggerRadialMenuAction(
+        at index: Int,
+        from actions: ArraySlice<RadialMenuAction>,
+        reverse: Bool = false,
+        canAdvanceCycle: Bool = true
+    ) {
         guard actions.indices.contains(index) else { return }
         let action = actions[index]
 
@@ -448,7 +470,7 @@ extension MultitouchTrigger {
             resolveKeybindReference(id)
         }
 
-        changeAction(resolvedAction, reverse)
+        changeAction(resolvedAction, reverse: reverse, canAdvanceCycle: canAdvanceCycle)
     }
 
     func resolvedWindowAction(from gesture: GestureBinding) -> WindowAction? {
@@ -459,9 +481,18 @@ extension MultitouchTrigger {
         }
     }
 
-    func triggerSingleAction(from gesture: GestureBinding, reverse: Bool = false) {
+    func triggerSingleAction(from gesture: GestureBinding, reverse: Bool = false, canAdvanceCycle: Bool = true) {
         guard let resolvedAction = resolvedWindowAction(from: gesture) else { return }
-        changeAction(resolvedAction, reverse)
+        changeAction(resolvedAction, reverse: reverse, canAdvanceCycle: canAdvanceCycle)
+    }
+
+    func triggerSwitchedGesture(_ gesture: GestureBinding, session: MultitouchGestureSession) {
+        triggerSingleAction(from: gesture, canAdvanceCycle: !session.isRevisitingAction)
+
+        if let window = session.pendingTargetWindow,
+           resolvedWindowAction(from: gesture)?.allowsRapidRepeat == true {
+            targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
+        }
     }
 
     private func resolveKeybindReference(_ id: UUID) -> WindowAction {

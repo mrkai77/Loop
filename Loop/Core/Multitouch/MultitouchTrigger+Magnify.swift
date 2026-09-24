@@ -37,15 +37,15 @@ extension MultitouchTrigger {
 
         switch magnify.phase {
         case .began, .changed:
-            if magnify.phase == .began,
-               recognizerRegistry.session(for: fingerCount)?.hasGestureBegun != true {
-                recognizerRegistry.session(for: fingerCount)?.reset()
-            }
-            guard let session = recognizerRegistry.session(for: fingerCount), !session.isGestureRejected else { return }
+            guard let session = recognizerRegistry.session(for: fingerCount) else { return }
 
             if !session.hasGestureBegun {
                 let initialGesture = magnify.distance >= magnify.originDistance ? entry.magnifyInGesture : entry.magnifyOutGesture
                 guard let initialGesture else {
+                    if magnify.phase == .began {
+                        // No binding for this direction, so the stroke belongs to the Dock
+                        systemGestureFilter.releaseCurrentTouch(fingerCount: fingerCount)
+                    }
                     return
                 }
                 guard handleGestureBegan(fingerCount: fingerCount, gesture: initialGesture) else {
@@ -90,6 +90,9 @@ extension MultitouchTrigger {
                 return
             }
 
+#if DEBUG
+            var didCommit = false
+#endif
             let allowsRapidRepeatAction = resolvedWindowAction(from: activeGesture).map {
                 $0.allowsRapidRepeat || $0.direction == .cycle
             } ?? false
@@ -101,22 +104,27 @@ extension MultitouchTrigger {
                 step: magnifyStepSize,
                 allowsRapidRepeat: allowsRapidRepeatAction
             ) { reverse in
-                triggerSingleAction(from: activeGesture, reverse: reverse)
+#if DEBUG
+                didCommit = true
+#endif
+                triggerSingleAction(
+                    from: activeGesture,
+                    reverse: reverse,
+                    canAdvanceCycle: !session.isRevisitingAction
+                )
             }
 
-            if let window = session.pendingTargetWindow,
-               resolvedWindowAction(from: activeGesture)?.allowsRapidRepeat == true {
-                targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
+#if DEBUG
+            if didCommit {
+                debugOverlayController.recordMagnifyCommit(distance: magnify.distance)
             }
+#endif
 
         case let .ended(reason):
-            resetLoopState(
-                for: fingerCount,
-                forceClose: reason == .fingerCountChanged(.increased)
-            )
+            endStroke(for: fingerCount, reason: reason)
 
         case .cancelled:
-            resetLoopState(for: fingerCount)
+            endStroke(for: fingerCount, reason: nil)
 
         default:
             break
@@ -164,7 +172,12 @@ extension MultitouchTrigger {
 #if DEBUG
                 didCommit = true
 #endif
-                triggerRadialMenuAction(at: centerActionIndex, from: actions[...], reverse: reverse)
+                triggerRadialMenuAction(
+                    at: centerActionIndex,
+                    from: actions[...],
+                    reverse: reverse,
+                    canAdvanceCycle: !session.isRevisitingAction
+                )
             }
 
 #if DEBUG
@@ -174,13 +187,10 @@ extension MultitouchTrigger {
 #endif
 
         case let .ended(reason):
-            resetLoopState(
-                for: fingerCount,
-                forceClose: reason == .fingerCountChanged(.increased)
-            )
+            endStroke(for: fingerCount, reason: reason)
 
         case .cancelled:
-            resetLoopState(for: fingerCount)
+            endStroke(for: fingerCount, reason: nil)
 
         default:
             break
@@ -227,17 +237,18 @@ extension MultitouchTrigger {
         oppositeGesture: GestureBinding?,
         distance: CGFloat
     ) {
-        if let oppositeGesture {
-            guard let session = recognizerRegistry.session(for: fingerCount) else { return }
-            if session.switchMagnifyGesture(to: oppositeGesture, distance: distance) {
-                triggerSingleAction(from: oppositeGesture, reverse: false)
+        guard let oppositeGesture else {
+            // There is no action to reverse into. Keep the stroke alive, like swipes do
+            return
+        }
 
-                if let window = session.pendingTargetWindow,
-                   resolvedWindowAction(from: oppositeGesture)?.allowsRapidRepeat == true {
-                    targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
-                }
-                return
-            }
+        guard let session = recognizerRegistry.session(for: fingerCount) else { return }
+        if session.switchMagnifyGesture(to: oppositeGesture, distance: distance) {
+#if DEBUG
+            debugOverlayController.recordMagnifyCommit(distance: distance)
+#endif
+            triggerSwitchedGesture(oppositeGesture, session: session)
+            return
         }
 
         if isCycleAction(currentGesture) {
@@ -247,7 +258,7 @@ extension MultitouchTrigger {
                 step: magnifyStepSize
             )
         } else {
-            resetLoopState(for: fingerCount, forceClose: true)
+            resetLoopState(for: fingerCount, forceClose: true, endsStroke: false)
         }
     }
 }

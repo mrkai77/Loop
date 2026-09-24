@@ -31,7 +31,7 @@ struct MultitouchGestureActivationTests {
         let session = MultitouchGestureSession()
         let maximize = gesture(kind: .swipeUp, activationZone: .anywhere)
         let leftHalf = gesture(kind: .swipeLeft, activationZone: .titlebar)
-        let magnify = gesture(kind: .magnifyIn, activationZone: .titlebar)
+        let magnify = gesture(kind: .magnifyOut, activationZone: .titlebar)
         let context = MultitouchGestureActivationContext(
             targetWindow: nil,
             startedInTitlebar: false
@@ -208,7 +208,7 @@ struct MultitouchGestureActivationTests {
     @Test func magnifyCycleReversesOuterBoundaryAndResetsInsideActivationRing() {
         let session = MultitouchGestureSession()
         var directions: [Bool] = []
-        let action = gesture(kind: .magnifyOut, activationZone: .anywhere)
+        let action = gesture(kind: .magnifyIn, activationZone: .anywhere)
 
         session.commitMagnify(
             gesture: action,

@@ -6,6 +6,8 @@ import SwiftUI
 
 @MainActor
 final class GestureDebugOverlayController {
+    static let isEnabled = ProcessInfo.processInfo.isEnvironmentFlagEnabled("LOOP_GESTURE_DEBUG_OVERLAY")
+
     let model = GestureDebugOverlayModel()
     private var windowController: NSWindowController?
     private var preserveDuringSwipeReset = false
