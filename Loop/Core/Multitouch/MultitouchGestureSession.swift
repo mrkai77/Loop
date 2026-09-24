@@ -136,8 +136,6 @@ final class MultitouchGestureSession {
 
     /// Tracks the fixed ring interval occupied by the swipe. Crossing a ring
     /// outward advances once; crossing that same ring inward reverses once.
-    /// Activation is gated upstream by `activateGestureIfNeeded`, so the first
-    /// commit still fires immediately to seed Loop's initial active action :)
     func commitSwipe(
         distance: CGFloat,
         newKey: ActionKey,
@@ -163,7 +161,7 @@ final class MultitouchGestureSession {
 
             lastCommittedSwipeStepIndex = newStepIndex
             isRevisitingAction = false
-            for _ in 0..<abs(crossedStepCount) {
+            for _ in 0 ..< abs(crossedStepCount) {
                 fire(crossedStepCount < 0)
             }
         } else {
@@ -209,10 +207,23 @@ final class MultitouchGestureSession {
         return true
     }
 
+    /// Clears the committed swipe action when the fingers move into an unbound direction.
+    func clearSwipeAction() -> Bool {
+        guard lastCommittedAction != nil else { return false }
+        lastCommittedAction = nil
+        lastCommittedSwipeStepIndex = nil
+        swipeActionResetActive = true
+        return true
+    }
+
     /// Whether this swipe has been reset to no selection and should remain
     /// active while the fingers travel through an unbound direction
     var hasSwipeActionReset: Bool {
         swipeActionResetActive
+    }
+
+    var hasCommittedSwipeAction: Bool {
+        lastCommittedAction != nil
     }
 
     var hasCommittedMagnifyAction: Bool {
@@ -285,7 +296,7 @@ final class MultitouchGestureSession {
 
         lastCommittedMagnifyStepIndex = newStepIndex
         isRevisitingAction = false
-        for _ in 0..<abs(crossedStepCount) {
+        for _ in 0 ..< abs(crossedStepCount) {
             fire(crossedStepCount < 0)
         }
     }
@@ -325,7 +336,7 @@ final class MultitouchGestureSession {
 
         lastCommittedMagnifyStepIndex = newStepIndex
         isRevisitingAction = false
-        for _ in 0..<abs(crossedStepCount) {
+        for _ in 0 ..< abs(crossedStepCount) {
             fire(crossedStepCount < 0)
         }
     }

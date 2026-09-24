@@ -15,16 +15,16 @@ extension MultitouchTrigger {
     func handleSwipe(_ swipe: SubsurfaceGestureEvent.SwipeEvent, fingerCount: Int) async {
         guard let entry = recognizerRegistry.entry(for: fingerCount) else { return }
 
-#if DEBUG
-        beginDebugGestureIfNeeded(centroid: swipe.centroid, fingerCount: swipe.fingerCount)
-        debugOverlayController.updateSwipe(
-            centroid: swipe.centroid,
-            translation: swipe.translation,
-            angle: swipe.angle,
-            distance: swipe.distance,
-            fingerCount: swipe.fingerCount
-        )
-#endif
+        #if DEBUG
+            beginDebugGestureIfNeeded(centroid: swipe.centroid, fingerCount: swipe.fingerCount)
+            debugOverlayController.updateSwipe(
+                centroid: swipe.centroid,
+                translation: swipe.translation,
+                angle: swipe.angle,
+                distance: swipe.distance,
+                fingerCount: swipe.fingerCount
+            )
+        #endif
 
         if let radialMenuGesture = entry.radialMenuGesture {
             await handleRadialMenuSwipe(swipe, fingerCount: fingerCount, gesture: radialMenuGesture)
@@ -80,17 +80,17 @@ extension MultitouchTrigger {
                 return
             }
 
-#if DEBUG
-            var didCommit = false
-#endif
+            #if DEBUG
+                var didCommit = false
+            #endif
             session.commitSwipe(
                 distance: swipe.distance,
                 newKey: .radialSlot(newIndex),
                 step: swipeCycleStepSize
             ) { reverse in
-#if DEBUG
-                didCommit = true
-#endif
+                #if DEBUG
+                    didCommit = true
+                #endif
                 triggerRadialMenuAction(
                     at: newIndex,
                     from: actions,
@@ -99,11 +99,11 @@ extension MultitouchTrigger {
                 )
             }
 
-#if DEBUG
-            if didCommit {
-                debugOverlayController.recordSwipeCommit(distance: swipe.distance, slot: newIndex)
-            }
-#endif
+            #if DEBUG
+                if didCommit {
+                    debugOverlayController.recordSwipeCommit(distance: swipe.distance, slot: newIndex)
+                }
+            #endif
 
         case let .ended(reason):
             endStroke(for: fingerCount, reason: reason)
@@ -135,15 +135,11 @@ extension MultitouchTrigger {
                 }
             }
 
-            // A binding discovered while returning toward the origin must not
-            // fire just because its direction became eligible. Initial action
-            // activation requires crossing the fixed threshold while moving
-            // outward; this prevents a brief action commit on the way back to
-            // the no-selection center.
-            if !session.hasActivated,
+            // Selecting from no selection requires crossing the threshold while moving
+            // outward, so heading back to the center can't briefly commit an action
+            if !session.hasCommittedSwipeAction,
                swipe.distance <= entry.recognizer.minimumSwipeTranslation ||
-                !isSwipeMovingOutward(swipe)
-            {
+               !isSwipeMovingOutward(swipe) {
                 return
             }
 
@@ -181,25 +177,23 @@ extension MultitouchTrigger {
                         return
                     }
                 } else {
-                    // An unbound direction is still part of the current stroke.
-                    // Keep the session and debug overlay alive so the crosshair
-                    // follows the actual centroid instead of restarting at the
-                    // origin on the next event.
+                    // An unbound direction deselects, but stays part of the current stroke
+                    clearSwipeAction(fingerCount: fingerCount)
                 }
                 return
             }
 
-#if DEBUG
-            var didCommit = false
-#endif
+            #if DEBUG
+                var didCommit = false
+            #endif
             session.commitSwipe(
                 distance: swipe.distance,
                 newKey: .gesture(activeGesture.id),
                 step: swipeCycleStepSize
             ) { reverse in
-#if DEBUG
-                didCommit = true
-#endif
+                #if DEBUG
+                    didCommit = true
+                #endif
                 triggerSingleAction(
                     from: activeGesture,
                     reverse: reverse,
@@ -207,11 +201,11 @@ extension MultitouchTrigger {
                 )
             }
 
-#if DEBUG
-            if didCommit {
-                debugOverlayController.recordSwipeCommit(distance: swipe.distance)
-            }
-#endif
+            #if DEBUG
+                if didCommit {
+                    debugOverlayController.recordSwipeCommit(distance: swipe.distance)
+                }
+            #endif
 
         case let .ended(reason):
             endStroke(for: fingerCount, reason: reason)
@@ -266,9 +260,9 @@ extension MultitouchTrigger {
         else {
             return false
         }
-#if DEBUG
-        debugOverlayController.recordSwipeCommit(distance: distance)
-#endif
+        #if DEBUG
+            debugOverlayController.recordSwipeCommit(distance: distance)
+        #endif
         triggerSwitchedGesture(gesture, session: session)
         return true
     }
@@ -283,15 +277,16 @@ extension MultitouchTrigger {
         if oppositeGesture == nil {
             // There is no action to reverse into. Keep the current stroke and
             // overlay alive while the fingers travel through this direction.
+            clearSwipeAction(fingerCount: fingerCount)
             return
         }
 
         if hasCrossedOrigin, let oppositeGesture {
             guard let session = recognizerRegistry.session(for: fingerCount) else { return }
             if session.switchSwipeGesture(to: oppositeGesture, distance: distance) {
-#if DEBUG
-                debugOverlayController.recordSwipeCommit(distance: distance)
-#endif
+                #if DEBUG
+                    debugOverlayController.recordSwipeCommit(distance: distance)
+                #endif
                 triggerSwitchedGesture(oppositeGesture, session: session)
                 return
             }
@@ -305,6 +300,11 @@ extension MultitouchTrigger {
         } else {
             resetLoopState(for: fingerCount, forceClose: true, endsStroke: false)
         }
+    }
+
+    private func clearSwipeAction(fingerCount: Int) {
+        guard recognizerRegistry.session(for: fingerCount)?.clearSwipeAction() == true else { return }
+        clearActionSelection()
     }
 
     private func directionalSwipeKind(angle: CGFloat) -> GestureBinding.Kind {

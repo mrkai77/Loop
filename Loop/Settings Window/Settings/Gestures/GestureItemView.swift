@@ -96,7 +96,6 @@ struct GestureItemView: View {
         .onChange(of: gesture) { externalGesture = $0 }
     }
 
-    
     private var actionSelection: some View {
         actionIndicator
             .luminarePopover(

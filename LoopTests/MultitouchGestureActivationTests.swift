@@ -109,6 +109,73 @@ struct MultitouchGestureActivationTests {
         #expect(session.resolvedGesture?.id == anywhere.id)
     }
 
+    @Test func rejectedStrokeStaysLockedUntilItEnds() {
+        let session = MultitouchGestureSession()
+        let right = gesture(kind: .swipeRight, activationZone: .anywhere)
+        let up = gesture(kind: .swipeUp, activationZone: .anywhere)
+        let context = MultitouchGestureActivationContext(
+            targetWindow: nil,
+            startedInTitlebar: false
+        )
+
+        // No target window and Loop isn't open, so the stroke is rejected
+        #expect(!session.begin(
+            activationContext: context,
+            gesture: right,
+            loopWasAlreadyOpen: false
+        ))
+        #expect(!session.shouldAttemptBegin(with: up))
+
+        session.reset(endsStroke: false)
+        #expect(!session.shouldAttemptBegin(with: up))
+
+        session.reset()
+        #expect(session.begin(
+            activationContext: context,
+            gesture: up,
+            loopWasAlreadyOpen: true
+        ))
+
+        session.abandonStroke()
+        #expect(!session.shouldAttemptBegin(with: right))
+    }
+
+    @Test func returningToACommittedActionIsARevisit() {
+        let session = MultitouchGestureSession()
+        let right = gesture(kind: .swipeRight, activationZone: .anywhere)
+        let left = gesture(kind: .swipeLeft, activationZone: .anywhere)
+        var revisits: [Bool] = []
+
+        #expect(session.begin(
+            activationContext: .init(targetWindow: nil, startedInTitlebar: false),
+            gesture: right,
+            loopWasAlreadyOpen: true
+        ))
+        session.setSwipeActivationDistance(0.08)
+
+        session.commitSwipe(distance: 0.1, newKey: .gesture(right.id), step: 0.15) { _ in
+            revisits.append(session.isRevisitingAction)
+        }
+        #expect(session.switchSwipeGesture(to: left, distance: 0.1))
+        revisits.append(session.isRevisitingAction)
+        #expect(session.switchSwipeGesture(to: right, distance: 0.1))
+        revisits.append(session.isRevisitingAction)
+
+        // Back through the move-back zone, then out to the same action again
+        #expect(session.resetSwipeActionIfNeeded(distance: 0.05))
+        #expect(!session.shouldSuppressSwipeAction(distance: 0.2))
+        session.commitSwipe(distance: 0.2, newKey: .gesture(right.id), step: 0.15) { _ in
+            revisits.append(session.isRevisitingAction)
+        }
+
+        // Crossing steps advances the cycle as usual
+        session.commitSwipe(distance: 0.4, newKey: .gesture(right.id), step: 0.15) { _ in
+            revisits.append(session.isRevisitingAction)
+        }
+
+        #expect(revisits == [false, false, true, true, false, false])
+    }
+
     @Test func activationContextIsOwnedAndResetPerSession() {
         let insideSession = MultitouchGestureSession()
         let outsideSession = MultitouchGestureSession()

@@ -27,10 +27,10 @@ final class MultitouchTrigger {
         isCursorInTitlebar: { [weak self] touchID in self?.targetResolver.isCursorInTitlebar(touchID: touchID) ?? false }
     )
 
-#if DEBUG
-    let debugOverlayController = GestureDebugOverlayController()
-    private var debugContactsTask: Task<(), Never>?
-#endif
+    #if DEBUG
+        let debugOverlayController = GestureDebugOverlayController()
+        private var debugContactsTask: Task<(), Never>?
+    #endif
     lazy var recognizerRegistry = MultitouchRecognizerRegistry(
         gestureMonitor: gestureMonitor
     ) { [weak self] event, fingerCount in
@@ -99,9 +99,9 @@ final class MultitouchTrigger {
 
         systemGestureFilter.stop()
         gestureMonitor.stop()
-#if DEBUG
-        closeDebugOverlay(force: true)
-#endif
+        #if DEBUG
+            closeDebugOverlay(force: true)
+        #endif
         handleStopResults(recognizerRegistry.stopAll())
         targetResolver.reset()
     }
@@ -120,9 +120,9 @@ final class MultitouchTrigger {
     }
 
     private func rebuildRecognizers() {
-#if DEBUG
-        closeDebugOverlay(force: true)
-#endif
+        #if DEBUG
+            closeDebugOverlay(force: true)
+        #endif
         handleStopResults(recognizerRegistry.rebuild(with: Defaults[.gestures]))
         if recognizerRegistry.hasRecognizers {
             gestureMonitor.start()
@@ -133,11 +133,11 @@ final class MultitouchTrigger {
     }
 
     private func handleStopResults(_ stopResults: [MultitouchRecognizerRegistry.StopResult]) {
-#if DEBUG
-        if !stopResults.isEmpty {
-            closeDebugOverlay(force: true)
-        }
-#endif
+        #if DEBUG
+            if !stopResults.isEmpty {
+                closeDebugOverlay(force: true)
+            }
+        #endif
         for stopResult in stopResults {
             if stopResult.didOpenLoopWithGesture {
                 closeCallback(false)
@@ -149,9 +149,9 @@ final class MultitouchTrigger {
     }
 
     private func handleGestureEvent(_ event: SubsurfaceGestureEvent, fingerCount: Int) async {
-#if DEBUG
-        updateDebugOverlay(for: event)
-#endif
+        #if DEBUG
+            updateDebugOverlay(for: event)
+        #endif
 
         switch event {
         case let .swipe(swipe):
@@ -168,8 +168,6 @@ final class MultitouchTrigger {
     }
 
     /// Begins a gesture session by resolving its target window and blocking trackpad events.
-    /// Radial-menu sessions begin during `.determining`; directional swipe and magnify sessions
-    /// begin after Subsurface recognizes the gesture. Opening Loop may still be gated separately.
     @discardableResult
     func handleGestureBegan(fingerCount: Int, gesture: GestureBinding) -> Bool {
         guard let session = recognizerRegistry.session(for: fingerCount),
@@ -200,10 +198,7 @@ final class MultitouchTrigger {
             loopWasAlreadyOpen: loopWasAlreadyOpen
         ) else {
             systemGestureFilter.releaseCurrentTouch(fingerCount: fingerCount)
-            // Keep the DEBUG overlay alive for rejected gestures. It represents
-            // the trackpad stroke, including gestures rejected by activation
-            // policy, and closing it here would make the next event recreate
-            // the origin at the current finger position.
+            // Keep the DEBUG overlay alive, as it follows the physical stroke
             return false
         }
 
@@ -261,97 +256,96 @@ final class MultitouchTrigger {
         }
     }
 
-#if DEBUG
-    /// Swipe and magnify updates are handled in their own handlers, after
-    /// their recognizer entry is resolved.
-    private func updateDebugOverlay(for event: SubsurfaceGestureEvent) {
-        guard GestureDebugOverlayController.isEnabled else { return }
+    #if DEBUG
+        /// Swipe and magnify updates are handled in their own handlers, after
+        /// their recognizer entry is resolved.
+        private func updateDebugOverlay(for event: SubsurfaceGestureEvent) {
+            guard GestureDebugOverlayController.isEnabled else { return }
 
-        switch event {
-        case let .determining(centroid, fingerCount):
-            // The overlay visualizes the physical stroke, even when activation
-            // policy rejects its configured action (for example, a titlebar-only
-            // gesture that began elsewhere).
-            beginDebugGestureIfNeeded(centroid: centroid, fingerCount: fingerCount)
-            debugOverlayController.updateDetermining(centroid: centroid, fingerCount: fingerCount)
-        case let .unresolvedEnded(reason):
-            let shouldForceClose = switch reason {
-            case .lifted, .timedOut, .cancelled:
-                true
-            case .fingerCountChanged:
-                false
-            }
-            closeDebugOverlay(force: shouldForceClose)
-        case let .rotation(rotation):
-            switch rotation.phase {
-            case .ended(_), .cancelled:
-                closeDebugOverlay(force: true)
-            default:
+            switch event {
+            case let .determining(centroid, fingerCount):
+                // The overlay visualizes the physical stroke, even when activation
+                // policy rejects its configured action (for example, a titlebar-only
+                // gesture that began elsewhere).
+                beginDebugGestureIfNeeded(centroid: centroid, fingerCount: fingerCount)
+                debugOverlayController.updateDetermining(centroid: centroid, fingerCount: fingerCount)
+            case let .unresolvedEnded(reason):
+                let shouldForceClose = switch reason {
+                case .lifted, .timedOut, .cancelled:
+                    true
+                case .fingerCountChanged:
+                    false
+                }
+                closeDebugOverlay(force: shouldForceClose)
+            case let .rotation(rotation):
+                switch rotation.phase {
+                case .ended(_), .cancelled:
+                    closeDebugOverlay(force: true)
+                default:
+                    break
+                }
+            case .swipe, .magnify:
                 break
             }
-        case .swipe, .magnify:
-            break
-        }
-    }
-
-    func beginDebugGestureIfNeeded(centroid: CGPoint, fingerCount: Int) {
-        guard GestureDebugOverlayController.isEnabled,
-              let entry = recognizerRegistry.entry(for: fingerCount),
-              entry.radialMenuGesture != nil ||
-                !entry.directionalGestures.isEmpty ||
-                entry.magnifyOutGesture != nil ||
-                entry.magnifyInGesture != nil,
-              !debugOverlayController.model.snapshot.visible
-        else {
-            return
         }
 
-        let threshold = entry.recognizer.minimumSwipeTranslation
-        let center: CGPoint = if Defaults[.lockRadialMenuToCenter], let screen = NSScreen.main {
-            CGPoint(x: screen.frame.midX, y: screen.frame.midY)
-        } else {
-            NSEvent.mouseLocation
-        }
-        let actionCount: Int
-        if entry.radialMenuGesture != nil {
-            actionCount = max(radialMenuActions.count - 1, 0)
-        } else if !entry.directionalGestures.isEmpty {
-            // Directional swipes always occupy the four cardinal quadrants,
-            // even when only a subset of those directions has an action.
-            actionCount = 4
-        } else {
-            actionCount = 0
-        }
-        debugOverlayController.begin(
-            originCentroid: centroid,
-            fingerCount: fingerCount,
-            recognitionThreshold: threshold,
-            actionCount: actionCount,
-            swipeStep: swipeCycleStepSize,
-            magnifyStep: magnifyStepSize,
-            screenCenter: center
-        )
-        startDebugContactsIfNeeded()
-    }
+        func beginDebugGestureIfNeeded(centroid: CGPoint, fingerCount: Int) {
+            guard GestureDebugOverlayController.isEnabled,
+                  let entry = recognizerRegistry.entry(for: fingerCount),
+                  entry.radialMenuGesture != nil ||
+                  !entry.directionalGestures.isEmpty ||
+                  entry.magnifyOutGesture != nil ||
+                  entry.magnifyInGesture != nil,
+                  !debugOverlayController.model.snapshot.visible
+            else {
+                return
+            }
 
-    private func startDebugContactsIfNeeded() {
-        guard debugContactsTask == nil else { return }
-        debugContactsTask = Task { [weak self] in
-            guard let self else { return }
-            for await (_, contacts) in gestureMonitor.contacts() {
-                guard !Task.isCancelled else { break }
-                debugOverlayController.updateRawContacts(contacts)
+            let threshold = entry.recognizer.minimumSwipeTranslation
+            let center: CGPoint = if Defaults[.lockRadialMenuToCenter], let screen = NSScreen.main {
+                CGPoint(x: screen.frame.midX, y: screen.frame.midY)
+            } else {
+                NSEvent.mouseLocation
+            }
+            let actionCount: Int = if entry.radialMenuGesture != nil {
+                max(radialMenuActions.count - 1, 0)
+            } else if !entry.directionalGestures.isEmpty {
+                // Directional swipes always occupy the four cardinal quadrants,
+                // even when only a subset of those directions has an action.
+                4
+            } else {
+                0
+            }
+            debugOverlayController.begin(
+                originCentroid: centroid,
+                fingerCount: fingerCount,
+                recognitionThreshold: threshold,
+                actionCount: actionCount,
+                swipeStep: swipeCycleStepSize,
+                magnifyStep: magnifyStepSize,
+                screenCenter: center
+            )
+            startDebugContactsIfNeeded()
+        }
+
+        private func startDebugContactsIfNeeded() {
+            guard debugContactsTask == nil else { return }
+            debugContactsTask = Task { [weak self] in
+                guard let self else { return }
+                for await (_, contacts) in gestureMonitor.contacts() {
+                    guard !Task.isCancelled else { break }
+                    debugOverlayController.updateRawContacts(contacts)
+                }
             }
         }
-    }
 
-    private func closeDebugOverlay(force: Bool = false) {
-        debugOverlayController.close(force: force)
-        guard !debugOverlayController.model.snapshot.visible else { return }
-        debugContactsTask?.cancel()
-        debugContactsTask = nil
-    }
-#endif
+        private func closeDebugOverlay(force: Bool = false) {
+            debugOverlayController.close(force: force)
+            guard !debugOverlayController.model.snapshot.visible else { return }
+            debugContactsTask?.cancel()
+            debugContactsTask = nil
+        }
+    #endif
 
     /// Opens Loop on the target window captured when the gesture session began. Radial-menu
     /// gestures call this during `.determining`, though the no-selection state may remain hidden;
@@ -372,9 +366,9 @@ final class MultitouchTrigger {
                     releaseGestureBlocker(for: session)
                     systemGestureFilter.releaseCurrentTouch(fingerCount: fingerCount)
                 }
-#if DEBUG
-                closeDebugOverlay(force: true)
-#endif
+                #if DEBUG
+                    closeDebugOverlay(force: true)
+                #endif
                 return false
             }
         }
@@ -410,9 +404,9 @@ final class MultitouchTrigger {
         } else {
             session.abandonStroke()
         }
-#if DEBUG
-        closeDebugOverlay(force: true)
-#endif
+        #if DEBUG
+            closeDebugOverlay(force: true)
+        #endif
     }
 
     @discardableResult
@@ -423,9 +417,9 @@ final class MultitouchTrigger {
 
         if session.resetSwipeActionIfNeeded(distance: distance) {
             changeAction(.init(.noSelection))
-#if DEBUG
-            debugOverlayController.recordSwipeActionReset()
-#endif
+            #if DEBUG
+                debugOverlayController.recordSwipeActionReset()
+            #endif
             return true
         }
 

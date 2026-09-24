@@ -76,7 +76,7 @@ struct CycleActionCoordinatorTests {
         ))
     }
 
-    @Test func selectingCurrentChildUpdatesStoredProgress() throws {
+    @Test func selectingCurrentFromOutsideResumesStoredProgress() throws {
         let first = WindowAction(.leftHalf)
         let second = WindowAction(.maximize)
         let cycle = WindowAction([first, second])

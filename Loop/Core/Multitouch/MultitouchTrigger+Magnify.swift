@@ -15,21 +15,20 @@ extension MultitouchTrigger {
     func handleMagnify(_ magnify: SubsurfaceGestureEvent.MagnifyEvent, fingerCount: Int) async {
         guard let entry = recognizerRegistry.entry(for: fingerCount) else { return }
 
-#if DEBUG
-        if magnify.phase == .began || magnify.phase == .changed {
-            // Keep the processed centroid synchronized with the raw contact dots
-            // regardless of whether this gesture is eligible to activate.
-            beginDebugGestureIfNeeded(centroid: magnify.centroid, fingerCount: magnify.fingerCount)
-            debugOverlayController.updateMagnify(
-                centroid: magnify.centroid,
-                distance: magnify.distance,
-                originDistance: magnify.originDistance,
-                fingerCount: magnify.fingerCount
-            )
-        }
-#endif
+        #if DEBUG
+            if magnify.phase == .began || magnify.phase == .changed {
+                // Keep the processed centroid synchronized with the raw contact dots
+                // regardless of whether this gesture is eligible to activate.
+                beginDebugGestureIfNeeded(centroid: magnify.centroid, fingerCount: magnify.fingerCount)
+                debugOverlayController.updateMagnify(
+                    centroid: magnify.centroid,
+                    distance: magnify.distance,
+                    originDistance: magnify.originDistance,
+                    fingerCount: magnify.fingerCount
+                )
+            }
+        #endif
 
-        // Radial menu magnify triggers the center action regardless of direction.
         if let radialMenuGesture = entry.radialMenuGesture {
             await handleRadialMenuMagnify(magnify, fingerCount: fingerCount, gesture: radialMenuGesture)
             return
@@ -90,9 +89,9 @@ extension MultitouchTrigger {
                 return
             }
 
-#if DEBUG
-            var didCommit = false
-#endif
+            #if DEBUG
+                var didCommit = false
+            #endif
             let allowsRapidRepeatAction = resolvedWindowAction(from: activeGesture).map {
                 $0.allowsRapidRepeat || $0.direction == .cycle
             } ?? false
@@ -104,9 +103,9 @@ extension MultitouchTrigger {
                 step: magnifyStepSize,
                 allowsRapidRepeat: allowsRapidRepeatAction
             ) { reverse in
-#if DEBUG
-                didCommit = true
-#endif
+                #if DEBUG
+                    didCommit = true
+                #endif
                 triggerSingleAction(
                     from: activeGesture,
                     reverse: reverse,
@@ -114,11 +113,11 @@ extension MultitouchTrigger {
                 )
             }
 
-#if DEBUG
-            if didCommit {
-                debugOverlayController.recordMagnifyCommit(distance: magnify.distance)
-            }
-#endif
+            #if DEBUG
+                if didCommit {
+                    debugOverlayController.recordMagnifyCommit(distance: magnify.distance)
+                }
+            #endif
 
         case let .ended(reason):
             endStroke(for: fingerCount, reason: reason)
@@ -161,17 +160,17 @@ extension MultitouchTrigger {
             guard !actions.isEmpty else { return }
             let centerActionIndex = actions.count - 1
 
-#if DEBUG
-            var didCommit = false
-#endif
+            #if DEBUG
+                var didCommit = false
+            #endif
             session.commitRadialMagnify(
                 distance: magnify.distance,
                 originDistance: magnify.originDistance,
                 step: magnifyStepSize
             ) { reverse in
-#if DEBUG
-                didCommit = true
-#endif
+                #if DEBUG
+                    didCommit = true
+                #endif
                 triggerRadialMenuAction(
                     at: centerActionIndex,
                     from: actions[...],
@@ -180,11 +179,11 @@ extension MultitouchTrigger {
                 )
             }
 
-#if DEBUG
-            if didCommit {
-                debugOverlayController.recordMagnifyCommit(distance: magnify.distance)
-            }
-#endif
+            #if DEBUG
+                if didCommit {
+                    debugOverlayController.recordMagnifyCommit(distance: magnify.distance)
+                }
+            #endif
 
         case let .ended(reason):
             endStroke(for: fingerCount, reason: reason)
@@ -244,9 +243,9 @@ extension MultitouchTrigger {
 
         guard let session = recognizerRegistry.session(for: fingerCount) else { return }
         if session.switchMagnifyGesture(to: oppositeGesture, distance: distance) {
-#if DEBUG
-            debugOverlayController.recordMagnifyCommit(distance: distance)
-#endif
+            #if DEBUG
+                debugOverlayController.recordMagnifyCommit(distance: distance)
+            #endif
             triggerSwitchedGesture(oppositeGesture, session: session)
             return
         }

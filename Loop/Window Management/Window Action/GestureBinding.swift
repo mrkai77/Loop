@@ -66,7 +66,6 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
             }
         }
 
-        /// Directional swipes point the radial menu the way the fingers moved, like its slots
         var radialMenuAngle: Angle? {
             switch self {
             case .swipeUp: .degrees(-90)
@@ -179,12 +178,10 @@ extension GestureBinding {
             return false
         }
 
-        // Radial menu uses both swipe and magnify, so it conflicts with everything at the same finger count.
         if kind == .radialMenu || other.kind == .radialMenu {
             return true
         }
 
-        // Same kind always conflicts
         if kind == other.kind {
             return true
         }
