@@ -66,6 +66,17 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
             }
         }
 
+        /// Directional swipes point the radial menu the way the fingers moved, like its slots
+        var radialMenuAngle: Angle? {
+            switch self {
+            case .swipeUp: .degrees(-90)
+            case .swipeRight: .degrees(0)
+            case .swipeDown: .degrees(90)
+            case .swipeLeft: .degrees(180)
+            case .radialMenu, .magnifyOut, .magnifyIn: nil
+            }
+        }
+
         var isDirectionalSwipe: Bool {
             switch self {
             case .swipeUp, .swipeDown, .swipeLeft, .swipeRight:
