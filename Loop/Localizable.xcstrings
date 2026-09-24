@@ -16703,12 +16703,6 @@
     "Magnify" : {
       "comment" : "Gesture category label: magnify"
     },
-    "Magnify In" : {
-      "comment" : "Gesture kind: magnify inward\nMagnify gesture picker option: magnifyIn"
-    },
-    "Magnify Out" : {
-      "comment" : "Gesture kind: magnify outward\nMagnify gesture picker option: magnifyOut"
-    },
     "Maximize" : {
       "comment" : "Window action",
       "localizations" : {
@@ -23686,6 +23680,9 @@
         }
       }
     },
+    "Pinch" : {
+      "comment" : "Gesture kind: magnify outward\nMagnify gesture picker option: pinch"
+    },
     "Please include at least one modifier key." : {
       "comment" : "An error message displayed when a custom keybind is created but does not include at least one modifier key.",
       "localizations" : {
@@ -30163,6 +30160,9 @@
           }
         }
       }
+    },
+    "Spread" : {
+      "comment" : "Gesture kind: magnify inward\nMagnify gesture picker option: spread"
     },
     "Stage Manager" : {
       "comment" : "Section header shown in settings",

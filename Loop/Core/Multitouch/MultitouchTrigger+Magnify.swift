@@ -44,7 +44,7 @@ extension MultitouchTrigger {
             guard let session = recognizerRegistry.session(for: fingerCount), !session.isGestureRejected else { return }
 
             if !session.hasGestureBegun {
-                let initialGesture = magnify.distance >= magnify.originDistance ? entry.magnifyOutGesture : entry.magnifyInGesture
+                let initialGesture = magnify.distance >= magnify.originDistance ? entry.magnifyInGesture : entry.magnifyOutGesture
                 guard let initialGesture else {
                     return
                 }
@@ -80,7 +80,7 @@ extension MultitouchTrigger {
 
             if crossedActivationThreshold,
                magnifyReversalDetected(currentGesture: activeGesture, magnify: magnify) {
-                let opposite = activeGesture.kind == .magnifyIn ? entry.magnifyOutGesture : entry.magnifyInGesture
+                let opposite = activeGesture.kind == .magnifyOut ? entry.magnifyInGesture : entry.magnifyOutGesture
                 handleMagnifyReversal(
                     fingerCount: fingerCount,
                     currentGesture: activeGesture,
@@ -192,9 +192,9 @@ extension MultitouchTrigger {
         magnify: SubsurfaceGestureEvent.MagnifyEvent
     ) -> Bool {
         switch currentGesture.kind {
-        case .magnifyIn:
-            magnify.distance >= magnify.originDistance
         case .magnifyOut:
+            magnify.distance >= magnify.originDistance
+        case .magnifyIn:
             magnify.distance <= magnify.originDistance
         default:
             false

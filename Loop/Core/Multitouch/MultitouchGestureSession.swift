@@ -404,9 +404,9 @@ final class MultitouchGestureSession {
 private extension GestureBinding.Kind {
     var magnificationDirection: CGFloat? {
         switch self {
-        case .magnifyIn:
-            -1
         case .magnifyOut:
+            -1
+        case .magnifyIn:
             1
         default:
             nil

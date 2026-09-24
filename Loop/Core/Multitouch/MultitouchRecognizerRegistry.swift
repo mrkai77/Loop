@@ -17,18 +17,18 @@ final class MultitouchRecognizerRegistry {
         var task: Task<(), Never>?
         var radialMenuGesture: GestureBinding?
         var directionalGestures: [GestureBinding]
-        var magnifyInGesture: GestureBinding?
         var magnifyOutGesture: GestureBinding?
+        var magnifyInGesture: GestureBinding?
 
         static func categorize(
             _ gestures: [GestureBinding]
-        ) -> (radial: GestureBinding?, directionals: [GestureBinding], magnifyIn: GestureBinding?, magnifyOut: GestureBinding?) {
+        ) -> (radial: GestureBinding?, directionals: [GestureBinding], magnifyOut: GestureBinding?, magnifyIn: GestureBinding?) {
             let radial = gestures.first { $0.kind == .radialMenu }
             let gesturesByPriority = gestures.sortedByActionability
             let directionals = gesturesByPriority.filter(\.kind.isDirectionalSwipe)
-            let magnifyIn = gesturesByPriority.first { $0.kind == .magnifyIn }
             let magnifyOut = gesturesByPriority.first { $0.kind == .magnifyOut }
-            return (radial, directionals, magnifyIn, magnifyOut)
+            let magnifyIn = gesturesByPriority.first { $0.kind == .magnifyIn }
+            return (radial, directionals, magnifyOut, magnifyIn)
         }
     }
 
@@ -72,14 +72,14 @@ final class MultitouchRecognizerRegistry {
         }
 
         for (fingerCount, gestures) in gesturesByFingerCount {
-            let (radial, directionals, magnifyIn, magnifyOut) = Entry.categorize(gestures)
+            let (radial, directionals, magnifyOut, magnifyIn) = Entry.categorize(gestures)
             if entries[fingerCount] == nil {
-                startRecognizer(for: fingerCount, radial: radial, directionals: directionals, magnifyIn: magnifyIn, magnifyOut: magnifyOut)
+                startRecognizer(for: fingerCount, radial: radial, directionals: directionals, magnifyOut: magnifyOut, magnifyIn: magnifyIn)
             } else {
                 entries[fingerCount]?.radialMenuGesture = radial
                 entries[fingerCount]?.directionalGestures = directionals
-                entries[fingerCount]?.magnifyInGesture = magnifyIn
                 entries[fingerCount]?.magnifyOutGesture = magnifyOut
+                entries[fingerCount]?.magnifyInGesture = magnifyIn
             }
         }
 
@@ -109,8 +109,8 @@ final class MultitouchRecognizerRegistry {
         for fingerCount: Int,
         radial: GestureBinding?,
         directionals: [GestureBinding],
-        magnifyIn: GestureBinding?,
-        magnifyOut: GestureBinding?
+        magnifyOut: GestureBinding?,
+        magnifyIn: GestureBinding?
     ) {
         let recognizer = SubsurfaceGestureRecognizer(
             fingerCount: fingerCount,
@@ -124,8 +124,8 @@ final class MultitouchRecognizerRegistry {
             task: nil,
             radialMenuGesture: radial,
             directionalGestures: directionals,
-            magnifyInGesture: magnifyIn,
-            magnifyOutGesture: magnifyOut
+            magnifyOutGesture: magnifyOut,
+            magnifyInGesture: magnifyIn
         )
 
         let task = Task { [weak self] in

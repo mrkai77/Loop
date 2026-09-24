@@ -37,10 +37,10 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
         case radialMenu
         /// Directional swipe gestures that trigger a single action.
         case swipeUp, swipeDown, swipeLeft, swipeRight
-        /// Magnify In gesture (fingers together, scale < 1).
-        case magnifyIn
-        /// Magnify Out gesture (fingers apart, scale > 1).
+        /// Magnify Out gesture (fingers together, scale < 1).
         case magnifyOut
+        /// Magnify In gesture (fingers apart, scale > 1).
+        case magnifyIn
 
         var displayName: String {
             switch self {
@@ -49,8 +49,8 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
             case .swipeDown: String(localized: "Swipe Down", comment: "Gesture kind: directional swipe")
             case .swipeLeft: String(localized: "Swipe Left", comment: "Gesture kind: directional swipe")
             case .swipeRight: String(localized: "Swipe Right", comment: "Gesture kind: directional swipe")
-            case .magnifyIn: String(localized: "Magnify In", comment: "Gesture kind: magnify inward")
-            case .magnifyOut: String(localized: "Magnify Out", comment: "Gesture kind: magnify outward")
+            case .magnifyOut: String(localized: "Pinch", comment: "Gesture kind: magnify outward")
+            case .magnifyIn: String(localized: "Spread", comment: "Gesture kind: magnify inward")
             }
         }
 
@@ -61,8 +61,8 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
             case .swipeDown: Image(systemName: "arrow.down")
             case .swipeLeft: Image(systemName: "arrow.left")
             case .swipeRight: Image(systemName: "arrow.right")
-            case .magnifyIn: Image(systemName: "arrow.up.right.and.arrow.down.left")
-            case .magnifyOut: Image(systemName: "arrow.down.left.and.arrow.up.right")
+            case .magnifyOut: Image(systemName: "arrow.up.right.and.arrow.down.left")
+            case .magnifyIn: Image(systemName: "arrow.down.left.and.arrow.up.right")
             }
         }
 
@@ -70,7 +70,7 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
             switch self {
             case .radialMenu, .swipeUp, .swipeDown, .swipeLeft, .swipeRight:
                 true
-            case .magnifyIn, .magnifyOut:
+            case .magnifyOut, .magnifyIn:
                 false
             }
         }

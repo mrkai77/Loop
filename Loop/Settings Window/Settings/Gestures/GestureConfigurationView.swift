@@ -49,7 +49,7 @@ struct GestureConfigurationView: View {
                         kindBinding.wrappedValue = .swipeRight
                     }
                 case .magnify:
-                    kindBinding.wrappedValue = .magnifyIn
+                    kindBinding.wrappedValue = .magnifyOut
                 }
             }
         )
@@ -64,7 +64,7 @@ struct GestureConfigurationView: View {
 
     private var magnifyGestureBinding: Binding<MagnifyGesture> {
         Binding(
-            get: { MagnifyGesture(kind: gesture.kind) ?? .magnifyIn },
+            get: { MagnifyGesture(kind: gesture.kind) ?? .magnifyOut },
             set: { kindBinding.wrappedValue = $0.kind }
         )
     }
@@ -191,7 +191,7 @@ private enum GestureCategory: CaseIterable, Equatable {
             self = .all
         case .swipeUp, .swipeDown, .swipeLeft, .swipeRight:
             self = .swipe
-        case .magnifyIn, .magnifyOut:
+        case .magnifyOut, .magnifyIn:
             self = .magnify
         }
     }
@@ -235,7 +235,7 @@ private enum SwipeDirection: CaseIterable {
             self = .left
         case .swipeRight:
             self = .right
-        case .radialMenu, .magnifyIn, .magnifyOut:
+        case .radialMenu, .magnifyOut, .magnifyIn:
             return nil
         }
     }
@@ -272,15 +272,15 @@ private enum SwipeDirection: CaseIterable {
 }
 
 private enum MagnifyGesture: CaseIterable {
-    case magnifyIn
     case magnifyOut
+    case magnifyIn
 
     init?(kind: GestureBinding.Kind) {
         switch kind {
-        case .magnifyIn:
-            self = .magnifyIn
         case .magnifyOut:
             self = .magnifyOut
+        case .magnifyIn:
+            self = .magnifyIn
         case .radialMenu, .swipeUp, .swipeDown, .swipeLeft, .swipeRight:
             return nil
         }
@@ -288,19 +288,19 @@ private enum MagnifyGesture: CaseIterable {
 
     var kind: GestureBinding.Kind {
         switch self {
-        case .magnifyIn:
-            .magnifyIn
         case .magnifyOut:
             .magnifyOut
+        case .magnifyIn:
+            .magnifyIn
         }
     }
 
     var displayName: String {
         switch self {
-        case .magnifyIn:
-            String(localized: "Magnify In", comment: "Magnify gesture picker option: magnifyIn")
         case .magnifyOut:
-            String(localized: "Magnify Out", comment: "Magnify gesture picker option: magnifyOut")
+            String(localized: "Pinch", comment: "Magnify gesture picker option: pinch")
+        case .magnifyIn:
+            String(localized: "Spread", comment: "Magnify gesture picker option: spread")
         }
     }
 

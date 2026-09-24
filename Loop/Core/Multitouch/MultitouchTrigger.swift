@@ -297,8 +297,8 @@ final class MultitouchTrigger {
         guard let entry = recognizerRegistry.entry(for: fingerCount),
               entry.radialMenuGesture != nil ||
                 !entry.directionalGestures.isEmpty ||
-                entry.magnifyInGesture != nil ||
-                entry.magnifyOutGesture != nil,
+                entry.magnifyOutGesture != nil ||
+                entry.magnifyInGesture != nil,
               !debugOverlayController.model.snapshot.visible
         else {
             return
