@@ -155,46 +155,48 @@ struct GestureItemView: View {
 
     private var actionIndicator: some View {
         HStack(spacing: 2) {
-            if case .radialMenuActions = gesture.action {
-                HStack(spacing: 4) {
-                    Image(.loop)
-                    Text(String(localized: "Radial Menu", comment: "Label shown for a gesture configured to open the radial menu"))
-                        .fontWeight(.regular)
-                        .lineLimit(1)
+            let opensRadialMenu = gesture.action == .radialMenuActions
+
+            // The radial menu can't be changed here, but shares the button so it lines up with other actions
+            Button {
+                isActionPickerPresented = !opensRadialMenu
+            } label: {
+                HStack(spacing: 8) {
+                    if opensRadialMenu {
+                        Image(.loop)
+                            .frame(width: 18)
+                            .foregroundStyle(.secondary)
+
+                        Text(String(localized: "Radial Menu", comment: "Label shown for a gesture configured to open the radial menu"))
+                            .fontWeight(.regular)
+                            .lineLimit(1)
+                            .foregroundStyle(.secondary)
+                    } else if let action = resolvedAction {
+                        IconView(action: action)
+
+                        Text(action.getName())
+                            .fontWeight(.regular)
+                            .lineLimit(1)
+                    } else {
+                        Image(systemName: "bolt.horizontal.fill")
+                            .foregroundStyle(.secondary)
+
+                        Text(String(localized: "No Action", comment: "Label shown for a gesture with no configured action"))
+                            .fontWeight(.regular)
+                            .lineLimit(1)
+                            .foregroundStyle(.secondary)
+                    }
                 }
                 .padding(.horizontal, 4)
-                .foregroundStyle(.secondary)
-            } else {
-                Button {
-                    isActionPickerPresented = true
-                } label: {
-                    HStack(spacing: 8) {
-                        if let action = resolvedAction {
-                            IconView(action: action)
-
-                            Text(action.getName())
-                                .fontWeight(.regular)
-                                .lineLimit(1)
-                        } else {
-                            Image(systemName: "bolt.horizontal.fill")
-                                .foregroundStyle(.secondary)
-
-                            Text(String(localized: "No Action", comment: "Label shown for a gesture with no configured action"))
-                                .fontWeight(.regular)
-                                .lineLimit(1)
-                                .foregroundStyle(.secondary)
-                        }
-                    }
-                    .padding(.horizontal, 4)
-                }
-                .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
-                .luminareRoundingBehavior(top: true, bottom: true)
-                .luminareFilledStates([.hovering, .pressed])
-                .luminareBorderedStates(.hovering)
-                .luminareMinHeight(24)
-                .help(String(localized: "Customize this gesture's action.", comment: "Help text shown when hovering a gesture's action button"))
-                .padding(.leading, -4)
             }
+            .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
+            .luminareRoundingBehavior(top: true, bottom: true)
+            .luminareFilledStates([.hovering, .pressed])
+            .luminareBorderedStates(.hovering)
+            .luminareMinHeight(24)
+            .help(String(localized: "Customize this gesture's action.", comment: "Help text shown when hovering a gesture's action button"))
+            .allowsHitTesting(!opensRadialMenu)
+            .padding(.leading, -4)
 
             Group {
                 if let resolvedAction {

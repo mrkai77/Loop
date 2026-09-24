@@ -119,7 +119,7 @@ struct CycleActionCoordinatorTests {
         let nextProposal = coordinator.proposeAction(
             for: targetWindowID,
             in: cycle,
-            currentAction: first,
+            currentAction: radialSelection,
             currentParentAction: cycle,
             recordedAction: nil,
             restartAtBeginningWhenInterrupted: true,
@@ -127,8 +127,8 @@ struct CycleActionCoordinatorTests {
         )
         let next = try #require(nextProposal)
 
-        #expect(radialSelection.id == first.id)
-        #expect(next.action.id == second.id)
+        #expect(radialSelection.id == second.id)
+        #expect(next.action.id == first.id)
     }
 
     private func commitNext(
