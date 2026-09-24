@@ -35,6 +35,7 @@
                BuildableIdentifier = "primary"
                BlueprintIdentifier = "2ACE2DE83043A6F600C4FECB"
                BuildableName = "LoopTests.xctest"
+               BlueprintName = "LoopTests"
                ReferencedContainer = "container:Loop.xcodeproj">
             </BuildableReference>
          </TestableReference>

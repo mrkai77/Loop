@@ -69,9 +69,9 @@ final class MultitouchTargetResolver {
 
         let cursorPosition = NSEvent.mouseLocation.flipY(screen: NSScreen.screens[0])
         let window = WindowUtility.windowAtPosition(cursorPosition)
-        let isInTitlebar = window.map { isInTitlebar(cursorPosition, of: $0) } ?? false
-        touchTarget = (touchID, window, isInTitlebar)
-        return (window, isInTitlebar)
+        let inTitlebar = window.map { isInTitlebar(cursorPosition, of: $0) } ?? false
+        touchTarget = (touchID, window, inTitlebar)
+        return (window, inTitlebar)
     }
 
     private func isInTitlebar(_ cursorPosition: CGPoint, of window: Window) -> Bool {
