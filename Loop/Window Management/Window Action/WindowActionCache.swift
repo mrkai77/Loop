@@ -43,9 +43,9 @@ final class WindowActionCache {
 
     /// Rebuilds the cache and includes extra entries for cycle actions with shift keys if the user has enabled `cycleBackwardsOnShiftPressed`.
     private func regenerateCache() {
-        let keybinds: [WindowAction] = Defaults[.keybinds].filter { !$0.keybind.isEmpty }
+        let keybinds: [WindowAction] = Defaults[.keybinds]
 
-        regenerateActionsByKeybind(from: keybinds)
+        regenerateActionsByKeybind(from: keybinds.filter { !$0.keybind.isEmpty })
         regenerateActionsByIdentifier(from: keybinds)
 
         log.info("Regenerated cache; normal: \(actionsByKeybind.count), bypassed: \(bypassedActionsByKeybind.count)")
