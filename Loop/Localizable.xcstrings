@@ -3898,6 +3898,9 @@
         }
       }
     },
+    "Clockwise" : {
+      "comment" : "Name of the screen order that walks around the screen arrangement clockwise"
+    },
     "Close" : {
       "comment" : "Label for a button that closes a modal window",
       "localizations" : {
@@ -4518,6 +4521,9 @@
           }
         }
       }
+    },
+    "Counterclockwise" : {
+      "comment" : "Name of the screen order that walks around the screen arrangement counterclockwise"
     },
     "Credits" : {
       "comment" : "Section header shown in settings",
@@ -18340,6 +18346,9 @@
           }
         }
       }
+    },
+    "Next/Previous Screen Order" : {
+      "comment" : "Section header shown in settings"
     },
     "No Action" : {
       "comment" : "Window action: no selection",
@@ -35672,6 +35681,9 @@
           }
         }
       }
+    },
+    "Z-shaped" : {
+      "comment" : "Name of the screen order that walks the screens row by row, like reading a page"
     }
   },
   "version" : "1.0"

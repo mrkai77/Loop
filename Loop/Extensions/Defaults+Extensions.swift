@@ -79,6 +79,7 @@ extension Defaults.Keys {
     static let hapticFeedback = Defaults.Key<Bool>("hapticFeedback", default: true, iCloud: true)
     static let enableRadialMenuCustomization = Defaults.Key<Bool>("enableRadialMenuCustomization", default: false, iCloud: true)
     static let sizeIncrement = Key<CGFloat>("sizeIncrement", default: 20, iCloud: true)
+    static let screenOrder = Key<ScreenOrder>("screenOrder", default: .zShaped, iCloud: true)
 
     /// Excluded apps
     static let excludedApps = Key<[URL]>("excludedApps", default: [], iCloud: true)

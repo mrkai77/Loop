@@ -133,6 +133,7 @@ struct AdvancedConfigurationView: View {
     @Default(.hapticFeedback) var hapticFeedback
     @Default(.sizeIncrement) var sizeIncrement
     @Default(.enableRadialMenuCustomization) var enableRadialMenuCustomization
+    @Default(.screenOrder) var screenOrder
 
     @State private var isConfirmingResetKeybinds: Bool = false
     @State private var isConfirmingResetRadialMenuActions: Bool = false
@@ -144,6 +145,7 @@ struct AdvancedConfigurationView: View {
     var body: some View {
         LuminareForm {
             generalSection
+            screensSection
             radialMenuSection
             keybindsSection
             permissionsSection
@@ -196,6 +198,25 @@ struct AdvancedConfigurationView: View {
                 clampsUpper: false,
                 suffix: Text("px", comment: "Unit symbol: pixels")
             )
+        }
+    }
+
+    private var screensSection: some View {
+        LuminareSection(String(localized: "Next/Previous Screen Order", comment: "Section header shown in settings")) {
+            LuminarePicker(
+                elements: ScreenOrder.allCases,
+                selection: $screenOrder,
+                columns: 3
+            ) { order in
+                VStack(spacing: 4) {
+                    order.image
+                    Text(order.name)
+                }
+                .padding(.vertical, 15)
+                .compositingGroup()
+            }
+            .luminareContentSize(hasFixedHeight: true)
+            .luminareRoundingBehavior(top: true, bottom: true)
         }
     }
 
