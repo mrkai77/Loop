@@ -26,12 +26,16 @@ final class SystemGestureFilter {
         case undecided, loop, dock
     }
 
+    private enum TitlebarLookup {
+        case pending, inside, outside
+    }
+
     private enum Sequence {
         case passing
         case dropping
         /// Started the unbound way on a partly bound axis. The Dock is sent a cancel if Loop claims it
         case provisional
-        /// Started the bound way on a partly bound axis. Replayed to the Dock if Loop doesn't claim it
+        /// Started the bound way on a partly or unconfirmed bound axis. Replayed to the Dock if Loop doesn't claim it
         case holding(began: CGEvent)
     }
 
@@ -49,8 +53,7 @@ final class SystemGestureFilter {
         /// Incremented whenever the fingers touch down or lift, so stale lookups are discarded
         var touchID = 0
         var hasLookedUpTouch = false
-        /// Titlebar-only gestures stay claimed until known: losing a stroke beats both reacting
-        var isTouchInTitlebar: Bool?
+        var titlebarLookup = TitlebarLookup.pending
         var isMissionControlShowing = false
         var owners: [Int: Owner] = [:]
 
@@ -58,9 +61,16 @@ final class SystemGestureFilter {
             fingerCounts.values.max() ?? 0
         }
 
+        /// Titlebar-only gestures stay claimed until known: losing a stroke beats both reacting
         func claimedGestures(fingerCount: Int) -> Set<DockGesture> {
             guard let claims = claims[fingerCount] else { return [] }
-            return isTouchInTitlebar == false ? claims.anywhere : claims.anywhere.union(claims.titlebarOnly)
+            return titlebarLookup == .outside ? claims.anywhere : claims.anywhere.union(claims.titlebarOnly)
+        }
+
+        /// Titlebar-only gestures count once known to apply, so the Dock can still get a stroke Loop rejects
+        func confirmedClaims(fingerCount: Int) -> Set<DockGesture> {
+            guard let claims = claims[fingerCount] else { return [] }
+            return titlebarLookup == .inside ? claims.anywhere.union(claims.titlebarOnly) : claims.anywhere
         }
 
         /// The Dock keeps its gestures while Mission Control is showing, so they can dismiss it
@@ -180,7 +190,7 @@ final class SystemGestureFilter {
             if wasTouching != (state.fingerCount > 0) {
                 state.touchID += 1
                 state.hasLookedUpTouch = false
-                state.isTouchInTitlebar = nil
+                state.titlebarLookup = .pending
                 state.isMissionControlShowing = false
                 state.owners.removeAll()
             }
@@ -199,7 +209,7 @@ final class SystemGestureFilter {
             let isMissionControlShowing = MissionControl.isShowing
             state.withLock { state in
                 guard state.touchID == lookupTouchID else { return }
-                state.isTouchInTitlebar = isInTitlebar
+                state.titlebarLookup = isInTitlebar ? .inside : .outside
                 state.isMissionControlShowing = isMissionControlShowing
             }
         }
@@ -287,9 +297,14 @@ final class SystemGestureFilter {
     }
 
     private func beginSequence(_ event: CGEvent, motion: CGEventField.DockSwipeMotion?, progress: Double) -> Sequence {
-        let (fingerCount, owner, claimed) = state.withLock { state in
+        let (fingerCount, owner, claimed, confirmed) = state.withLock { state in
             let fingerCount = state.fingerCount
-            return (fingerCount, state.owner(fingerCount: fingerCount), state.claimedGestures(fingerCount: fingerCount))
+            return (
+                fingerCount,
+                state.owner(fingerCount: fingerCount),
+                state.claimedGestures(fingerCount: fingerCount),
+                state.confirmedClaims(fingerCount: fingerCount)
+            )
         }
         sequenceFingerCount = fingerCount
 
@@ -306,7 +321,7 @@ final class SystemGestureFilter {
                 setOwner(.dock, fingerCount: fingerCount)
                 return .passing
             }
-            if claimedOnAxis == axis {
+            if axis.isSubset(of: confirmed) {
                 setOwner(.loop, fingerCount: fingerCount)
                 return .dropping
             }
