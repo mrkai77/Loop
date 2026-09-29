@@ -10,22 +10,20 @@ import Luminare
 import SwiftUI
 
 struct KeybindItemView: View {
-    @Environment(\.luminareAnimation) var luminareAnimation
-
     @Default(.triggerKey) private var triggerKey
     @Default(.keybinds) private var keybinds
 
     @State private var action: WindowAction
-    @Binding private var boundAction: WindowAction
-
-    @State private var isConfiguringCustom: Bool = false
-    @State private var isConfiguringCycle: Bool = false
+    @Binding private var externalAction: WindowAction
     private let cycleIndex: Int?
-    @State private var isDirectionPickerPresented = false
+
+    @State private var isActionPickerPresented = false
+    @State private var isConfiguringCustom = false
+    @State private var isConfiguringCycle = false
 
     init(_ action: Binding<WindowAction>, cycleIndex: Int? = nil) {
         self.action = action.wrappedValue
-        self._boundAction = action
+        self._externalAction = action
         self.cycleIndex = cycleIndex
     }
 
@@ -50,7 +48,7 @@ struct KeybindItemView: View {
 
     var body: some View {
         ZStack {
-            titleAndButtons
+            actionSelection
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             keybindCombination
@@ -65,12 +63,63 @@ struct KeybindItemView: View {
                 isConfiguringCycle = true
             }
         }
-        .onChange(of: action) { boundAction = $0 }
+        .onChange(of: action) { externalAction = $0 }
     }
 
-    private var titleAndButtons: some View {
+    private var actionSelection: some View {
+        actionIndicator
+            .luminarePopover(
+                isPresented: $isActionPickerPresented,
+                arrowEdge: .top,
+                attachmentAnchor: .topLeading,
+                shouldHideAnchor: true,
+                shouldAnimate: false
+            ) {
+                DirectionPickerView(
+                    direction: $action.direction,
+                    isInCycle: cycleIndex != nil
+                )
+                .frame(width: 300, height: 300)
+            }
+            .onChange(of: isActionPickerPresented) { _ in
+                if !isActionPickerPresented {
+                    PickerListEventMonitorManager.shared.removeAllMonitors()
+                }
+            }
+    }
+
+    private var actionIndicator: some View {
         HStack(spacing: 2) {
-            label()
+            Button {
+                isActionPickerPresented.toggle()
+            } label: {
+                HStack(spacing: 8) {
+                    IconView(action: action)
+
+                    if let info = action.direction.infoText {
+                        Text(action.getName())
+                            .fontWeight(.regular)
+                            .lineLimit(1)
+                            .padding(.trailing, 4)
+                            .luminareToolTip(attachedTo: .topTrailing) {
+                                Text(info)
+                                    .padding(6)
+                            }
+                    } else {
+                        Text(action.getName())
+                            .fontWeight(.regular)
+                            .lineLimit(1)
+                    }
+                }
+                .padding(.horizontal, 4)
+            }
+            .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
+            .luminareRoundingBehavior(top: true, bottom: true)
+            .luminareFilledStates([.hovering, .pressed])
+            .luminareBorderedStates(.hovering)
+            .luminareMinHeight(24)
+            .help("Customize this keybind's action.")
+            .padding(.leading, -4)
 
             Group {
                 if action.direction.isCustomizable {
@@ -120,24 +169,6 @@ struct KeybindItemView: View {
             .font(.title3)
             .foregroundStyle(.secondary)
         }
-        .luminarePopover(
-            isPresented: $isDirectionPickerPresented,
-            arrowEdge: .top,
-            attachmentAnchor: .topLeading,
-            shouldHideAnchor: true,
-            shouldAnimate: false
-        ) {
-            DirectionPickerView(
-                direction: $action.direction,
-                isInCycle: cycleIndex != nil
-            )
-            .frame(width: 300, height: 300)
-        }
-        .onChange(of: isDirectionPickerPresented) { _ in
-            if !isDirectionPickerPresented {
-                PickerListEventMonitorManager.shared.removeAllMonitors()
-            }
-        }
     }
 
     private var keybindCombination: some View {
@@ -180,39 +211,6 @@ struct KeybindItemView: View {
     private func clearKeybind() {
         action.keybind = []
         action.bypassTriggerKey = false
-    }
-
-    private func label() -> some View {
-        Button {
-            isDirectionPickerPresented.toggle()
-        } label: {
-            HStack(spacing: 8) {
-                IconView(action: action)
-
-                if let info = action.direction.infoText {
-                    Text(action.getName())
-                        .fontWeight(.regular)
-                        .lineLimit(1)
-                        .padding(.trailing, 4)
-                        .luminareToolTip(attachedTo: .topTrailing) {
-                            Text(info)
-                                .padding(6)
-                        }
-                } else {
-                    Text(action.getName())
-                        .fontWeight(.regular)
-                        .lineLimit(1)
-                }
-            }
-            .padding(.horizontal, 4)
-        }
-        .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
-        .luminareRoundingBehavior(top: true, bottom: true)
-        .luminareFilledStates([.hovering, .pressed])
-        .luminareBorderedStates(.hovering)
-        .luminareMinHeight(24)
-        .help("Customize this keybind's action.")
-        .padding(.leading, -4)
     }
 
     private func keycorderSection() -> some View {

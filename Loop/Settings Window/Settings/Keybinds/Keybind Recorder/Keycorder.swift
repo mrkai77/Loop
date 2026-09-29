@@ -16,7 +16,7 @@ struct Keycorder: View {
 
     let keyLimit: Int = 6
 
-    @Default(.triggerKey) var triggerKey
+    @Default(.triggerKey) private var triggerKey
 
     @Binding private var validCurrentKeybind: Set<CGKeyCode>
     @State private var selectionKeybind: Set<CGKeyCode>

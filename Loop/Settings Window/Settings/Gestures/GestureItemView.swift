@@ -10,7 +10,7 @@ import Luminare
 import SwiftUI
 
 struct GestureItemView: View {
-    @Environment(\.luminareAnimation) var luminareAnimation
+    @Environment(\.luminareAnimation) private var luminareAnimation
 
     @Default(.keybinds) private var keybinds
 
@@ -36,6 +36,13 @@ struct GestureItemView: View {
         case let .singleAction(actionType):
             actionType.resolvedAction
         }
+    }
+
+    private var isKeybindReference: Bool {
+        if case let .singleAction(actionType) = gesture.action {
+            return actionType.isKeybindReference
+        }
+        return false
     }
 
     private var actionTypeBinding: Binding<RadialMenuAction.ActionType> {
@@ -77,12 +84,20 @@ struct GestureItemView: View {
             actionSelection
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            gestureConfiguration
-                .luminareToolTip(attachedTo: .topTrailing, hidden: !hasConflict) {
-                    Text(String(localized: "There are other gestures that conflict with this gesture.", comment: "Tooltip shown on a conflicting gesture in settings"))
-                        .padding(6)
+            HStack(spacing: 12) {
+                if isKeybindReference {
+                    Image(systemName: "keyboard")
+                        .foregroundStyle(.secondary)
+                        .help("This action is linked to a keybind. Changes made to this action will affect both.")
                 }
-                .frame(maxWidth: .infinity, alignment: .trailing)
+
+                gestureConfiguration
+                    .luminareToolTip(attachedTo: .topTrailing, hidden: !hasConflict) {
+                        Text(String(localized: "There are other gestures that conflict with this gesture.", comment: "Tooltip shown on a conflicting gesture in settings"))
+                            .padding(6)
+                    }
+            }
+            .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, 12)
         .onChange(of: resolvedAction?.direction) { _ in
@@ -158,7 +173,9 @@ struct GestureItemView: View {
 
             // The radial menu can't be changed here, but shares the button so it lines up with other actions
             Button {
-                isActionPickerPresented = !opensRadialMenu
+                if !opensRadialMenu {
+                    isActionPickerPresented.toggle()
+                }
             } label: {
                 HStack(spacing: 8) {
                     if opensRadialMenu {
@@ -173,14 +190,26 @@ struct GestureItemView: View {
                     } else if let action = resolvedAction {
                         IconView(action: action)
 
-                        Text(action.getName())
-                            .fontWeight(.regular)
-                            .lineLimit(1)
+                        if let info = action.direction.infoText {
+                            Text(action.getName())
+                                .fontWeight(.regular)
+                                .lineLimit(1)
+                                .padding(.trailing, 4)
+                                .luminareToolTip(attachedTo: .topTrailing) {
+                                    Text(info)
+                                        .padding(6)
+                                }
+                        } else {
+                            Text(action.getName())
+                                .fontWeight(.regular)
+                                .lineLimit(1)
+                        }
                     } else {
+                        // A single action only fails to resolve when its linked keybind was removed
                         Image(systemName: "bolt.horizontal.fill")
                             .foregroundStyle(.secondary)
 
-                        Text(String(localized: "No Action", comment: "Label shown for a gesture with no configured action"))
+                        Text("Failed to resolve linked keybind")
                             .fontWeight(.regular)
                             .lineLimit(1)
                             .foregroundStyle(.secondary)

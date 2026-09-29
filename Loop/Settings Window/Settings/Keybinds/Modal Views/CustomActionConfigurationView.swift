@@ -12,8 +12,8 @@ import SwiftUI
 struct CustomActionConfigurationView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
 
-    @Binding var windowAction: WindowAction
-    @Binding var isPresented: Bool
+    @Binding private var windowAction: WindowAction
+    @Binding private var isPresented: Bool
 
     @State private var action: WindowAction
     @State private var currentTab: Tab = .position

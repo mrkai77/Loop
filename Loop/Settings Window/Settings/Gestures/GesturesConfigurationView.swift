@@ -15,6 +15,7 @@ final class GesturesConfigurationModel: ObservableObject {
 
 struct GesturesConfigurationView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
+    @EnvironmentObject private var windowModel: SettingsWindowManager
     @StateObject private var model = GesturesConfigurationModel()
 
     @Default(.enableGestures) private var enableGestures
@@ -33,11 +34,6 @@ struct GesturesConfigurationView: View {
             }
         }
         .animation(luminareAnimation, value: enableGestures)
-        .onChange(of: gestures) { newValue in
-            let gesturesByID = Dictionary(uniqueKeysWithValues: newValue.map { ($0.id, $0) })
-            let selectedIDs = model.selectedGestures.map(\.id)
-            model.selectedGestures = Set(selectedIDs.compactMap { gesturesByID[$0] })
-        }
     }
 
     private var settingsSection: some View {
@@ -85,6 +81,19 @@ struct GesturesConfigurationView: View {
                 .padding()
             }
             .luminareRoundingBehavior(bottom: true)
+            .onChange(of: model.selectedGestures, initial: true) {
+                if model.selectedGestures.count == 1,
+                   case let .singleAction(actionType) = model.selectedGestures.first?.action,
+                   let action = actionType.resolvedAction {
+                    windowModel.isPreviewingUserSelection = true
+                    windowModel.setPreviewedAction(to: action)
+                } else {
+                    windowModel.isPreviewingUserSelection = false
+                }
+            }
+            .onDisappear {
+                windowModel.isPreviewingUserSelection = false
+            }
         } header: {
             Text("Gestures", comment: "Section header shown in gestures settings")
                 .fontWeight(.medium)

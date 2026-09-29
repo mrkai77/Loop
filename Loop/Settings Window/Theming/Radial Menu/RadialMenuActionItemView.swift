@@ -10,18 +10,16 @@ import Luminare
 import SwiftUI
 
 struct RadialMenuActionItemView: View {
-    @Environment(\.luminareItemBeingHovered) private var isHovering
-
     @Default(.keybinds) private var keybinds
 
     @State private var action: RadialMenuAction
-    @State private var isConfiguringCustom: Bool = false
-    @State private var isConfiguringCycle: Bool = false
-    @State private var isPickerPresented = false
-
     @Binding private var externalAction: RadialMenuAction
     private let moveUp: () -> ()
     private let moveDown: () -> ()
+
+    @State private var isActionPickerPresented = false
+    @State private var isConfiguringCustom = false
+    @State private var isConfiguringCycle = false
 
     init(
         _ action: Binding<RadialMenuAction>,
@@ -34,9 +32,29 @@ struct RadialMenuActionItemView: View {
         self.moveDown = moveDown
     }
 
+    private var actionBinding: Binding<WindowAction> {
+        Binding(
+            get: {
+                action.resolved ?? .init(.noAction)
+            },
+            set: { newAction in
+                switch action.type {
+                case .custom:
+                    action.type = .custom(newAction)
+                case .keybindReference:
+                    guard let index = Defaults[.keybinds].firstIndex(where: { $0.id == action.associatedActionId }) else {
+                        return
+                    }
+
+                    keybinds[index] = newAction
+                }
+            }
+        )
+    }
+
     var body: some View {
         HStack(spacing: 12) {
-            label
+            actionSelection
 
             Spacer()
 
@@ -67,26 +85,21 @@ struct RadialMenuActionItemView: View {
             }
         }
         .padding(.horizontal, 12)
-        .onChange(of: action) { newAction in
-            externalAction = newAction
-
-            guard let resolvedAction = action.resolved else {
-                isConfiguringCustom = false
-                isConfiguringCycle = false
-                return
+        .onChange(of: action.resolved?.direction) { _ in
+            if action.resolved?.direction.isCustomizable == true {
+                isConfiguringCustom = true
             }
-
-            Task {
-                isConfiguringCustom = resolvedAction.direction.isCustomizable
-                isConfiguringCycle = resolvedAction.direction == .cycle
+            if action.resolved?.direction == .cycle {
+                isConfiguringCycle = true
             }
         }
+        .onChange(of: action) { externalAction = $0 }
     }
 
-    private var label: some View {
+    private var actionSelection: some View {
         actionIndicator
             .luminarePopover(
-                isPresented: $isPickerPresented,
+                isPresented: $isActionPickerPresented,
                 arrowEdge: .top,
                 attachmentAnchor: .topLeading,
                 shouldHideAnchor: true,
@@ -95,30 +108,43 @@ struct RadialMenuActionItemView: View {
                 RadialMenuActionPickerView(selection: $action.type)
                     .frame(width: 300, height: 300)
             }
-            .onChange(of: isPickerPresented) { _ in
-                if !isPickerPresented {
+            .onChange(of: isActionPickerPresented) { _ in
+                if !isActionPickerPresented {
                     PickerListEventMonitorManager.shared.removeAllMonitors()
                 }
             }
     }
 
-    var actionIndicator: some View {
+    private var actionIndicator: some View {
         HStack(spacing: 2) {
             Button {
-                isPickerPresented = true
+                isActionPickerPresented.toggle()
             } label: {
                 HStack(spacing: 8) {
                     if let action = action.resolved {
                         IconView(action: action)
 
-                        Text(action.getName())
-                            .fontWeight(.regular)
-                            .lineLimit(1)
+                        if let info = action.direction.infoText {
+                            Text(action.getName())
+                                .fontWeight(.regular)
+                                .lineLimit(1)
+                                .padding(.trailing, 4)
+                                .luminareToolTip(attachedTo: .topTrailing) {
+                                    Text(info)
+                                        .padding(6)
+                                }
+                        } else {
+                            Text(action.getName())
+                                .fontWeight(.regular)
+                                .lineLimit(1)
+                        }
                     } else {
                         Image(systemName: "bolt.horizontal.fill")
                             .foregroundStyle(.secondary)
 
                         Text("Failed to resolve linked keybind")
+                            .fontWeight(.regular)
+                            .lineLimit(1)
                             .foregroundStyle(.secondary)
                     }
                 }
@@ -129,28 +155,11 @@ struct RadialMenuActionItemView: View {
             .luminareFilledStates([.hovering, .pressed])
             .luminareBorderedStates(.hovering)
             .luminareMinHeight(24)
+            .help("Customize this radial menu action.")
             .padding(.leading, -4)
 
             Group {
                 if let resolvedAction = action.resolved {
-                    let actionBinding = Binding<WindowAction>(
-                        get: {
-                            resolvedAction
-                        },
-                        set: { newAction in
-                            switch action.type {
-                            case .custom:
-                                action.type = .custom(newAction)
-                            case .keybindReference:
-                                guard let index = Defaults[.keybinds].firstIndex(where: { $0.id == action.associatedActionId }) else {
-                                    return
-                                }
-
-                                keybinds[index] = newAction
-                            }
-                        }
-                    )
-
                     if resolvedAction.direction.isCustomizable {
                         Button {
                             isConfiguringCustom = true
@@ -173,7 +182,7 @@ struct RadialMenuActionItemView: View {
                                 .frame(width: 400)
                             }
                         }
-                        .luminareCornerRadius(24)
+                        .luminareModalCornerRadius(24)
                         .help("Customize this action's custom frame.")
                     }
 
@@ -191,13 +200,13 @@ struct RadialMenuActionItemView: View {
                             )
                             .frame(width: 400)
                         }
-                        .luminareCornerRadius(24)
+                        .luminareModalCornerRadius(24)
                         .help("Customize what this action cycles through.")
                     }
                 }
             }
             .font(.title3)
-            .foregroundStyle(isHovering ? .primary : .secondary)
+            .foregroundStyle(.secondary)
         }
     }
 }

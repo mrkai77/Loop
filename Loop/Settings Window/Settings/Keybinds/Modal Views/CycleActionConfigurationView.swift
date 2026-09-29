@@ -10,8 +10,8 @@ import Luminare
 import SwiftUI
 
 struct CycleActionConfigurationView: View {
-    @Binding var windowAction: WindowAction
-    @Binding var isPresented: Bool
+    @Binding private var windowAction: WindowAction
+    @Binding private var isPresented: Bool
 
     @State private var action: WindowAction // this is so that onChange is called for each property
 
