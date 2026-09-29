@@ -190,14 +190,6 @@ open "loop://list/keybinds"      # List custom keybinds
   </tbody>
 </table>
 
-## Contributors
-
-To see all the contributors who have played a significant role in developing Loop, visit our [Contributors](CONTRIBUTORS.md) page.
-
-### How to Contribute
-
-For an extensive guide on how to contribute, check out the [contributing guide](CONTRIBUTING.md).
-
 ## FAQ
 
 ### Comparison
@@ -611,6 +603,10 @@ For an extensive guide on how to contribute, check out the [contributing guide](
 > Information was gathered from each app’s official website and other online sources and may be outdated.
 > If you notice any inaccuracies, please open an issue or contact the maintainers.
 > Special thanks to the [Definitive MacApp Comparisons](https://docs.google.com/spreadsheets/d/1HtJN4oQ6oBDFmFaF4Qeq5vCGEU1g-KB1DEz5Sp_OwXo/edit?gid=456166567#gid=456166567) spreadsheet.
+
+### How to Contribute
+
+For an extensive guide on how to contribute, check out the [contributing guide](CONTRIBUTING.md).
 
 ### License
 
