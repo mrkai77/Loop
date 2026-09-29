@@ -118,6 +118,38 @@ enum WindowDirection: String, CaseIterable, Identifiable, Codable {
     var willCenter: Bool { [.center, .macOSCenter, .verticalCenterHalf, .horizontalCenterHalf].contains(self) }
     var isCustomizable: Bool { [.custom, .stash].contains(self) }
 
+    /// The action that undoes a step of this one, such as smaller for larger
+    /// Imagine this as "cycling backwards but for non-cycle actions" :)
+    var opposite: WindowDirection? {
+        switch self {
+        case .larger: .smaller
+        case .smaller: .larger
+        case .scaleUp: .scaleDown
+        case .scaleDown: .scaleUp
+        case .shrinkTop: .growTop
+        case .shrinkBottom: .growBottom
+        case .shrinkRight: .growRight
+        case .shrinkLeft: .growLeft
+        case .shrinkHorizontal: .growHorizontal
+        case .shrinkVertical: .growVertical
+        case .growTop: .shrinkTop
+        case .growBottom: .shrinkBottom
+        case .growRight: .shrinkRight
+        case .growLeft: .shrinkLeft
+        case .growHorizontal: .shrinkHorizontal
+        case .growVertical: .shrinkVertical
+        case .moveUp: .moveDown
+        case .moveDown: .moveUp
+        case .moveRight: .moveLeft
+        case .moveLeft: .moveRight
+        case .focusUp: .focusDown
+        case .focusDown: .focusUp
+        case .focusRight: .focusLeft
+        case .focusLeft: .focusRight
+        default: nil
+        }
+    }
+
     var hasRadialMenuAngle: Bool {
         let noAngleActions: [WindowDirection] = [.noAction, .noSelection, .minimize, .minimizeOthers, .hide, .initialFrame, .undo, .cycle]
         return !(noAngleActions.contains(self) || shouldFillRadialMenu || willChangeScreen || willChangeSpace || willAdjustSize || willShrink || willGrow || willMove || willFocusWindow)

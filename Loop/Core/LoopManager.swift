@@ -393,6 +393,7 @@ extension LoopManager {
     ///   - triggeredFromScreenChange: If this action was triggered from a screen change, this will prevent cycle keybinds from infinitely changing screens.
     ///   - disableHapticFeedback: This will prevent haptic feedback.
     ///   - canAdvanceCycle: This will prevent the cycle from advancing if set to false. This is currently used when changing actions via the radial menu.
+    ///   - reverse: Steps a cycle backwards, or performs the opposite of any other action, such as smaller for larger.
     private func changeAction(
         _ newAction: WindowAction,
         triggeredFromScreenChange: Bool = false,
@@ -400,6 +401,12 @@ extension LoopManager {
         canAdvanceCycle: Bool = true,
         reverse: Bool = false
     ) async {
+        var newAction = newAction
+        if reverse, newAction.direction != .cycle {
+            guard let opposite = newAction.direction.opposite else { return }
+            newAction = WindowAction(opposite)
+        }
+
         let originatingContext = resizeContext
 
         guard
@@ -421,7 +428,6 @@ extension LoopManager {
         actionRevision += 1
         let originatingRevision = actionRevision
 
-        var newAction: WindowAction = newAction
         var newParentAction: WindowAction? = nil
         var cycleProposal: CycleActionCoordinator.Proposal?
 
