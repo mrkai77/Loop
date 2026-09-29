@@ -49,8 +49,8 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
             case .swipeDown: String(localized: "Swipe Down", comment: "Gesture kind: directional swipe")
             case .swipeLeft: String(localized: "Swipe Left", comment: "Gesture kind: directional swipe")
             case .swipeRight: String(localized: "Swipe Right", comment: "Gesture kind: directional swipe")
-            case .magnifyOut: String(localized: "Pinch", comment: "Gesture kind: magnify outward")
-            case .magnifyIn: String(localized: "Spread", comment: "Gesture kind: magnify inward")
+            case .magnifyOut: String(localized: "Pinch", comment: "Gesture kind: pinch (fingers move together, zooming out)")
+            case .magnifyIn: String(localized: "Spread", comment: "Gesture kind: spread (fingers move apart, zooming in)")
             }
         }
 
@@ -130,7 +130,7 @@ extension GestureBinding {
         default:
             String(
                 localized: "\(fingerCount)-finger \(kind.displayName)",
-                comment: "Default title describing a gesture. First argument is the finger count, second is the gesture kind name (e.g. 'Magnify In', 'Swipe Up')."
+                comment: "Default title describing a gesture. First argument is the finger count, second is the gesture kind name (e.g. '2-finger Pinch' or '3-finger Swipe Right')."
             )
         }
     }
