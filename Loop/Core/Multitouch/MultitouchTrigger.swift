@@ -103,6 +103,7 @@ final class MultitouchTrigger {
             closeDebugOverlay(force: true)
         #endif
         handleStopResults(recognizerRegistry.stopAll())
+        gestureBlocker.stop()
         targetResolver.reset()
     }
 
@@ -126,8 +127,10 @@ final class MultitouchTrigger {
         handleStopResults(recognizerRegistry.rebuild(with: Defaults[.gestures]))
         if recognizerRegistry.hasRecognizers {
             gestureMonitor.start()
+            gestureBlocker.start()
         } else {
             gestureMonitor.stop()
+            gestureBlocker.stop()
         }
         updateSystemGestureFilter()
     }
@@ -143,7 +146,7 @@ final class MultitouchTrigger {
                 closeCallback(false)
             }
             if stopResult.didAcquireGestureBlocker {
-                gestureBlocker.stop()
+                gestureBlocker.release()
             }
         }
     }
@@ -217,7 +220,7 @@ final class MultitouchTrigger {
             allowsRapidRepeat: allowsRapidRepeat
         )
 
-        gestureBlocker.start()
+        gestureBlocker.acquire()
         session.acquireGestureBlocker()
         return true
     }
@@ -428,7 +431,7 @@ final class MultitouchTrigger {
 
     private func releaseGestureBlocker(for session: MultitouchGestureSession) {
         if session.releaseGestureBlocker() {
-            gestureBlocker.stop()
+            gestureBlocker.release()
         }
     }
 }
