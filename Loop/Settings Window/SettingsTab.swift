@@ -33,25 +33,25 @@ enum SettingsTab: @MainActor LuminareTabItem, CaseIterable {
     var color: Color {
         switch self {
         case .icon:
-            Color(#colorLiteral(red: 0.2235294118, green: 0.3843137255, blue: 0.6274509804, alpha: 1))
+            Color(#colorLiteral(red: 0.310, green: 0.498, blue: 0.843, alpha: 1))
         case .accentColor:
-            Color(#colorLiteral(red: 0.8235294118, green: 0.3529411765, blue: 0.337254902, alpha: 1))
+            Color(#colorLiteral(red: 0.914, green: 0.404, blue: 0.380, alpha: 1))
         case .radialMenu:
-            Color(#colorLiteral(red: 0.8078431373, green: 0.6235294118, blue: 0.3254901961, alpha: 1))
+            Color(#colorLiteral(red: 0.851, green: 0.663, blue: 0.310, alpha: 1))
         case .preview:
-            Color(#colorLiteral(red: 0.2901960784, green: 0.5647058824, blue: 0.7882352941, alpha: 1))
+            Color(#colorLiteral(red: 0.2705882353, green: 0.662745098, blue: 0.9019607843, alpha: 1))
         case .behavior:
-            Color(#colorLiteral(red: 0.4373228079, green: 0.6609574352, blue: 0.2663080928, alpha: 1))
+            Color(#colorLiteral(red: 0.463, green: 0.722, blue: 0.278, alpha: 1))
         case .keybinds:
-            Color(#colorLiteral(red: 0.3882352941, green: 0.2823529412, blue: 0.1960784314, alpha: 1))
+            Color(#colorLiteral(red: 0.651, green: 0.424, blue: 0.247, alpha: 1))
         case .gestures:
-            Color(#colorLiteral(red: 0.2352941176, green: 0.5568627451, blue: 0.5882352941, alpha: 1))
+            Color(#colorLiteral(red: 0.4352941176, green: 0.4588235294, blue: 0.9098039216, alpha: 1))
         case .advanced:
-            Color(#colorLiteral(red: 0.4823529412, green: 0.4745098039, blue: 0.6588235294, alpha: 1))
+            Color(#colorLiteral(red: 0.5647058824, green: 0.4941176471, blue: 0.8470588235, alpha: 1))
         case .excludedApps:
-            Color(#colorLiteral(red: 0.5882352941, green: 0.3137254902, blue: 0.3019607843, alpha: 1))
+            Color(#colorLiteral(red: 0.784, green: 0.357, blue: 0.341, alpha: 1))
         case .about:
-            Color(#colorLiteral(red: 0.4509803922, green: 0.4509803922, blue: 0.4509803922, alpha: 1))
+            Color(#colorLiteral(red: 0.541, green: 0.541, blue: 0.541, alpha: 1))
         }
     }
 
@@ -122,34 +122,11 @@ struct SettingsTabIconView: View {
             .foregroundStyle(tab.color.gradient)
             .opacity(0.8)
             .overlay {
-                // Only add shine in dark mode; in light mode it makes the icon look fuzzy/blurred.
-                if colorScheme == .dark, #available(macOS 26.0, *) {
-                    borderShine(in: .rect(cornerRadius: 6))
-                }
-
                 tab.image
                     .font(.system(size: 12, weight: .medium))
                     .foregroundStyle(.white)
-                    .shadow(color: .black.opacity(0.4), radius: 1)
+                    .shadow(color: .black.opacity(0.25), radius: 1)
             }
             .frame(width: 22, height: 22)
-    }
-
-    /// Mimics macOS Tahoe's icon shine
-    private func borderShine(in shape: some InsettableShape) -> some View {
-        shape
-            .strokeBorder(.white, lineWidth: 1)
-            .mask {
-                LinearGradient(
-                    colors: [
-                        .white,
-                        .clear,
-                        .white.opacity(0.5)
-                    ],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-            }
-            .opacity(0.4)
     }
 }
