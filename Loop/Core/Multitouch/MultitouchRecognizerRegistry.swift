@@ -5,8 +5,11 @@
 //  Created by Kai Azim on 2026-07-06.
 //
 
+import Foundation
+import Scribe
 import Subsurface
 
+@Loggable
 @MainActor
 final class MultitouchRecognizerRegistry {
     typealias EventHandler = @MainActor (SubsurfaceGestureEvent, Int) async -> ()
@@ -40,6 +43,8 @@ final class MultitouchRecognizerRegistry {
     private let gestureMonitor: SubsurfaceMonitor
     private let handleEvent: EventHandler
     private var entries: [Int: Entry] = [:]
+    /// Logged only when they change, as rebuilds also follow unrelated keybind edits
+    private var conflictingGestureIDs: Set<UUID> = []
 
     init(
         gestureMonitor: SubsurfaceMonitor,
@@ -58,6 +63,8 @@ final class MultitouchRecognizerRegistry {
     }
 
     func rebuild(with gestures: [GestureBinding]) -> [StopResult] {
+        logConflictingGestures(in: gestures)
+
         let gesturesByFingerCount = Dictionary(grouping: GestureBinding.activeGestures(in: gestures), by: \.fingerCount)
         let neededFingerCounts = Set(gesturesByFingerCount.keys)
 
@@ -101,6 +108,22 @@ final class MultitouchRecognizerRegistry {
 
     var hasRecognizers: Bool {
         !entries.isEmpty
+    }
+
+    private func logConflictingGestures(in gestures: [GestureBinding]) {
+        let conflictingIDs = GestureBinding.conflictingActionableIDs(in: gestures)
+        guard conflictingIDs != conflictingGestureIDs else { return }
+        conflictingGestureIDs = conflictingIDs
+
+        guard !conflictingIDs.isEmpty else {
+            log.info("No gestures are disabled by finger count conflicts")
+            return
+        }
+
+        let conflictingGestures = gestures
+            .filter { conflictingIDs.contains($0.id) }
+            .map { "\($0.fingerCount)-finger \($0.kind)" }
+        log.warn("Disabled gestures that conflict on the same finger count: \(conflictingGestures.joined(separator: ", "))")
     }
 
     private func startRecognizer(
