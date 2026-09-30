@@ -18,6 +18,7 @@ struct PreviewConfigurationView: View {
     @Default(.previewCornerRadius) private var previewCornerRadius
     @Default(.previewBorderThickness) private var previewBorderThickness
     @Default(.previewUseWindowCornerRadius) private var previewUseWindowCornerRadius
+    @Default(.previewBackgroundStyle) private var previewBackgroundStyle
     @Default(.previewBackgroundEnableBlur) private var previewBackgroundEnableBlur
     @Default(.previewBackgroundAccentOpacity) private var previewBackgroundAccentOpacity
 
@@ -86,7 +87,7 @@ struct PreviewConfigurationView: View {
             if #available(macOS 26, *) {
                 LuminareSection("Corner Radius") {
                     LuminareToggle(
-                        "Use selected window’s corner radius",
+                        "Match target window",
                         isOn: $previewUseWindowCornerRadius
                     )
 
@@ -105,18 +106,29 @@ struct PreviewConfigurationView: View {
             }
 
             LuminareSection("Background") {
-                LuminareToggle("Enable blur", isOn: $previewBackgroundEnableBlur)
+                LuminarePickerMenu(
+                    "Style",
+                    selection: $previewBackgroundStyle,
+                    items: PreviewBackgroundStyle.allCases
+                ) { style in
+                    Text(style.displayName)
+                }
 
-                LuminareSlider(
-                    "Accent opacity",
-                    value: $previewBackgroundAccentOpacity.doubleBinding,
-                    in: 0...1,
-                    step: 0.1,
-                    format: .percent.precision(.fractionLength(0...0)),
-                    clampsUpper: true,
-                    clampsLower: true
-                )
+                if previewBackgroundStyle == .custom {
+                    LuminareToggle("Enable blur", isOn: $previewBackgroundEnableBlur)
+
+                    LuminareSlider(
+                        "Accent opacity",
+                        value: $previewBackgroundAccentOpacity.doubleBinding,
+                        in: 0...1,
+                        step: 0.1,
+                        format: .percent.precision(.fractionLength(0...0)),
+                        clampsUpper: true,
+                        clampsLower: true
+                    )
+                }
             }
+            .animation(luminareAnimation, value: previewBackgroundStyle)
         }
         .animation(luminareAnimation, value: previewUseWindowCornerRadius)
     }
