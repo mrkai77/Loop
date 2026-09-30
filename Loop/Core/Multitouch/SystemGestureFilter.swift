@@ -6,6 +6,7 @@
 //
 
 import CoreGraphics
+import Foundation
 import os
 import Scribe
 import Subsurface
@@ -20,6 +21,10 @@ final class SystemGestureFilter {
     struct Claims {
         var anywhere: Set<DockGesture> = []
         var titlebarOnly: Set<DockGesture> = []
+
+        var isEmpty: Bool {
+            anywhere.isEmpty && titlebarOnly.isEmpty
+        }
     }
 
     private enum Owner {
@@ -33,10 +38,10 @@ final class SystemGestureFilter {
     private struct State {
         var isRunning = false
         var claims: [Int: Claims] = [:]
-        /// Active finger count per multitouch device
+        /// Active finger count per device
         var fingerCounts: [UInt64: Int] = [:]
-        /// Incremented whenever the fingers touch down or lift, so stale lookups are discarded
         var touchID = 0
+        var isTouching = false
         var hasLookedUpTouch = false
         var titlebarLookup = TitlebarLookup.pending
         var isMissionControlShowing = false
@@ -48,16 +53,16 @@ final class SystemGestureFilter {
             fingerCounts.values.max() ?? 0
         }
 
-        /// The Dock keeps its gestures while Mission Control is showing, so they can dismiss it
-        func owner(fingerCount: Int) -> Owner? {
-            isMissionControlShowing ? .dock : owners[fingerCount]
+        /// Look up once enough fingers are down for the smallest claim
+        var lookupFingerCount: Int? {
+            claims.filter { !$0.value.isEmpty }.keys.min().map { max($0, 2) }
         }
     }
 
     private struct Hold {
         var events: [CGEvent]
         let fingerCount: Int
-        let touchID: Int
+        let touchID: Int?
         let motion: CGEventField.DockSwipeMotion
         let claims: Claims
         let start: ContinuousClock.Instant
@@ -123,30 +128,18 @@ final class SystemGestureFilter {
         guard eventMonitor == nil else { return }
 
         log.info("Starting system gesture filter")
-        state.withLock { $0.sequenceGeneration += 1 }
 
-        let newMonitor = ActiveEventMonitor(
-            "system_gesture_filter",
-            events: [.dockControl]
-        ) { [weak self] proxy, event in
-            guard let self else { return Unmanaged.passUnretained(event) }
-            return handle(event, proxy: proxy)
-        }
-        newMonitor.start()
-
-        guard newMonitor.isEnabled else {
+        if !startEventMonitor() {
             log.warn("Failed to start system gesture filter")
-            newMonitor.stop()
-            return
         }
-
-        eventMonitor = newMonitor
     }
 
     func stop() {
         contactsTask?.cancel()
         contactsTask = nil
-        state.withLock { $0 = State(sequenceGeneration: $0.sequenceGeneration + 1) }
+        state.withLock { state in
+            state = State(touchID: state.touchID, sequenceGeneration: state.sequenceGeneration + 1)
+        }
 
         guard let eventMonitor else { return }
         eventMonitor.stop()
@@ -155,20 +148,22 @@ final class SystemGestureFilter {
         log.info("Stopped system gesture filter")
     }
 
-    /// Identifies the touch in progress, changing whenever the fingers touch down or lift
     var currentTouchID: Int {
         state.withLock(\.touchID)
     }
 
     func canClaimCurrentTouch(fingerCount: Int) -> Bool {
-        state.withLock { !$0.isRunning || $0.owner(fingerCount: fingerCount) != .dock }
+        state.withLock { state in
+            !state.isRunning || (!state.isMissionControlShowing && state.owners[fingerCount] != .dock)
+        }
     }
 
     /// Returns false if the Dock is already acting on the stroke
     func claimCurrentTouch(fingerCount: Int) -> Bool {
         state.withLock { state in
             guard state.isRunning else { return true }
-            guard state.owner(fingerCount: fingerCount) != .dock else { return false }
+            // The Dock keeps its gestures while Mission Control is showing, so they can dismiss it
+            guard !state.isMissionControlShowing, state.owners[fingerCount] != .dock else { return false }
             state.owners[fingerCount] = .loop
             return true
         }
@@ -181,22 +176,78 @@ final class SystemGestureFilter {
         }
     }
 
+    // MARK: Lifecycle
+
+    @discardableResult
+    private func startEventMonitor() -> Bool {
+        resetTouches()
+
+        let newMonitor = ActiveEventMonitor(
+            "system_gesture_filter",
+            events: [.dockControl]
+        ) { [weak self] proxy, event in
+            guard let self else { return Unmanaged.passUnretained(event) }
+            return handle(event, proxy: proxy)
+        }
+
+        newMonitor.start()
+
+        guard newMonitor.isEnabled else {
+            newMonitor.stop()
+            return false
+        }
+
+        eventMonitor = newMonitor
+        return true
+    }
+
+    private func resetTouches() {
+        state.withLock { state in
+            state.owners.removeAll()
+            state.hasLookedUpTouch = false
+            state.titlebarLookup = .pending
+            state.isMissionControlShowing = false
+            state.sequenceGeneration += 1
+            if state.isTouching {
+                state.touchID += 1
+            }
+        }
+    }
+
+    // MARK: Touches
+
     private func updateFingerCount(_ count: Int, deviceID: UInt64) {
         let lookupTouchID: Int? = state.withLock { state in
-            let wasTouching = state.fingerCount > 0
-            state.fingerCounts[deviceID] = count
+            guard state.isRunning else { return nil }
 
-            if wasTouching != (state.fingerCount > 0) {
-                state.touchID += 1
+            // Devices report zero contacts when they stop or are removed
+            if count > 0 {
+                state.fingerCounts[deviceID] = count
+            } else {
+                state.fingerCounts.removeValue(forKey: deviceID)
+            }
+
+            let isTouching = state.fingerCount > 0
+            if isTouching != state.isTouching {
+                state.isTouching = isTouching
                 state.hasLookedUpTouch = false
                 state.titlebarLookup = .pending
                 state.isMissionControlShowing = false
                 state.owners.removeAll()
+
+                if isTouching {
+                    state.touchID += 1
+                }
             }
 
-            // Look up once enough fingers are down for the smallest claim
-            let lookupFingerCount = max(state.claims.keys.min() ?? 2, 2)
-            guard !state.hasLookedUpTouch, state.fingerCount >= lookupFingerCount else { return nil }
+            guard isTouching,
+                  !state.hasLookedUpTouch,
+                  let lookupFingerCount = state.lookupFingerCount,
+                  state.fingerCount >= lookupFingerCount
+            else {
+                return nil
+            }
+
             state.hasLookedUpTouch = true
             return state.touchID
         }
@@ -214,8 +265,8 @@ final class SystemGestureFilter {
         }
     }
 
-    /// Called on the event tap thread. Each Dock swipe sequence reaches the Dock whole and in order, or not at all,
-    /// as the Dock can't recover from a sequence it didn't see from `began`.
+    // MARK: Events
+
     private func handle(_ event: CGEvent, proxy: CGEventTapProxy) -> Unmanaged<CGEvent>? {
         let forward = Unmanaged.passUnretained(event)
 
@@ -255,13 +306,13 @@ final class SystemGestureFilter {
         case var .holding(hold):
             if isEnd {
                 sequence = .passing
-                log.debug("Dock swipe (\(hold.fingerCount) fingers, \(hold.motion)): dropped, ended while held (\(ContinuousClock.now - hold.start))")
+                log.debug("Dock swipe (\(hold.fingerCount) fingers, \(hold.motion)): dropped, ended while held (\(Self.elapsed(since: hold.start)))")
                 return nil
             }
 
             let progress = event.getDoubleValueField(.dockSwipeProgress)
             if hold.direction == nil, progress != 0 {
-                hold.direction = Self.gestures(motion: hold.motion, progress: progress).first
+                hold.direction = Self.gesture(motion: hold.motion, progress: progress)
             }
 
             let isPastDeadline = ContinuousClock.now - hold.start >= Self.titlebarDeadline
@@ -272,7 +323,7 @@ final class SystemGestureFilter {
                 return nil
             case let .loop(reason):
                 sequence = .dropping
-                log.debug("Dock swipe (\(hold.fingerCount) fingers, \(hold.motion)): Loop after holding \(hold.events.count) events for \(ContinuousClock.now - hold.start), \(reason)")
+                log.debug("Dock swipe (\(hold.fingerCount) fingers, \(hold.motion)): Loop after holding \(hold.events.count) events for \(Self.elapsed(since: hold.start)), \(reason)")
                 return nil
             case let .dock(reason):
                 sequence = .passing
@@ -280,7 +331,7 @@ final class SystemGestureFilter {
                 for heldEvent in hold.events {
                     heldEvent.tapPostEvent(proxy)
                 }
-                log.debug("Dock swipe (\(hold.fingerCount) fingers, \(hold.motion)): Dock after holding \(hold.events.count) events for \(ContinuousClock.now - hold.start), \(reason)")
+                log.debug("Dock swipe (\(hold.fingerCount) fingers, \(hold.motion)): Dock after holding \(hold.events.count) events for \(Self.elapsed(since: hold.start)), \(reason)")
                 return forward
             }
         }
@@ -289,13 +340,19 @@ final class SystemGestureFilter {
     /// Decides a new sequence at `began`, returning whether to forward it.
     private func beginSequence(_ event: CGEvent) -> Bool {
         let (isRunning, fingerCount, touchID, claims) = state.withLock { state in
-            (state.isRunning, state.fingerCount, state.touchID, state.claims[state.fingerCount])
+            (state.isRunning, state.fingerCount, state.isTouching ? state.touchID : nil, state.claims[state.fingerCount])
         }
 
         guard isRunning,
               let motion = CGEventField.DockSwipeMotion(rawValue: event.getIntegerValueField(.dockSwipeMotion))
         else {
             sequence = .passing
+            return true
+        }
+
+        if state.withLock(\.isMissionControlShowing) {
+            sequence = .passing
+            log.debug("Dock swipe (\(fingerCount) fingers, \(motion)): Dock, Mission Control is showing")
             return true
         }
 
@@ -307,7 +364,7 @@ final class SystemGestureFilter {
             motion: motion,
             claims: claims ?? Claims(),
             start: .now,
-            direction: progress == 0 ? nil : Self.gestures(motion: motion, progress: progress).first
+            direction: progress == 0 ? nil : Self.gesture(motion: motion, progress: progress)
         )
 
         switch settle(hold, isPastDeadline: false) {
@@ -330,20 +387,17 @@ final class SystemGestureFilter {
         }
     }
 
-    /// An owner already recorded for the touch wins; otherwise the resolved owner is recorded.
+    /// An owner already recorded for the touch wins
     private func settle(_ hold: Hold, isPastDeadline: Bool) -> Resolution {
         state.withLock { state in
-            let isSameTouch = state.touchID == hold.touchID
-
-            switch isSameTouch ? state.owner(fingerCount: hold.fingerCount) : nil {
+            switch state.owners[hold.fingerCount] {
             case .loop:
                 return .loop(reason: "Loop owns the touch")
             case .dock:
-                return .dock(reason: state.isMissionControlShowing ? "Mission Control is showing" : "the Dock owns the touch")
+                return .dock(reason: "the Dock owns the touch")
             case nil:
-                let titlebar = isSameTouch ? state.titlebarLookup : .pending
+                let titlebar = state.touchID == hold.touchID ? state.titlebarLookup : .pending
                 let resolution = Self.resolve(hold, titlebar: titlebar, isPastDeadline: isPastDeadline)
-                guard isSameTouch else { return resolution }
                 switch resolution {
                 case .loop: state.owners[hold.fingerCount] = .loop
                 case .dock: state.owners[hold.fingerCount] = .dock
@@ -405,13 +459,20 @@ final class SystemGestureFilter {
         }
     }
 
+    private static func elapsed(since start: ContinuousClock.Instant) -> Duration {
+        ContinuousClock.now - start
+    }
+
+    private static func gesture(motion: CGEventField.DockSwipeMotion, progress: Double) -> DockGesture? {
+        gestures(motion: motion, progress: progress).first
+    }
+
     /// Both directions of the axis when `progress` is zero
     private static func gestures(motion: CGEventField.DockSwipeMotion, progress: Double) -> [DockGesture] {
-        let (negative, positive): (DockGesture, DockGesture)
-        switch motion {
-        case .horizontal: (negative, positive) = (.swipeRight, .swipeLeft)
-        case .vertical: (negative, positive) = (.swipeUp, .swipeDown)
-        case .pinch: (negative, positive) = (.pinch, .spread)
+        let (negative, positive): (DockGesture, DockGesture) = switch motion {
+        case .horizontal: (.swipeRight, .swipeLeft)
+        case .vertical: (.swipeUp, .swipeDown)
+        case .pinch: (.pinch, .spread)
         }
 
         if progress < 0 { return [negative] }
