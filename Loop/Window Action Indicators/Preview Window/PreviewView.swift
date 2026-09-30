@@ -15,6 +15,7 @@ struct PreviewView: View {
 
     @Default(.previewPadding) private var previewPadding
     @Default(.previewCornerRadius) private var previewCornerRadius
+    @Default(.previewUseWindowCornerRadius) private var previewUseWindowCornerRadius
     @Default(.previewBorderThickness) private var previewBorderThickness
     @Default(.previewBackgroundEnableBlur) private var previewEnableBlur
     @Default(.previewBackgroundAccentOpacity) private var previewBackgroundAccentOpacity
@@ -30,12 +31,18 @@ struct PreviewView: View {
             return inset
         }
 
-        // Fall back to the user's default radius
+        // Fall back to 16pt when using window radii, otherwise the user's radius
+        let radius: CGFloat = if #available(macOS 26, *), previewUseWindowCornerRadius {
+            16
+        } else {
+            previewCornerRadius
+        }
+
         return RectangleCornerRadii(
-            topLeading: previewCornerRadius,
-            bottomLeading: previewCornerRadius,
-            bottomTrailing: previewCornerRadius,
-            topTrailing: previewCornerRadius
+            topLeading: radius,
+            bottomLeading: radius,
+            bottomTrailing: radius,
+            topTrailing: radius
         )
     }
 

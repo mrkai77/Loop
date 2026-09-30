@@ -42,8 +42,6 @@ extension Defaults.Keys {
 
     // Behavior
     static let launchAtLogin = Key<Bool>("launchAtLogin", default: false)
-    static let startHidden = Key<Bool>("startHidden", default: false)
-    static let hideMenuBarIcon = Key<Bool>("hideMenuBarIcon", default: false, iCloud: false)
     static let animationConfiguration = Key<AnimationConfiguration>("animationConfiguration", default: .snappy)
     static let windowSnapping = Key<Bool>("windowSnapping", default: false)
     static let suppressMissionControlOnTopDrag = Key<Bool>("suppressMissionControlOnTopDrag", default: true)
@@ -51,7 +49,6 @@ extension Defaults.Keys {
     static let enablePadding = Key<Bool>("enablePadding", default: false)
     static let padding = Key<PaddingConfiguration>("padding", default: .zero)
     static let useScreenWithCursor = Key<Bool>("useScreenWithCursor", default: true)
-    static let moveCursorWithWindow = Key<Bool>("moveCursorWithWindow", default: false)
     static let resizeWindowUnderCursor = Key<Bool>("resizeWindowUnderCursor", default: false)
     static let focusWindowOnResize = Key<Bool>("focusWindowOnResize", default: true)
     static let respectStageManager = Key<Bool>("respectStageManager", default: true)
@@ -110,6 +107,21 @@ extension Defaults.Keys {
     /// Adjust with `defaults write com.MrKai77.Loop lockRadialMenuToCenter -bool true`
     /// Reset with `defaults delete com.MrKai77.Loop lockRadialMenuToCenter`
     static let lockRadialMenuToCenter = Key<Bool>("lockRadialMenuToCenter", default: false)
+
+    /// Don't show the settings window when Loop is opened manually. Loop always starts hidden when launched at login.
+    /// Adjust with `defaults write com.MrKai77.Loop startHidden -bool true`
+    /// Reset with `defaults delete com.MrKai77.Loop startHidden`
+    static let startHidden = Key<Bool>("startHidden", default: false)
+
+    /// Hide Loop's menu bar icon. Opening Loop again while it's running shows the settings window.
+    /// Adjust with `defaults write com.MrKai77.Loop hideMenuBarIcon -bool true`
+    /// Reset with `defaults delete com.MrKai77.Loop hideMenuBarIcon`
+    static let hideMenuBarIcon = Key<Bool>("hideMenuBarIcon", default: false, iCloud: false)
+
+    /// Moves the cursor to the center of the window after executing an action. Requires preview window to be enabled.
+    /// Adjust with `defaults write com.MrKai77.Loop moveCursorWithWindow -bool true`
+    /// Reset with `defaults delete com.MrKai77.Loop moveCursorWithWindow`
+    static let moveCursorWithWindow = Key<Bool>("moveCursorWithWindow", default: false)
 
     /// Minimum screen size, defined in inches on the diagonal, for which padding will be applied on windows.
     /// Adjust with `defaults write com.MrKai77.Loop paddingMinimumScreenSize -float x`
@@ -234,7 +246,6 @@ enum DefaultsiCloudSyncRegistrar {
         Defaults.iCloud.add(.previewBackgroundEnableBlur)
         Defaults.iCloud.add(.previewBackgroundAccentOpacity)
 
-        Defaults.iCloud.add(.startHidden)
         Defaults.iCloud.add(.animationConfiguration)
         Defaults.iCloud.add(.windowSnapping)
         Defaults.iCloud.add(.suppressMissionControlOnTopDrag)
@@ -242,7 +253,6 @@ enum DefaultsiCloudSyncRegistrar {
         Defaults.iCloud.add(.enablePadding)
         Defaults.iCloud.add(.padding)
         Defaults.iCloud.add(.useScreenWithCursor)
-        Defaults.iCloud.add(.moveCursorWithWindow)
         Defaults.iCloud.add(.resizeWindowUnderCursor)
         Defaults.iCloud.add(.focusWindowOnResize)
         Defaults.iCloud.add(.respectStageManager)

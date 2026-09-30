@@ -86,21 +86,22 @@ struct PreviewConfigurationView: View {
             if #available(macOS 26, *) {
                 LuminareSection("Corner Radius") {
                     LuminareToggle(
-                        "Prioritize selected window’s corner radius",
+                        "Use selected window’s corner radius",
                         isOn: $previewUseWindowCornerRadius
                     )
 
-                    LuminareSlider(
-                        previewUseWindowCornerRadius ? "Default corner radius" : "Corner radius",
-                        value: $previewCornerRadius.doubleBinding,
-                        in: 0...25,
-                        format: .number.precision(.fractionLength(0...0)),
-                        clampsUpper: false,
-                        clampsLower: true,
-                        suffix: Text("px", comment: "Unit symbol: pixels")
-                    )
+                    if !previewUseWindowCornerRadius {
+                        LuminareSlider(
+                            "Corner radius",
+                            value: $previewCornerRadius.doubleBinding,
+                            in: 0...25,
+                            format: .number.precision(.fractionLength(0...0)),
+                            clampsUpper: false,
+                            clampsLower: true,
+                            suffix: Text("px", comment: "Unit symbol: pixels")
+                        )
+                    }
                 }
-                .animation(luminareAnimation, value: previewUseWindowCornerRadius)
             }
 
             LuminareSection("Background") {
@@ -117,5 +118,6 @@ struct PreviewConfigurationView: View {
                 )
             }
         }
+        .animation(luminareAnimation, value: previewUseWindowCornerRadius)
     }
 }
