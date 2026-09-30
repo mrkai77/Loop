@@ -13,15 +13,12 @@ struct BehaviorConfigurationView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
 
     @Default(.launchAtLogin) var launchAtLogin
-    @Default(.startHidden) var startHidden
-    @Default(.hideMenuBarIcon) var hideMenuBarIcon
     @Default(.animationConfiguration) var animationConfiguration
     @Default(.windowSnapping) var windowSnapping
     @Default(.suppressMissionControlOnTopDrag) var suppressMissionControlOnTopDrag
     @Default(.restoreWindowFrameOnDrag) var restoreWindowFrameOnDrag
     @Default(.useSystemWindowManagerWhenAvailable) var useSystemWindowManagerWhenAvailable
     @Default(.useScreenWithCursor) var useScreenWithCursor
-    @Default(.moveCursorWithWindow) var moveCursorWithWindow
     @Default(.resizeWindowUnderCursor) var resizeWindowUnderCursor
     @Default(.focusWindowOnResize) var focusWindowOnResize
     @Default(.respectStageManager) var respectStageManager
@@ -37,7 +34,6 @@ struct BehaviorConfigurationView: View {
         LuminareForm {
             generalSection
             windowSection
-            cursorSection
             windowSnappingSection
             stageManagerSection
             stashSection
@@ -56,10 +52,6 @@ struct BehaviorConfigurationView: View {
         LuminareSection(String(localized: "General", comment: "Section header shown in settings")) {
             LuminareToggle("Launch at login", isOn: $launchAtLogin)
 
-            LuminareToggle("Start hidden", isOn: $startHidden)
-
-            LuminareToggle("Hide menu bar icon", isOn: $hideMenuBarIcon)
-
             LuminareSliderPicker(
                 "Animation speed",
                 AnimationConfiguration.allCases.reversed(),
@@ -73,7 +65,20 @@ struct BehaviorConfigurationView: View {
 
     private var windowSection: some View {
         LuminareSection(String(localized: "Window", comment: "Section header shown in settings")) {
-            LuminareToggle("Move window to cursor's screen", isOn: $useScreenWithCursor)
+            LuminarePickerMenu(
+                "Target window",
+                selection: windowSelection,
+                items: WindowSelection.allCases
+            ) { selection in
+                Text("\(Image(systemName: selection.icon)) \(selection.title)")
+            }
+
+            // If the system WM is enabled, the window under the cursor requires focus.
+            if resizeWindowUnderCursor, !useSystemWindowManagerWhenAvailable {
+                LuminareToggle("Focus on resize", isOn: $focusWindowOnResize)
+            }
+
+            LuminareToggle("Move to cursor's screen", isOn: $useScreenWithCursor)
 
             // Enabling the system window manager will override these options.
             if !useSystemWindowManagerWhenAvailable {
@@ -90,22 +95,11 @@ struct BehaviorConfigurationView: View {
         }
     }
 
-    private var cursorSection: some View {
-        LuminareSection(String(localized: "Cursor", comment: "Section header shown in settings")) {
-            // This can only be enabled when the preview is visible.
-            // Because when the preview is disabled, the window moves live with cursor movement,
-            // so moving the cursor would be unusable.
-            if previewVisibility {
-                LuminareToggle("Move cursor with window", isOn: $moveCursorWithWindow)
-            }
-
-            LuminareToggle("Resize window under cursor", isOn: $resizeWindowUnderCursor)
-
-            // If the system WM is enabled, the window under the cursor requires focus.
-            if resizeWindowUnderCursor, !useSystemWindowManagerWhenAvailable {
-                LuminareToggle("Focus window on resize", isOn: $focusWindowOnResize)
-            }
-        }
+    private var windowSelection: Binding<WindowSelection> {
+        Binding(
+            get: { resizeWindowUnderCursor ? .underCursor : .focused },
+            set: { resizeWindowUnderCursor = $0 == .underCursor }
+        )
     }
 
     private var windowSnappingSection: some View {
@@ -174,6 +168,26 @@ struct BehaviorConfigurationView: View {
         }
         .onChange(of: stashedWindowVisiblePadding) { _ in
             Task { await StashManager.shared.onConfigurationChanged() }
+        }
+    }
+}
+
+/// Which window Loop acts on, stored as `resizeWindowUnderCursor`
+private enum WindowSelection: CaseIterable {
+    case focused
+    case underCursor
+
+    var title: String {
+        switch self {
+        case .focused: String(localized: "Focused", comment: "Window selection option: act on the focused window")
+        case .underCursor: String(localized: "Under Cursor", comment: "Window selection option: act on the window under the cursor")
+        }
+    }
+
+    var icon: String {
+        switch self {
+        case .focused: "interface.window.on.rectangle.dashed"
+        case .underCursor: "interface.window.and.pointer.arrow"
         }
     }
 }
