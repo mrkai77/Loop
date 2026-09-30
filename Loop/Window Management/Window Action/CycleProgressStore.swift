@@ -41,15 +41,20 @@ struct CycleProgressStore {
 
     private var cursors: [Key: Cursor] = [:]
 
-    /// Returns the next child without updating progress.
-    ///
-    /// Restarts at the first child when requested. Otherwise, uses stored progress before `seedAction`.
+    enum Origin {
+        /// This session's last selection, which also tells duplicate children apart, or `fallback` without one
+        case sessionProgress(fallback: WindowAction?)
+        /// `action`, or before the first child if it's `nil` or not part of the cycle
+        case action(WindowAction?)
+    }
+
+    /// Returns the child `direction` moves to from `origin`, or `origin` itself without a direction.
+    /// Doesn't update progress until the selection is committed.
     mutating func proposeSelection(
         for targetWindowID: CGWindowID,
         in cycleAction: WindowAction,
-        seededBy seedAction: WindowAction?,
-        restartAtBeginning: Bool,
-        direction: Direction
+        from origin: Origin,
+        moving direction: Direction?
     ) -> Selection? {
         let key = Key(
             targetWindowID: targetWindowID,
@@ -64,27 +69,20 @@ struct CycleProgressStore {
             return nil
         }
 
-        if restartAtBeginning {
-            return Selection(action: children[0], index: 0, key: key)
+        let originIndex: Int? = switch origin {
+        case let .sessionProgress(fallback):
+            sessionIndex(for: key, in: children, matching: fallback) ?? index(of: fallback, in: children)
+        case let .action(action):
+            index(of: action, in: children)
         }
 
-        if let cursor = cursors[key] {
-            if let currentIndex = validatedIndex(for: cursor, in: children) {
-                let index = nextIndex(after: currentIndex, count: children.count, direction: direction)
-                return Selection(action: children[index], index: index, key: key)
-            }
-
-            // The selected child was removed, so re-seed from the updated cycle
-            cursors[key] = nil
+        let index = if let originIndex, let direction {
+            nextIndex(after: originIndex, count: children.count, direction: direction)
+        } else {
+            originIndex ?? 0
         }
 
-        if let seedAction,
-           let seedIndex = children.firstIndex(where: { $0.id == seedAction.id }) {
-            let index = nextIndex(after: seedIndex, count: children.count, direction: direction)
-            return Selection(action: children[index], index: index, key: key)
-        }
-
-        return Selection(action: children[0], index: 0, key: key)
+        return Selection(action: children[index], index: index, key: key)
     }
 
     /// Records and returns a selection only if it still matches the current cycle
@@ -130,45 +128,20 @@ struct CycleProgressStore {
         return acceptedAction
     }
 
-    mutating func proposeCurrentSelection(
-        for targetWindowID: CGWindowID,
-        in cycleAction: WindowAction,
-        seededBy seedAction: WindowAction?,
-        resumingProgress: Bool
-    ) -> Selection? {
-        let key = Key(
-            targetWindowID: targetWindowID,
-            parentCycleActionID: cycleAction.id
-        )
-
-        guard cycleAction.direction == .cycle,
-              let children = cycleAction.cycle,
-              !children.isEmpty
+    /// The session's last selection, if it's still in the cycle and is `action` (when given)
+    private func sessionIndex(for key: Key, in children: [WindowAction], matching action: WindowAction?) -> Int? {
+        guard let cursor = cursors[key],
+              action == nil || cursor.childActionID == action?.id
         else {
-            cursors[key] = nil
             return nil
         }
 
-        if let seedAction,
-           let cursor = cursors[key],
-           cursor.childActionID == seedAction.id,
-           let index = validatedIndex(for: cursor, in: children) {
-            return Selection(action: children[index], index: index, key: key)
-        }
+        return validatedIndex(for: cursor, in: children)
+    }
 
-        if let seedAction,
-           let index = children.firstIndex(where: { $0.id == seedAction.id }) {
-            return Selection(action: children[index], index: index, key: key)
-        }
-
-        // Coming from outside the cycle resumes where it was left, rather than restarting it
-        if resumingProgress,
-           let cursor = cursors[key],
-           let index = validatedIndex(for: cursor, in: children) {
-            return Selection(action: children[index], index: index, key: key)
-        }
-
-        return Selection(action: children[0], index: 0, key: key)
+    private func index(of action: WindowAction?, in children: [WindowAction]) -> Int? {
+        guard let action else { return nil }
+        return children.firstIndex { $0.id == action.id }
     }
 
     private func validatedIndex(for cursor: Cursor, in children: [WindowAction]) -> Int? {
