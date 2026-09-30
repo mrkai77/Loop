@@ -239,7 +239,8 @@ struct CycleProgressStoreTests {
         let currentSelection = store.proposeCurrentSelection(
             for: targetA,
             in: cycle,
-            seededBy: repeated
+            seededBy: repeated,
+            resumingProgress: false
         )
         let selected = try #require(currentSelection)
         _ = store.commit(selected, for: targetA, in: cycle)

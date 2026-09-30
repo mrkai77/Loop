@@ -133,7 +133,8 @@ struct CycleProgressStore {
     mutating func proposeCurrentSelection(
         for targetWindowID: CGWindowID,
         in cycleAction: WindowAction,
-        seededBy seedAction: WindowAction?
+        seededBy seedAction: WindowAction?,
+        resumingProgress: Bool
     ) -> Selection? {
         let key = Key(
             targetWindowID: targetWindowID,
@@ -161,7 +162,8 @@ struct CycleProgressStore {
         }
 
         // Coming from outside the cycle resumes where it was left, rather than restarting it
-        if let cursor = cursors[key],
+        if resumingProgress,
+           let cursor = cursors[key],
            let index = validatedIndex(for: cursor, in: children) {
             return Selection(action: children[index], index: index, key: key)
         }

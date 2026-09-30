@@ -8,9 +8,12 @@
 import CoreGraphics
 
 struct CycleActionCoordinator {
-    enum SelectionMode {
+    enum SelectionMode: Equatable {
         case advance(CycleProgressStore.Direction)
         case selectCurrent
+        /// Like `selectCurrent`, but coming from outside the cycle resumes where it was left.
+        /// Used by gestures, where moving back into an already visited action shouldn't restart its cycle.
+        case resumeCurrent
     }
 
     struct Proposal {
@@ -57,11 +60,12 @@ struct CycleActionCoordinator {
                 restartAtBeginning: restartAtBeginning,
                 direction: direction
             )
-        case .selectCurrent:
+        case .selectCurrent, .resumeCurrent:
             progressStore.proposeCurrentSelection(
                 for: targetWindowID,
                 in: cycleAction,
-                seededBy: currentActionBelongsToCycle ? currentAction : nil
+                seededBy: currentActionBelongsToCycle ? currentAction : nil,
+                resumingProgress: mode == .resumeCurrent
             )
         }
 

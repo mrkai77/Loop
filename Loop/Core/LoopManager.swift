@@ -112,7 +112,12 @@ final class LoopManager {
         },
         changeAction: { [weak self] action, reverse, canAdvanceCycle in
             Task {
-                await self?.changeAction(action, canAdvanceCycle: canAdvanceCycle, reverse: reverse)
+                await self?.changeAction(
+                    action,
+                    canAdvanceCycle: canAdvanceCycle,
+                    resumeCycleProgress: true,
+                    reverse: reverse
+                )
             }
         },
         checkIfLoopOpen: { [weak self] in
@@ -393,12 +398,14 @@ extension LoopManager {
     ///   - triggeredFromScreenChange: If this action was triggered from a screen change, this will prevent cycle keybinds from infinitely changing screens.
     ///   - disableHapticFeedback: This will prevent haptic feedback.
     ///   - canAdvanceCycle: This will prevent the cycle from advancing if set to false. This is currently used when changing actions via the radial menu.
+    ///   - resumeCycleProgress: When the cycle can't advance, resumes its stored progress instead of restarting it. Used by gestures.
     ///   - reverse: Steps a cycle backwards, or performs the opposite of any other action, such as smaller for larger.
     private func changeAction(
         _ newAction: WindowAction,
         triggeredFromScreenChange: Bool = false,
         disableHapticFeedback: Bool = false,
         canAdvanceCycle: Bool = true,
+        resumeCycleProgress: Bool = false,
         reverse: Bool = false
     ) async {
         var newAction = newAction
@@ -439,6 +446,7 @@ extension LoopManager {
             cycleProposal = proposeCycleAction(
                 newAction,
                 canAdvance: canAdvanceCycle,
+                resumeProgress: resumeCycleProgress,
                 reverse: reverse
             )
             if let cycleProposal {
@@ -642,6 +650,7 @@ extension LoopManager {
     private func proposeCycleAction(
         _ action: WindowAction,
         canAdvance: Bool,
+        resumeProgress: Bool,
         reverse: Bool
     ) -> CycleActionCoordinator.Proposal? {
         // Allow cycling backwards only if:
@@ -656,6 +665,8 @@ extension LoopManager {
             reverse || (allowReverseCycle && keybindTrigger.effectiveEventFlags.contains(.maskShift))
                 ? .advance(.backward)
                 : .advance(.forward)
+        } else if resumeProgress {
+            .resumeCurrent
         } else {
             .selectCurrent
         }
