@@ -36,18 +36,11 @@ final class PassiveEventMonitor: BaseEventTapMonitor {
             let observer = Unmanaged<PassiveEventMonitor>.fromOpaque(refcon).takeUnretainedValue()
 
             // Tap management notifications carry a null event, so read eventType, not event.type
-            if eventType == .tapDisabledByTimeout {
+            // Disabled by the system for being slow or for secure input
+            if eventType == .tapDisabledByTimeout || eventType == .tapDisabledByUserInput {
                 if observer.isEnabled {
-                    let tapRunLoop = EventTapThread.shared.runLoop
-                    CFRunLoopPerformBlock(tapRunLoop, CFRunLoopMode.commonModes as CFTypeRef) {
-                        observer.attemptRestart()
-                    }
-                    CFRunLoopWakeUp(tapRunLoop)
+                    observer.attemptRestart()
                 }
-                return nil
-            }
-
-            if eventType == .tapDisabledByUserInput {
                 return nil
             }
 

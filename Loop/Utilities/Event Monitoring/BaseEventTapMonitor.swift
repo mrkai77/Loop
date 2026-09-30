@@ -90,22 +90,31 @@ class BaseEventTapMonitor: EventMonitorProtocol, Identifiable, Equatable {
         lhs.id == rhs.id
     }
 
-    /// Attempts to re-enable the tap after a timeout, giving up if it's restarting too frequently.
+    /// Re-enables the tap after the system disabled it.
+    /// If it's restarting too frequently, pauses first so a stalled tap doesn't keep interrupting input.
     func attemptRestart() {
         let now = ContinuousClock.now
         let windowStart = now - Self.restartWindow
         restartTimestamps.removeAll { $0 < windowStart }
         restartTimestamps.append(now)
 
-        let identifier = readableIdentifier ?? id.uuidString
-
-        if restartTimestamps.count > Self.maxRestartsInWindow {
-            log.warn("Event tap '\(identifier)' restart cascade detected, tearing down")
-            tearDownEventTap()
+        guard restartTimestamps.count > Self.maxRestartsInWindow else {
+            start()
             return
         }
 
-        start()
+        let identifier = readableIdentifier ?? id.uuidString
+        log.warn("Event tap '\(identifier)' restart cascade detected, pausing for \(Self.restartWindow)")
+        restartTimestamps.removeAll()
+
+        let runLoop = EventTapThread.shared.runLoop
+        DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(2)) { [weak self] in
+            CFRunLoopPerformBlock(runLoop, CFRunLoopMode.commonModes as CFTypeRef) { [weak self] in
+                guard let self, isEnabled else { return }
+                start()
+            }
+            CFRunLoopWakeUp(runLoop)
+        }
     }
 
     private func tearDownEventTap() {
