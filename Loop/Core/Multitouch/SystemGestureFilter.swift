@@ -23,26 +23,11 @@ final class SystemGestureFilter {
     }
 
     private enum Owner {
-        case undecided, loop, dock
+        case loop, dock
     }
 
     private enum TitlebarLookup {
         case pending, inside, outside
-    }
-
-    private enum Sequence {
-        case passing
-        case dropping
-        /// Started the unbound way on a partly bound axis. The Dock is sent a cancel if Loop claims it
-        case provisional
-        /// Started the bound way on a partly or unconfirmed bound axis. Replayed to the Dock if Loop doesn't claim it
-        case holding(began: CGEvent)
-    }
-
-    private enum Decision {
-        case forward, drop
-        case replay(began: CGEvent, current: CGEvent)
-        case cancel(CGEvent)
     }
 
     private struct State {
@@ -55,28 +40,41 @@ final class SystemGestureFilter {
         var hasLookedUpTouch = false
         var titlebarLookup = TitlebarLookup.pending
         var isMissionControlShowing = false
+        /// Absent while undecided
         var owners: [Int: Owner] = [:]
+        var sequenceGeneration = 0
 
         var fingerCount: Int {
             fingerCounts.values.max() ?? 0
         }
 
-        /// Titlebar-only gestures stay claimed until known: losing a stroke beats both reacting
-        func claimedGestures(fingerCount: Int) -> Set<DockGesture> {
-            guard let claims = claims[fingerCount] else { return [] }
-            return titlebarLookup == .outside ? claims.anywhere : claims.anywhere.union(claims.titlebarOnly)
-        }
-
-        /// Titlebar-only gestures count once known to apply, so the Dock can still get a stroke Loop rejects
-        func confirmedClaims(fingerCount: Int) -> Set<DockGesture> {
-            guard let claims = claims[fingerCount] else { return [] }
-            return titlebarLookup == .inside ? claims.anywhere.union(claims.titlebarOnly) : claims.anywhere
-        }
-
         /// The Dock keeps its gestures while Mission Control is showing, so they can dismiss it
-        func owner(fingerCount: Int) -> Owner {
-            isMissionControlShowing ? .dock : owners[fingerCount] ?? .undecided
+        func owner(fingerCount: Int) -> Owner? {
+            isMissionControlShowing ? .dock : owners[fingerCount]
         }
+    }
+
+    private struct Hold {
+        var events: [CGEvent]
+        let fingerCount: Int
+        let touchID: Int
+        let motion: CGEventField.DockSwipeMotion
+        let claims: Claims
+        let start: ContinuousClock.Instant
+        var direction: DockGesture?
+    }
+
+    private enum Sequence {
+        case passing
+        case dropping
+        case holding(Hold)
+    }
+
+    private enum Resolution {
+        case loop(reason: String)
+        case dock(reason: String)
+        case awaitingTitlebar
+        case awaitingDirection
     }
 
     private let gestureMonitor: SubsurfaceMonitor
@@ -85,14 +83,13 @@ final class SystemGestureFilter {
     private var eventMonitor: ActiveEventMonitor?
     private var contactsTask: Task<(), Never>?
 
-    /// Marks events Loop re-posts to the Dock, so the filter lets them through
-    private static let repostMarker: Int64 = 0x4C4F_4F50
-    /// Kept small, as the Dock jumps to the current progress when a held `began` is replayed
-    private static let holdReleaseProgress: Double = 0.05
+    /// How long a sequence may wait on the titlebar lookup before the Dock gets it
+    private static let titlebarDeadline: Duration = .milliseconds(40)
+    private static let ownProcessID = Int64(getpid())
 
     /// Only touched on the event tap thread
     private var sequence = Sequence.passing
-    private var sequenceFingerCount = 0
+    private var sequenceGeneration = 0
 
     init(
         gestureMonitor: SubsurfaceMonitor,
@@ -126,12 +123,14 @@ final class SystemGestureFilter {
         guard eventMonitor == nil else { return }
 
         log.info("Starting system gesture filter")
+        state.withLock { $0.sequenceGeneration += 1 }
 
         let newMonitor = ActiveEventMonitor(
             "system_gesture_filter",
             events: [.dockControl]
-        ) { [weak self] event in
-            self?.handle(event) ?? .forward
+        ) { [weak self] proxy, event in
+            guard let self else { return Unmanaged.passUnretained(event) }
+            return handle(event, proxy: proxy)
         }
         newMonitor.start()
 
@@ -147,7 +146,7 @@ final class SystemGestureFilter {
     func stop() {
         contactsTask?.cancel()
         contactsTask = nil
-        state.withLock { $0 = State() }
+        state.withLock { $0 = State(sequenceGeneration: $0.sequenceGeneration + 1) }
 
         guard let eventMonitor else { return }
         eventMonitor.stop()
@@ -215,139 +214,204 @@ final class SystemGestureFilter {
         }
     }
 
-    private func handle(_ event: CGEvent) -> ActiveEventMonitor.EventHandling {
-        guard event.getIntegerValueField(.gestureHIDType) == CGEventField.GestureHIDType.dockSwipe.rawValue,
-              event.getIntegerValueField(.eventSourceUserData) != Self.repostMarker
-        else {
-            return .forward
+    /// Called on the event tap thread. Each Dock swipe sequence reaches the Dock whole and in order, or not at all,
+    /// as the Dock can't recover from a sequence it didn't see from `began`.
+    private func handle(_ event: CGEvent, proxy: CGEventTapProxy) -> Unmanaged<CGEvent>? {
+        let forward = Unmanaged.passUnretained(event)
+
+        guard event.getIntegerValueField(.gestureHIDType) == CGEventField.GestureHIDType.dockSwipe.rawValue else {
+            return forward
         }
 
-        switch decide(for: event) {
-        case .forward:
-            return .forward
-        case .drop:
-            return .ignore
-        case let .replay(began, current):
-            repost(began)
-            repost(current)
-            return .ignore
-        case let .cancel(current):
-            current.setIntegerValueField(.gesturePhase, value: CGEventField.GesturePhase.cancelled.rawValue)
-            current.setDoubleValueField(.dockSwipeVelocity, value: 0)
-            repost(current)
-            return .ignore
+        // Dock swipes posted by other apps are theirs to manage
+        let sourceProcessID = event.getIntegerValueField(.eventSourceUnixProcessID)
+        guard sourceProcessID == 0 || sourceProcessID == Self.ownProcessID else {
+            return forward
         }
-    }
 
-    private func decide(for event: CGEvent) -> Decision {
+        let generation = state.withLock(\.sequenceGeneration)
+        if generation != sequenceGeneration {
+            sequenceGeneration = generation
+            sequence = .passing
+        }
+
         let phase = CGEventField.GesturePhase(rawValue: event.getIntegerValueField(.gesturePhase))
-        let motion = CGEventField.DockSwipeMotion(rawValue: event.getIntegerValueField(.dockSwipeMotion))
-        let progress = event.getDoubleValueField(.dockSwipeProgress)
 
         if phase == .began {
-            sequence = beginSequence(event, motion: motion, progress: progress)
-            switch sequence {
-            case .passing, .provisional: return .forward
-            case .dropping, .holding: return .drop
+            if case let .holding(hold) = sequence {
+                log.debug("Dock swipe (\(hold.fingerCount) fingers, \(hold.motion)): dropped \(hold.events.count) held events, a new sequence began before it ended")
             }
+            return beginSequence(event) ? forward : nil
         }
 
         let isEnd = phase == .ended || phase == .cancelled
-        defer {
-            if isEnd { sequence = .passing }
-        }
 
         switch sequence {
         case .passing:
-            return .forward
+            return forward
         case .dropping:
-            return .drop
-        case .provisional:
-            let fingerCount = sequenceFingerCount
-            guard state.withLock({ $0.owner(fingerCount: fingerCount) }) == .loop else { return .forward }
-            sequence = .dropping
-            return .cancel(event.copy() ?? event)
-        case let .holding(began):
-            let fingerCount = sequenceFingerCount
-            let owner: Owner = state.withLock { state in
-                let owner = state.owner(fingerCount: fingerCount)
-                guard owner == .undecided,
-                      abs(progress) >= Self.holdReleaseProgress,
-                      Self.gestures(motion: motion, progress: progress)
-                      .isDisjoint(with: state.claimedGestures(fingerCount: fingerCount))
-                else {
-                    return owner
-                }
-                state.owners[fingerCount] = .dock
-                return .dock
-            }
-
-            switch owner {
-            case .undecided:
-                return .drop
-            case .loop:
-                sequence = .dropping
-                return .drop
-            case .dock:
+            if isEnd { sequence = .passing }
+            return nil
+        case var .holding(hold):
+            if isEnd {
                 sequence = .passing
-                // A sequence ending while held was too small for the Dock to act on
-                return isEnd ? .drop : .replay(began: began, current: event.copy() ?? event)
+                log.debug("Dock swipe (\(hold.fingerCount) fingers, \(hold.motion)): dropped, ended while held (\(ContinuousClock.now - hold.start))")
+                return nil
+            }
+
+            let progress = event.getDoubleValueField(.dockSwipeProgress)
+            if hold.direction == nil, progress != 0 {
+                hold.direction = Self.gestures(motion: hold.motion, progress: progress).first
+            }
+
+            let isPastDeadline = ContinuousClock.now - hold.start >= Self.titlebarDeadline
+            switch settle(hold, isPastDeadline: isPastDeadline) {
+            case .awaitingTitlebar, .awaitingDirection:
+                hold.events.append(event.copy() ?? event)
+                sequence = .holding(hold)
+                return nil
+            case let .loop(reason):
+                sequence = .dropping
+                log.debug("Dock swipe (\(hold.fingerCount) fingers, \(hold.motion)): Loop after holding \(hold.events.count) events for \(ContinuousClock.now - hold.start), \(reason)")
+                return nil
+            case let .dock(reason):
+                sequence = .passing
+                // Posted from this tap's position, so they reach the Dock before the current event
+                for heldEvent in hold.events {
+                    heldEvent.tapPostEvent(proxy)
+                }
+                log.debug("Dock swipe (\(hold.fingerCount) fingers, \(hold.motion)): Dock after holding \(hold.events.count) events for \(ContinuousClock.now - hold.start), \(reason)")
+                return forward
             }
         }
     }
 
-    private func beginSequence(_ event: CGEvent, motion: CGEventField.DockSwipeMotion?, progress: Double) -> Sequence {
-        let (fingerCount, owner, claimed, confirmed) = state.withLock { state in
-            let fingerCount = state.fingerCount
-            return (
-                fingerCount,
-                state.owner(fingerCount: fingerCount),
-                state.claimedGestures(fingerCount: fingerCount),
-                state.confirmedClaims(fingerCount: fingerCount)
-            )
+    /// Decides a new sequence at `began`, returning whether to forward it.
+    private func beginSequence(_ event: CGEvent) -> Bool {
+        let (isRunning, fingerCount, touchID, claims) = state.withLock { state in
+            (state.isRunning, state.fingerCount, state.touchID, state.claims[state.fingerCount])
         }
-        sequenceFingerCount = fingerCount
 
-        switch owner {
+        guard isRunning,
+              let motion = CGEventField.DockSwipeMotion(rawValue: event.getIntegerValueField(.dockSwipeMotion))
+        else {
+            sequence = .passing
+            return true
+        }
+
+        let progress = event.getDoubleValueField(.dockSwipeProgress)
+        let hold = Hold(
+            events: [event.copy() ?? event],
+            fingerCount: fingerCount,
+            touchID: touchID,
+            motion: motion,
+            claims: claims ?? Claims(),
+            start: .now,
+            direction: progress == 0 ? nil : Self.gestures(motion: motion, progress: progress).first
+        )
+
+        switch settle(hold, isPastDeadline: false) {
+        case let .loop(reason):
+            sequence = .dropping
+            log.debug("Dock swipe (\(fingerCount) fingers, \(motion)): Loop, \(reason)")
+            return false
+        case let .dock(reason):
+            sequence = .passing
+            log.debug("Dock swipe (\(fingerCount) fingers, \(motion)): Dock, \(reason)")
+            return true
+        case .awaitingTitlebar:
+            sequence = .holding(hold)
+            log.debug("Dock swipe (\(fingerCount) fingers, \(motion)): holding for the titlebar lookup")
+            return false
+        case .awaitingDirection:
+            sequence = .holding(hold)
+            log.debug("Dock swipe (\(fingerCount) fingers, \(motion)): holding for the stroke's direction")
+            return false
+        }
+    }
+
+    /// An owner already recorded for the touch wins; otherwise the resolved owner is recorded.
+    private func settle(_ hold: Hold, isPastDeadline: Bool) -> Resolution {
+        state.withLock { state in
+            let isSameTouch = state.touchID == hold.touchID
+
+            switch isSameTouch ? state.owner(fingerCount: hold.fingerCount) : nil {
+            case .loop:
+                return .loop(reason: "Loop owns the touch")
+            case .dock:
+                return .dock(reason: state.isMissionControlShowing ? "Mission Control is showing" : "the Dock owns the touch")
+            case nil:
+                let titlebar = isSameTouch ? state.titlebarLookup : .pending
+                let resolution = Self.resolve(hold, titlebar: titlebar, isPastDeadline: isPastDeadline)
+                guard isSameTouch else { return resolution }
+                switch resolution {
+                case .loop: state.owners[hold.fingerCount] = .loop
+                case .dock: state.owners[hold.fingerCount] = .dock
+                case .awaitingTitlebar, .awaitingDirection: break
+                }
+                return resolution
+            }
+        }
+    }
+
+    private static func resolve(_ hold: Hold, titlebar: TitlebarLookup, isPastDeadline: Bool) -> Resolution {
+        let directions = hold.direction.map { [$0] } ?? gestures(motion: hold.motion, progress: 0)
+
+        var owners: Set<Owner> = []
+        var dependsOnTitlebar = false
+        var missedDeadline = false
+        var isAwaitingTitlebar = false
+
+        for direction in directions {
+            if hold.claims.anywhere.contains(direction) {
+                owners.insert(.loop)
+            } else if hold.claims.titlebarOnly.contains(direction) {
+                dependsOnTitlebar = true
+                switch titlebar {
+                case .inside:
+                    owners.insert(.loop)
+                case .outside:
+                    owners.insert(.dock)
+                case .pending:
+                    if isPastDeadline {
+                        missedDeadline = true
+                        owners.insert(.dock)
+                    } else {
+                        isAwaitingTitlebar = true
+                    }
+                }
+            } else {
+                owners.insert(.dock)
+            }
+        }
+
+        // Only one direction of the axis is claimed
+        if owners.count > 1 {
+            return .awaitingDirection
+        }
+        if isAwaitingTitlebar {
+            return .awaitingTitlebar
+        }
+
+        let directionDescription = hold.direction.map { "\($0) " } ?? ""
+        switch owners.first {
         case .loop:
-            return .dropping
-        case .dock:
-            return .passing
-        case .undecided:
-            let axis = Self.gestures(motion: motion, progress: 0)
-            let claimedOnAxis = axis.intersection(claimed)
-
-            if claimedOnAxis.isEmpty {
-                setOwner(.dock, fingerCount: fingerCount)
-                return .passing
+            return .loop(reason: dependsOnTitlebar ? "\(directionDescription)claimed and started in a titlebar" : "\(directionDescription)claimed anywhere")
+        case .dock, nil:
+            if missedDeadline {
+                return .dock(reason: "titlebar lookup missed its \(titlebarDeadline) deadline")
             }
-            if axis.isSubset(of: confirmed) {
-                setOwner(.loop, fingerCount: fingerCount)
-                return .dropping
-            }
-
-            let startsClaimedWay = !Self.gestures(motion: motion, progress: progress).isDisjoint(with: claimedOnAxis)
-            return startsClaimedWay ? .holding(began: event.copy() ?? event) : .provisional
+            return .dock(reason: dependsOnTitlebar ? "\(directionDescription)claimed but started outside a titlebar" : "\(directionDescription)not claimed")
         }
-    }
-
-    private func setOwner(_ owner: Owner, fingerCount: Int) {
-        state.withLock { $0.owners[fingerCount] = owner }
-    }
-
-    private func repost(_ event: CGEvent) {
-        event.setIntegerValueField(.eventSourceUserData, value: Self.repostMarker)
-        event.post(tap: .cgSessionEventTap)
     }
 
     /// Both directions of the axis when `progress` is zero
-    private static func gestures(motion: CGEventField.DockSwipeMotion?, progress: Double) -> Set<DockGesture> {
+    private static func gestures(motion: CGEventField.DockSwipeMotion, progress: Double) -> [DockGesture] {
         let (negative, positive): (DockGesture, DockGesture)
         switch motion {
         case .horizontal: (negative, positive) = (.swipeRight, .swipeLeft)
         case .vertical: (negative, positive) = (.swipeUp, .swipeDown)
         case .pinch: (negative, positive) = (.pinch, .spread)
-        case nil: return []
         }
 
         if progress < 0 { return [negative] }
