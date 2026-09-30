@@ -204,7 +204,7 @@ final class MultitouchTrigger {
             if !activationContext.allows(gesture) {
                 log.info("Rejected \(fingerCount)-finger \(gesture.kind) gesture: titlebar-only gesture started outside a titlebar")
             } else {
-                log.info("Rejected \(fingerCount)-finger \(gesture.kind) gesture: no target window under the cursor")
+                log.info("Rejected \(fingerCount)-finger \(gesture.kind) gesture: no target window")
             }
             systemGestureFilter.releaseCurrentTouch(fingerCount: fingerCount)
             // Keep the DEBUG overlay alive, as it follows the physical stroke

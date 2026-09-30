@@ -25,7 +25,14 @@ final class MultitouchTargetResolver {
     /// Lets shrinking/growing continue after the cursor falls off the resized frame.
     private var lastRepeatableWindow: Window?
     /// Resolved once per touch and shared by every gesture in it, so they all agree on the window
-    private var touchTarget: (touchID: Int, window: Window?, isInTitlebar: Bool)?
+    private var touchTarget: TouchTarget?
+
+    private struct TouchTarget {
+        let touchID: Int
+        /// The window under the cursor, or the focused window without "Resize window under cursor"
+        let window: Window?
+        let startedInTitlebar: Bool
+    }
 
     func reset() {
         lastRepeatableWindow = nil
@@ -37,24 +44,23 @@ final class MultitouchTargetResolver {
         touchID: Int,
         allowsRapidRepeat: Bool
     ) -> MultitouchGestureActivationContext {
-        let (windowAtCursor, startedInTitlebar) = windowUnderCursor(touchID: touchID)
+        let target = touchTarget(touchID: touchID)
 
-        let targetWindow: Window? = if let windowAtCursor {
-            windowAtCursor
-        } else if allowsRapidRepeat, gesture.effectiveActivationZone == .anywhere {
-            lastRepeatableWindow
-        } else {
-            nil
+        let targetWindow: Window? = switch gesture.effectiveActivationZone {
+        case .titlebar:
+            target.startedInTitlebar ? target.window : nil
+        case .anywhere:
+            target.window ?? fallbackWindow(allowsRapidRepeat: allowsRapidRepeat)
         }
 
         return MultitouchGestureActivationContext(
             targetWindow: targetWindow,
-            startedInTitlebar: startedInTitlebar
+            startedInTitlebar: target.startedInTitlebar
         )
     }
 
     func isCursorInTitlebar(touchID: Int) -> Bool {
-        windowUnderCursor(touchID: touchID).isInTitlebar
+        touchTarget(touchID: touchID).startedInTitlebar
     }
 
     func rememberRepeatableWindow(_ window: Window?, allowsRapidRepeat: Bool) {
@@ -62,16 +68,38 @@ final class MultitouchTargetResolver {
         lastRepeatableWindow = window
     }
 
-    private func windowUnderCursor(touchID: Int) -> (window: Window?, isInTitlebar: Bool) {
+    /// Used when there's no window under the cursor, matching the rest of Loop's fallback to the focused window
+    private func fallbackWindow(allowsRapidRepeat: Bool) -> Window? {
+        if allowsRapidRepeat, let lastRepeatableWindow {
+            return lastRepeatableWindow
+        }
+        return try? WindowUtility.frontmostWindow()
+    }
+
+    private func touchTarget(touchID: Int) -> TouchTarget {
         if let touchTarget, touchTarget.touchID == touchID {
-            return (touchTarget.window, touchTarget.isInTitlebar)
+            return touchTarget
         }
 
         let cursorPosition = NSEvent.mouseLocation.flipY(screen: NSScreen.screens[0])
-        let window = WindowUtility.windowAtPosition(cursorPosition)
-        let inTitlebar = window.map { isInTitlebar(cursorPosition, of: $0) } ?? false
-        touchTarget = (touchID, window, inTitlebar)
-        return (window, inTitlebar)
+
+        let window: Window?
+        let startedInTitlebar: Bool
+        if Defaults[.resizeWindowUnderCursor] {
+            window = WindowUtility.windowAtPosition(cursorPosition)
+            startedInTitlebar = window.map { isInTitlebar(cursorPosition, of: $0) } ?? false
+        } else {
+            window = try? WindowUtility.frontmostWindow()
+            // Only counts where the focused window is the topmost window under the cursor
+            startedInTitlebar = window.map {
+                SkyLightToolBelt.windowIDAtPosition(cursorPosition) == $0.cgWindowID
+                    && isInTitlebar(cursorPosition, of: $0)
+            } ?? false
+        }
+
+        let target = TouchTarget(touchID: touchID, window: window, startedInTitlebar: startedInTitlebar)
+        touchTarget = target
+        return target
     }
 
     private func isInTitlebar(_ cursorPosition: CGPoint, of window: Window) -> Bool {
