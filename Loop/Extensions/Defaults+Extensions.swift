@@ -37,6 +37,7 @@ extension Defaults.Keys {
     static let previewCornerRadius = Key<CGFloat>("previewCornerRadius", default: 10)
     static let previewBorderThickness = Key<CGFloat>("previewBorderThickness", default: 4)
     static let previewUseWindowCornerRadius = Key<Bool>("previewUseWindowCornerRadius", default: true)
+    static let previewBackgroundStyle = Key<PreviewBackgroundStyle>("previewBackgroundStyle", default: .system)
     static let previewBackgroundEnableBlur = Key<Bool>("previewBackgroundEnableBlur", default: true)
     static let previewBackgroundAccentOpacity = Key<CGFloat>("previewBackgroundAccentOpacity", default: 0.1)
 
@@ -243,6 +244,7 @@ enum DefaultsiCloudSyncRegistrar {
         Defaults.iCloud.add(.previewCornerRadius)
         Defaults.iCloud.add(.previewBorderThickness)
         Defaults.iCloud.add(.previewUseWindowCornerRadius)
+        Defaults.iCloud.add(.previewBackgroundStyle)
         Defaults.iCloud.add(.previewBackgroundEnableBlur)
         Defaults.iCloud.add(.previewBackgroundAccentOpacity)
 

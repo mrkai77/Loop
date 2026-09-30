@@ -48,6 +48,20 @@ enum DataPatcher {
             Defaults.reset(.hideOnNoSelection)
             Defaults.reset(.hideUntilDirectionIsChosen)
         }
+
+        runPatchIfNeeded(patch: .keepCustomizedPreviewBackground, initialPatches: initialPatches) {
+            // Users who changed the blur or accent opacity keep the custom background
+            let blurKey = Defaults.Keys.previewBackgroundEnableBlur
+            let accentKey = Defaults.Keys.previewBackgroundAccentOpacity
+            let customizedBlur = UserDefaults.standard.object(forKey: blurKey.name) != nil
+                && Defaults[blurKey] != blurKey.defaultValue
+            let customizedAccent = UserDefaults.standard.object(forKey: accentKey.name) != nil
+                && Defaults[accentKey] != accentKey.defaultValue
+
+            if customizedBlur || customizedAccent {
+                Defaults[.previewBackgroundStyle] = .custom
+            }
+        }
     }
 
     private static func runPatchIfNeeded(patch: Patches, initialPatches: Patches, with callback: () -> ()) {
@@ -73,6 +87,9 @@ enum DataPatcher {
 
         /// Split the global no-selection setting into trigger-specific presentation policies.
         static let splitRadialMenuPresentationPolicies = Self(rawValue: 1 << 3)
+
+        /// The preview background now defaults to the system style, so users who customized it keep the custom style.
+        static let keepCustomizedPreviewBackground = Self(rawValue: 1 << 4)
     }
 }
 
