@@ -155,11 +155,11 @@ struct AdvancedConfigurationView: View {
     private var generalSection: some View {
         LuminareSection {
             if #available(macOS 15.0, *) {
-                LuminareToggle("Use macOS window manager when available", isOn: $useSystemWindowManagerWhenAvailable)
+                LuminareToggle("Integrate with macOS window manager", isOn: $useSystemWindowManagerWhenAvailable)
             }
 
             LuminareToggle(isOn: $animateWindowResizes) {
-                Text("Animate window resize")
+                Text("Animate window resizing")
                     .padding(.trailing, 4)
                     .luminareToolTip(attachedTo: .topTrailing, hidden: !showLowPowerModeWarning) {
                         HStack(spacing: 4) {
@@ -182,8 +182,14 @@ struct AdvancedConfigurationView: View {
                     .animation(luminareAnimation, value: showLowPowerModeWarning)
             }
 
-            LuminareToggle("Disable cursor interaction", isOn: $disableCursorInteraction)
-            LuminareToggle("Ignore fullscreen windows", isOn: $ignoreFullscreen)
+            LuminareToggle(
+                "Select actions with cursor",
+                isOn: Binding(
+                    get: { !disableCursorInteraction },
+                    set: { disableCursorInteraction = !$0 }
+                )
+            )
+            LuminareToggle("Ignore full-screen windows", isOn: $ignoreFullscreen)
             LuminareToggle("Haptic feedback", isOn: $hapticFeedback)
 
             LuminareSlider(
@@ -202,7 +208,7 @@ struct AdvancedConfigurationView: View {
         LuminareSection(String(localized: "Radial Menu", comment: "Section header shown in settings")) {
             LuminareToggle(isOn: $enableRadialMenuCustomization) {
                 HStack {
-                    Text("Allow radial menu customization")
+                    Text("Customize actions")
 
                     if enableRadialMenuCustomization {
                         Button {
@@ -221,7 +227,7 @@ struct AdvancedConfigurationView: View {
                     isConfirmingResetRadialMenuActions = true
                 } label: {
                     HStack {
-                        Text("Reset radial menu actions")
+                        Text("Reset radial menu actions…")
 
                         if model.showResetRadialMenuActionsSuccessIndicator {
                             Image(systemName: "checkmark")
@@ -235,7 +241,7 @@ struct AdvancedConfigurationView: View {
                     Button("Cancel", role: .cancel) {}
                     Button("Reset", role: .destructive, action: model.resetRadialMenuActions)
                 } message: {
-                    Text("This will reset all radial menu actions to their default configuration.")
+                    Text("This resets all radial menu actions to their defaults.")
                 }
             }
         }
@@ -246,7 +252,7 @@ struct AdvancedConfigurationView: View {
             LuminareButtonRow {
                 Button(action: model.importPrompt) {
                     HStack {
-                        Text("Import")
+                        Text("Import…")
 
                         if model.showImportKeybindsSuccessIndicator {
                             Image(systemName: "checkmark")
@@ -258,7 +264,7 @@ struct AdvancedConfigurationView: View {
 
                 Button(action: model.exportPrompt) {
                     HStack {
-                        Text("Export")
+                        Text("Export…")
 
                         if model.showExportKeybindsSuccessIndicator {
                             Image(systemName: "checkmark")
@@ -272,7 +278,7 @@ struct AdvancedConfigurationView: View {
                     isConfirmingResetKeybinds = true
                 } label: {
                     HStack {
-                        Text("Reset")
+                        Text("Reset…")
 
                         if model.showResetKeybindsSuccessIndicator {
                             Image(systemName: "checkmark")
@@ -285,7 +291,7 @@ struct AdvancedConfigurationView: View {
                     Button("Cancel", role: .cancel) {}
                     Button("Reset", role: .destructive, action: model.resetKeybinds)
                 } message: {
-                    Text("This will reset all keybinds to their original defaults.")
+                    Text("This resets all keybinds to their defaults.")
                 }
             }
             .luminareRoundingBehavior(top: true, bottom: true)

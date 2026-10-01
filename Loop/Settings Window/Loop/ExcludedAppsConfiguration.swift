@@ -38,9 +38,9 @@ struct ExcludedAppsConfigurationView: View {
                         .equatable()
                 } emptyView: {
                     VStack {
-                        Text("No excluded applications")
+                        Text("No excluded apps")
                             .font(.title3)
-                        Text("Press \"Add\" to add an application")
+                        Text("Click “Add” to add an app")
                             .font(.caption)
                     }
                     .foregroundStyle(.secondary)

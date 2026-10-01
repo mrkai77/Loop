@@ -144,7 +144,7 @@ struct UpdateView: View {
                 Image(systemName: "arrow.right")
                 Text(targetVersion.shortDisplay)
             } else {
-                Text("Update from: \(Text(currentVersion.shortDisplay))")
+                Text("Updating from \(Text(currentVersion.shortDisplay))")
                     .fontWeight(.semibold)
             }
         }
@@ -181,7 +181,7 @@ struct UpdateView: View {
             Button {
                 Updater.shared.dismissWindow()
             } label: {
-                Text(updater.installState.isFailure ? "Try again later" : "Remind me later")
+                Text(updater.installState.isFailure ? "Try Again Later" : "Remind Me Later")
                     .contentTransition(.numericText())
                     .padding(.trailing, 4)
                     .luminareToolTip(attachedTo: .topTrailing, hidden: updater.installState.errorDescription == nil) {

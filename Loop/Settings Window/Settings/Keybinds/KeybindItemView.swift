@@ -118,7 +118,7 @@ struct KeybindItemView: View {
             .luminareFilledStates([.hovering, .pressed])
             .luminareBorderedStates(.hovering)
             .luminareMinHeight(24)
-            .help("Customize this keybind's action.")
+            .help("Customize this keybind’s action.")
             .padding(.leading, -4)
 
             Group {
@@ -145,7 +145,7 @@ struct KeybindItemView: View {
                         }
                     }
                     .luminareModalCornerRadius(24)
-                    .help("Customize this action's custom frame.")
+                    .help("Customize this action’s custom frame.")
                 }
 
                 if action.direction == .cycle {
@@ -182,7 +182,7 @@ struct KeybindItemView: View {
                     keycorderSection()
                         .padding(.leading, 4)
                         .luminareToolTip(attachedTo: .topLeading, hidden: !hasDuplicateKeybinds) {
-                            Text("There are other keybinds that conflict with this key combination.")
+                            Text("Another keybind uses this key combination.")
                                 .padding(6)
                         }
                         .luminareTint(overridingWith: .red)

@@ -99,7 +99,7 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
 
         var displayName: String {
             switch self {
-            case .titlebar: String(localized: "Titlebar Only", comment: "Gesture activation zone restricted to a window's titlebar")
+            case .titlebar: String(localized: "Title Bar Only", comment: "Gesture activation zone restricted to a window's title bar")
             case .anywhere: String(localized: "Anywhere", comment: "Gesture activation zone covers the entire window")
             }
         }

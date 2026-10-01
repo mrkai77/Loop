@@ -58,7 +58,7 @@ final class IconConfigurationModel: ObservableObject {
         if Defaults[.notificationWhenIconUnlocked] {
             AppDelegate.sendNotification(
                 Bundle.main.appName,
-                .init(localized: "Icon notifications enabled", defaultValue: "You will now be notified when you unlock a new icon.")
+                .init(localized: "Icon notifications enabled", defaultValue: "You’ll be notified when you unlock a new icon.")
             )
             if !AppDelegate.areNotificationsEnabled() {
                 Defaults[.notificationWhenIconUnlocked] = false
@@ -71,10 +71,10 @@ final class IconConfigurationModel: ObservableObject {
         Task { @MainActor in
             guard let window = SettingsWindowManager.shared.window else { return }
             let alert = NSAlert()
-            alert.messageText = .init(localized: "Notification permits: info", defaultValue: "\(Bundle.main.appName)'s notification permissions are currently disabled.")
-            alert.informativeText = .init(localized: "Notification permits: request", defaultValue: "Please turn them on in System Settings.")
+            alert.messageText = .init(localized: "Notification permits: info", defaultValue: "Notifications for \(Bundle.main.appName) are turned off.")
+            alert.informativeText = .init(localized: "Notification permits: request", defaultValue: "Turn them on in System Settings.")
 
-            let button = alert.addButton(withTitle: .init(localized: "Notification permits: open notification settings", defaultValue: "Open Settings"))
+            let button = alert.addButton(withTitle: .init(localized: "Notification permits: open notification settings", defaultValue: "Open System Settings"))
 
             // Reference: https://x.com/leoshimo/status/1975642593569738755
             if #available(macOS 26.0, *) {
@@ -132,10 +132,10 @@ struct IconConfigurationView: View {
                 .luminareRoundingBehavior(top: true, bottom: true)
             }
 
-            LuminareSection(String(localized: "Options", comment: "Section header shown in settings")) {
-                LuminareToggle("Show in dock", isOn: $showDockIcon)
+            LuminareSection {
+                LuminareToggle("Show in Dock", isOn: $showDockIcon)
                 LuminareToggle(
-                    "Notify when unlocking new icons",
+                    "Notify when new icons are unlocked",
                     isOn: Binding(
                         get: {
                             notificationWhenIconUnlocked

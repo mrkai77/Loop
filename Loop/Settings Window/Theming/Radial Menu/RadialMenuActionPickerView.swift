@@ -58,7 +58,7 @@ struct RadialMenuActionPickerView: View {
     var body: some View {
         VStack(spacing: 0) {
             TextField(
-                String(localized: "Search for a window action", defaultValue: "Search…"),
+                String(localized: "Search for a window action", defaultValue: "Search"),
                 text: $searchText
             )
             .textFieldStyle(.plain)

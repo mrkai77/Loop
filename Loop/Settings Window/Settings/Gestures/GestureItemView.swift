@@ -93,7 +93,7 @@ struct GestureItemView: View {
 
                 gestureConfiguration
                     .luminareToolTip(attachedTo: .topTrailing, hidden: !hasConflict) {
-                        Text(String(localized: "There are other gestures that conflict with this gesture.", comment: "Tooltip shown on a conflicting gesture in settings"))
+                        Text(String(localized: "Another gesture is set up the same way.", comment: "Tooltip shown on a conflicting gesture in settings"))
                             .padding(6)
                     }
             }
@@ -209,7 +209,7 @@ struct GestureItemView: View {
                         Image(systemName: "bolt.horizontal.fill")
                             .foregroundStyle(.secondary)
 
-                        Text("Failed to resolve linked keybind")
+                        Text("Linked keybind not found")
                             .fontWeight(.regular)
                             .lineLimit(1)
                             .foregroundStyle(.secondary)
@@ -222,7 +222,7 @@ struct GestureItemView: View {
             .luminareFilledStates([.hovering, .pressed])
             .luminareBorderedStates(.hovering)
             .luminareMinHeight(24)
-            .help(String(localized: "Customize this gesture's action.", comment: "Help text shown when hovering a gesture's action button"))
+            .help(String(localized: "Customize this gesture’s action.", comment: "Help text shown when hovering a gesture's action button"))
             .allowsHitTesting(!opensRadialMenu)
             .padding(.leading, -4)
 
@@ -251,7 +251,7 @@ struct GestureItemView: View {
                             }
                         }
                         .luminareModalCornerRadius(24)
-                        .help(String(localized: "Customize this action's custom frame.", comment: "Help text on the slider icon next to a gesture action with a custom frame"))
+                        .help(String(localized: "Customize this action’s custom frame.", comment: "Help text on the slider icon next to a gesture action with a custom frame"))
                     }
 
                     if resolvedAction.direction == .cycle {

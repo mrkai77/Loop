@@ -11,8 +11,8 @@ import SwiftUI
 extension WindowDirection {
     var infoText: LocalizedStringKey? {
         switch self {
-        case .macOSCenter: "\(name) places windows slightly above the absolute center,\nwhich can be found more ergonomic."
-        case .stash: "A single \(name) action can only track one window. To stash\nmultiple windows, add additional \(name) actions."
+        case .macOSCenter: "\(name) places windows slightly above center,\nwhich many people find more comfortable."
+        case .stash: "Each \(name) action tracks one window. To stash\nmore windows, add more \(name) actions."
         default: nil
         }
     }
@@ -32,7 +32,7 @@ extension WindowDirection {
         case .fillAvailableSpace:
             String(localized: "Fill Available Space", comment: "Window action")
         case .fullscreen:
-            String(localized: "Fullscreen", comment: "Window action")
+            String(localized: "Full Screen", comment: "Window action")
         case .undo:
             String(localized: "Undo", comment: "Window action")
         case .initialFrame:
@@ -169,7 +169,7 @@ extension WindowDirection {
         case .focusLeft:
             String(localized: "Focus Left", comment: "Window action")
         case .focusNextInStack:
-            String(localized: "Focus Next In Stack", comment: "Window action")
+            String(localized: "Focus Next in Stack", comment: "Window action")
         case .stash:
             String(localized: "Stash", comment: "Window action")
         case .unstash:

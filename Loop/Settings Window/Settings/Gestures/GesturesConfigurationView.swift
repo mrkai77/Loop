@@ -38,7 +38,7 @@ struct GesturesConfigurationView: View {
 
     private var settingsSection: some View {
         LuminareSection {
-            LuminareToggle(String(localized: "Enable trackpad gestures", comment: "Toggle in gestures settings"), isOn: $enableGestures)
+            LuminareToggle(String(localized: "Trackpad gestures", comment: "Toggle in gestures settings"), isOn: $enableGestures)
         }
     }
 
@@ -74,7 +74,7 @@ struct GesturesConfigurationView: View {
                 VStack {
                     Text(String(localized: "No gestures", comment: "Empty state title in gestures settings"))
                         .font(.title3)
-                    Text(String(localized: "Press \"Add\" to add a gesture", comment: "Empty state subtitle in gestures settings"))
+                    Text(String(localized: "Click “Add” to add a gesture", comment: "Empty state subtitle in gestures settings"))
                         .font(.caption)
                 }
                 .foregroundStyle(.secondary)

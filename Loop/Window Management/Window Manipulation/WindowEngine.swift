@@ -97,7 +97,8 @@ enum WindowEngine {
                 finalFrame = window.frame
             }
 
-            if Defaults[.moveCursorWithWindow] {
+            // Without the preview, windows resize live with the cursor, so moving it would fight the user
+            if Defaults[.moveCursorWithWindow], Defaults[.previewVisibility] {
                 CGWarpMouseCursorPosition(targetFrame.center)
             }
         }
