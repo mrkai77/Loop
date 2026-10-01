@@ -82,7 +82,7 @@ struct AccentColorConfigurationView: View {
     private var syncWallpaperButton: some View {
         Button(action: syncWallpaper) {
             HStack {
-                Text("Sync Wallpaper")
+                Text("Match Wallpaper")
 
                 if didSyncWallpaper {
                     Image(systemName: "checkmark")

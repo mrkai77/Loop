@@ -79,7 +79,6 @@ enum WindowEngine {
 
             let shouldAnimate = shouldAnimateResize(
                 for: window,
-                willChangeScreens: willChangeScreens,
                 resolvedProperties: context.resolvedWindowProperties
             )
 
@@ -97,7 +96,8 @@ enum WindowEngine {
                 finalFrame = window.frame
             }
 
-            if Defaults[.moveCursorWithWindow] {
+            // Without the preview, windows resize live with the cursor, so moving it would fight the user
+            if Defaults[.moveCursorWithWindow], Defaults[.previewVisibility] {
                 CGWarpMouseCursorPosition(targetFrame.center)
             }
         }
@@ -165,11 +165,11 @@ enum WindowEngine {
 
     private static func shouldAnimateResize(
         for window: Window,
-        willChangeScreens: Bool,
         resolvedProperties: Window.ResolvedProperties?
     ) -> Bool {
         if resolvedProperties?.isEnhancedUserInterface ?? window.enhancedUserInterface { return false }
-        if !willChangeScreens, #available(macOS 15, *), Defaults[.useSystemWindowManagerWhenAvailable] {
+        // When integrated with the macOS window manager, follow its animation setting, including for screen changes
+        if #available(macOS 15, *), Defaults[.useSystemWindowManagerWhenAvailable] {
             return SystemWindowManager.MoveAndResize.enableAnimations
         }
         if !Defaults[.animateWindowResizes] { return false }

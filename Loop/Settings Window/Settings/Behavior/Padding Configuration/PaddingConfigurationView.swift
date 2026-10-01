@@ -52,7 +52,7 @@ struct PaddingConfigurationView: View {
             Button {
                 isPresented = false
             } label: {
-                Text("Close", comment: "Label for a button that closes a modal window")
+                Text("Done", comment: "Label for a button that closes a modal window")
             }
             .buttonStyle(.luminare(overrideUseMainStyle: true))
             .luminareCornerRadius(8)
@@ -209,7 +209,7 @@ struct PaddingConfigurationView: View {
             Text("External bar", comment: "Label for a slider in Loop’s padding settings")
                 .padding(.trailing, 4)
                 .luminareToolTip(attachedTo: .topTrailing) {
-                    Text("Use this if you are using a custom menubar.")
+                    Text("Use this if you use a custom menu bar.")
                         .padding(6)
                 }
         }

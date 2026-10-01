@@ -202,7 +202,7 @@ struct Keycorder: View {
         // Validate keybind requirements when in bypass mode
         if bypassTriggerKey == true,
            selectionKeybind.filter(\.isModifier).isEmpty {
-            errorMessage = "Please include at least one modifier key."
+            errorMessage = "Include at least one modifier key."
             shake()
             shouldError = true
             return false

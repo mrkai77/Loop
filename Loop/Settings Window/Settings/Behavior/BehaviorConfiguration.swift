@@ -34,7 +34,7 @@ struct BehaviorConfigurationView: View {
         LuminareForm {
             generalSection
             windowSection
-            windowSnappingSection
+            draggingSection
             stageManagerSection
             stashSection
         }
@@ -49,7 +49,7 @@ struct BehaviorConfigurationView: View {
     }
 
     private var generalSection: some View {
-        LuminareSection(String(localized: "General", comment: "Section header shown in settings")) {
+        LuminareSection {
             LuminareToggle("Launch at login", isOn: $launchAtLogin)
 
             LuminareSliderPicker(
@@ -75,14 +75,13 @@ struct BehaviorConfigurationView: View {
 
             // If the system WM is enabled, the window under the cursor requires focus.
             if resizeWindowUnderCursor, !useSystemWindowManagerWhenAvailable {
-                LuminareToggle("Focus on resize", isOn: $focusWindowOnResize)
+                LuminareToggle("Focus window on resize", isOn: $focusWindowOnResize)
             }
 
-            LuminareToggle("Move to cursor's screen", isOn: $useScreenWithCursor)
+            LuminareToggle("Move to cursor’s screen", isOn: $useScreenWithCursor)
 
-            // Enabling the system window manager will override these options.
+            // Enabling the system window manager will override this option.
             if !useSystemWindowManagerWhenAvailable {
-                LuminareToggle("Restore window frame on drag", isOn: $restoreWindowFrameOnDrag)
                 LuminareButton("Padding", "Configure…") {
                     isPaddingConfigurationViewPresented = true
                 }
@@ -97,39 +96,37 @@ struct BehaviorConfigurationView: View {
 
     private var windowSelection: Binding<WindowSelection> {
         Binding(
-            get: { resizeWindowUnderCursor ? .underCursor : .focused },
+            get: { resizeWindowUnderCursor ? .underCursor : .frontmost },
             set: { resizeWindowUnderCursor = $0 == .underCursor }
         )
     }
 
-    private var windowSnappingSection: some View {
-        LuminareSection(String(localized: "Window Snapping", comment: "Section header shown in settings")) {
+    private var draggingSection: some View {
+        LuminareSection(String(localized: "Dragging", comment: "Section header shown in settings, for settings about dragging windows")) {
+            // Enabling the system window manager will override this option.
+            if !useSystemWindowManagerWhenAvailable {
+                LuminareToggle("Restore size when dragging", isOn: $restoreWindowFrameOnDrag)
+            }
+
             if #available(macOS 15, *) {
                 LuminareToggle(isOn: $windowSnapping) {
                     if SystemWindowManager.MoveAndResize.snappingEnabled {
-                        Text("Enable window snapping")
+                        Text("Snap by dragging to screen edges")
                             .padding(.trailing, 4)
                             .luminareToolTip(attachedTo: .topTrailing) {
-                                Text("macOS's \"Tile by dragging windows to screen edges\" feature is currently\nenabled, which will conflict with Loop's window snapping functionality.")
+                                Text("macOS’s “Tile by dragging windows to screen edges” is turned on,\nwhich conflicts with Loop’s window snapping.")
                                     .padding(6)
                             }
                     } else {
-                        Text("Enable window snapping")
+                        Text("Snap by dragging to screen edges")
                     }
                 }
             } else {
-                LuminareToggle("Enable window snapping", isOn: $windowSnapping)
+                LuminareToggle("Snap by dragging to screen edges", isOn: $windowSnapping)
             }
 
             if windowSnapping {
-                LuminareToggle(isOn: $suppressMissionControlOnTopDrag) {
-                    Text("Suppress Mission Control")
-                        .padding(.trailing, 4)
-                        .luminareToolTip(attachedTo: .topTrailing) {
-                            Text("Whether to allow Mission Control to open when windows\nare dragged to the top of the screen.")
-                                .padding(6)
-                        }
-                }
+                LuminareToggle("Prevent Mission Control at top edge", isOn: $suppressMissionControlOnTopDrag)
             }
         }
     }
@@ -153,7 +150,7 @@ struct BehaviorConfigurationView: View {
 
     private var stashSection: some View {
         LuminareSection(String(localized: "Stash", comment: "Section header shown in settings")) {
-            LuminareToggle("Animated", isOn: $animateStashedWindows)
+            LuminareToggle("Animate stashing", isOn: $animateStashedWindows)
 
             LuminareSlider(
                 String(localized: "Peek size", comment: "Thickness of the visible portion of the window when stashed"),
@@ -164,7 +161,7 @@ struct BehaviorConfigurationView: View {
                 suffix: Text("px", comment: "Unit symbol: pixels")
             )
 
-            LuminareToggle("Shift focus when stashed", isOn: $shiftFocusWhenStashed)
+            LuminareToggle("Focus next window when stashing", isOn: $shiftFocusWhenStashed)
         }
         .onChange(of: stashedWindowVisiblePadding) { _ in
             Task { await StashManager.shared.onConfigurationChanged() }
@@ -174,19 +171,19 @@ struct BehaviorConfigurationView: View {
 
 /// Which window Loop acts on, stored as `resizeWindowUnderCursor`
 private enum WindowSelection: CaseIterable {
-    case focused
+    case frontmost
     case underCursor
 
     var title: String {
         switch self {
-        case .focused: String(localized: "Focused", comment: "Window selection option: act on the focused window")
+        case .frontmost: String(localized: "Active", comment: "Target window option: act on the active window")
         case .underCursor: String(localized: "Under Cursor", comment: "Window selection option: act on the window under the cursor")
         }
     }
 
     var icon: String {
         switch self {
-        case .focused: "interface.window.on.rectangle.dashed"
+        case .frontmost: "interface.window.on.rectangle.dashed"
         case .underCursor: "interface.window.and.pointer.arrow"
         }
     }

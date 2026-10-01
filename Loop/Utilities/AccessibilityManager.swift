@@ -106,15 +106,15 @@ final class AccessibilityManager {
         let alert = NSAlert()
         alert.messageText = .init(
             localized: "Accessibility Request: Title",
-            defaultValue: "\(Bundle.main.appName) Needs Accessibility Permissions"
+            defaultValue: "\(Bundle.main.appName) Needs Accessibility Permission"
         )
         alert.informativeText = String(
             localized: "Accessibility Request: Content",
-            defaultValue: "Please grant access to be able to resize windows."
+            defaultValue: "Grant access in System Settings so \(Bundle.main.appName) can resize windows."
         )
 
         // Reference: https://x.com/leoshimo/status/1975642593569738755
-        let button = alert.addButton(withTitle: .init(localized: "OK"))
+        let button = alert.addButton(withTitle: .init(localized: "Open System Settings", comment: "Button in the alert asking for Accessibility permission"))
         if #available(macOS 26.0, *) {
             button.tintProminence = .primary
         }

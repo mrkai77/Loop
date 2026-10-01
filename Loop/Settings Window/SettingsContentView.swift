@@ -16,6 +16,18 @@ struct SettingsContentView: View {
     @Environment(\.luminareAnimation) private var animation
     @Environment(\.luminareTitleBarHeight) private var titleBarHeight
     @Default(.enableRadialMenuCustomization) var enableRadialMenuCustomization
+    @Default(.radialMenuVisibility) var radialMenuVisibility
+    @Default(.previewVisibility) var previewVisibility
+    @Default(.windowSnapping) var windowSnapping
+
+    private var showRadialMenu: Bool {
+        model.showRadialMenu && radialMenuVisibility
+    }
+
+    /// Window snapping always uses the preview, so it's only unused when both are off
+    private var showPreview: Bool {
+        model.showPreview && (previewVisibility || windowSnapping)
+    }
 
     private var showRadialMenuGuide: Bool {
         enableRadialMenuCustomization && model.showRadialMenu && model.currentTab == .radialMenu
@@ -76,14 +88,14 @@ struct SettingsContentView: View {
                 // We use an overlay instead of a ZStack so the inspector’s contents
                 // don’t influence the layout of the surrounding views (mainly as a precaution)
                 Color.clear.overlay {
-                    if model.showPreview || showRadialMenuGuide {
+                    if showPreview || showRadialMenuGuide {
                         PreviewView(viewModel: model.previewViewModel)
                             .onGeometryChange(for: CGSize.self, of: \.size) {
                                 model.setPreviewBounds(CGRect(origin: .zero, size: $0))
                             }
                     }
 
-                    if model.showRadialMenu {
+                    if showRadialMenu {
                         RadialMenuView(viewModel: model.radialMenuViewModel)
                             .allowsHitTesting(false)
                     }
@@ -92,7 +104,7 @@ struct SettingsContentView: View {
                         RadialMenuActionsGuide()
                     }
                 }
-                .animation(animation, value: [model.showRadialMenu, model.showPreview])
+                .animation(animation, value: [showRadialMenu, showPreview])
                 .padding(12)
                 .frame(width: 520)
             }

@@ -207,9 +207,9 @@ enum InstallState: Equatable {
         case .installing:
             "          " // Helps with alignment for the animation once the update finishes
         case .readyToRestart:
-            String(localized: "Relaunch to complete")
+            String(localized: "Relaunch to Complete")
         case .failed:
-            String(localized: "Install failed")
+            String(localized: "Install Failed")
         }
     }
 
@@ -258,7 +258,7 @@ enum UpdateAvailability {
     var text: String {
         switch self {
         case .unavailable:
-            String(localized: "Check for updates…")
+            String(localized: "Check for Updates…")
         case .available:
             String(localized: "Update…")
         case .osNotSupported:

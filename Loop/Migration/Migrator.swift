@@ -151,7 +151,7 @@ enum Migrator {
                 await showAlert(
                     .init(
                         localized: "Error reading keybinds alert title",
-                        defaultValue: "Error Reading Keybinds"
+                        defaultValue: "Couldn’t Import Keybinds"
                     ),
                     informativeText: .init(
                         localized: "Error reading keybinds alert description",
@@ -173,7 +173,7 @@ private extension Migrator {
     static func getSaveDirectoryURL() async throws -> URL {
         let savePanel = NSSavePanel()
         savePanel.directoryURL = Defaults[.lastMigratorURL] ?? documentsDirectory
-        savePanel.title = .init(localized: "Export keybinds")
+        savePanel.title = .init(localized: "Export Keybinds")
         savePanel.nameFieldStringValue = "Loop Keybinds.json"
         savePanel.canCreateDirectories = true
         savePanel.showsTagField = false
@@ -289,7 +289,7 @@ private extension Migrator {
     static func getKeybindsFileURL() async throws -> URL {
         let openPanel = NSOpenPanel()
         openPanel.directoryURL = Defaults[.lastMigratorURL] ?? documentsDirectory
-        openPanel.title = .init(localized: "Select a keybinds file")
+        openPanel.title = .init(localized: "Choose a Keybinds File")
         openPanel.allowedContentTypes = [.json]
         openPanel.canChooseFiles = true
         openPanel.canChooseDirectories = false
@@ -405,7 +405,7 @@ private extension Migrator {
             informativeText: .init(localized: "Do you want to merge or erase existing keybinds?"),
             buttons: [
                 .init(localized: "Import keybinds: merge", defaultValue: "Merge"),
-                .init(localized: "Import keybinds: erase", defaultValue: "Erase"),
+                .init(localized: "Import keybinds: erase", defaultValue: "Replace"),
                 .init(localized: "Import keybinds: cancel", defaultValue: "Cancel")
             ]
         )

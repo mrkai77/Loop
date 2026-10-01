@@ -62,7 +62,7 @@ struct RadialMenuConfigurationView: View {
             if enableRadialMenuCustomization {
                 LuminareSection(
                     String(localized: "Actions", comment: "Header for radial menu section shown in settings"),
-                    String(localized: "Left-click to step through cycle actions.", comment: "Section footer shown in settings")
+                    String(localized: "Click to step through cycle actions.", comment: "Section footer shown in settings")
                 ) {
                     LuminareButtonRow {
                         Button(String(localized: "Add", comment: "Used to add items to a list")) {
@@ -91,7 +91,7 @@ struct RadialMenuConfigurationView: View {
                         VStack {
                             Text("No radial menu actions")
                                 .font(.title3)
-                            Text("Press \"Add\" to add an action")
+                            Text("Click “Add” to add an action")
                                 .font(.caption)
                         }
                         .foregroundStyle(.secondary)

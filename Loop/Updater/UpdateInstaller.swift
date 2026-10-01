@@ -169,9 +169,9 @@ actor UpdateInstaller {
     private func askUserForRelocation() async -> Bool {
         let alert = NSAlert()
         alert.messageText = String(localized: "Move to Applications Folder?")
-        alert.informativeText = String(localized: "\(Bundle.main.appName) is not in your Applications folder. Would you like to install the update to your Applications folder instead?")
+        alert.informativeText = String(localized: "\(Bundle.main.appName) isn’t in your Applications folder. Would you like to install the update to your Applications folder instead?")
         alert.alertStyle = .informational
-        alert.addButton(withTitle: String(localized: "Install to Applications"))
+        alert.addButton(withTitle: String(localized: "Install in Applications Folder"))
         alert.addButton(withTitle: String(localized: "Keep in Current Location"))
         return alert.runModal() == .alertFirstButtonReturn
     }
@@ -634,11 +634,11 @@ actor UpdateInstaller {
         let alert = NSAlert()
         alert.messageText = String(localized: "Administrator Authorization Required")
         alert.informativeText = String(
-            localized: "\(Bundle.main.appName) could not install the update at \(failedTargetPath) (\(failureReason)). Would you like to install this update in your Applications folder instead?"
+            localized: "\(Bundle.main.appName) couldn’t install the update at \(failedTargetPath) (\(failureReason)). Would you like to install this update in your Applications folder instead?"
         )
         alert.alertStyle = .warning
         alert.addButton(
-            withTitle: String(localized: "Install in Your Applications Folder")
+            withTitle: String(localized: "Install in Applications Folder")
         )
         alert.addButton(
             withTitle: String(localized: "Cancel Update")

@@ -72,7 +72,7 @@ struct CycleActionConfigurationView: View {
                     VStack {
                         Text("Nothing to cycle through")
                             .font(.title3)
-                        Text("Press \"Add\" to add a cycle item")
+                        Text("Click “Add” to add an action")
                             .font(.caption)
                     }
                     .foregroundStyle(.secondary)
@@ -86,7 +86,7 @@ struct CycleActionConfigurationView: View {
             Button {
                 isPresented = false
             } label: {
-                Text("Close", comment: "Label for a button that closes a modal window")
+                Text("Done", comment: "Label for a button that closes a modal window")
             }
             .buttonStyle(.luminare(overrideUseMainStyle: true))
             .luminareCornerRadius(8)

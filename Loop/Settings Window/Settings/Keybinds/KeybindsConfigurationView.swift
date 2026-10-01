@@ -71,8 +71,8 @@ struct KeybindsConfigurationView: View {
 
     @ViewBuilder
     private var settingsSection: some View {
-        LuminareSection(String(localized: "Settings", comment: "Section header shown in settings")) {
-            LuminareToggle("Treat left and right keys differently", isOn: $sideDependentTriggerKey)
+        LuminareSection {
+            LuminareToggle("Distinguish left and right modifier keys", isOn: $sideDependentTriggerKey)
 
             LuminareSlider(
                 "Trigger delay",
@@ -99,7 +99,7 @@ struct KeybindsConfigurationView: View {
 
         LuminareSection(String(localized: "Cycles", comment: "Section header shown in settings")) {
             LuminareToggle(isOn: $cycleModeRestartEnabled) {
-                Text("Always start cycles from first item")
+                Text("Always start from the first action")
                     .padding(.trailing, 4)
                     .luminareToolTip(attachedTo: .topTrailing) {
                         Text("By default, Loop resumes cycles from where you last left off in each window.")
@@ -139,7 +139,7 @@ struct KeybindsConfigurationView: View {
                 VStack {
                     Text("No keybinds")
                         .font(.title3)
-                    Text("Press \"Add\" to add a keybind")
+                    Text("Click “Add” to add a keybind")
                         .font(.caption)
                 }
                 .foregroundStyle(.secondary)

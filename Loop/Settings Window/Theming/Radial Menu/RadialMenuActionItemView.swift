@@ -142,7 +142,7 @@ struct RadialMenuActionItemView: View {
                         Image(systemName: "bolt.horizontal.fill")
                             .foregroundStyle(.secondary)
 
-                        Text("Failed to resolve linked keybind")
+                        Text("Linked keybind not found")
                             .fontWeight(.regular)
                             .lineLimit(1)
                             .foregroundStyle(.secondary)
@@ -183,7 +183,7 @@ struct RadialMenuActionItemView: View {
                             }
                         }
                         .luminareModalCornerRadius(24)
-                        .help("Customize this action's custom frame.")
+                        .help("Customize this action’s custom frame.")
                     }
 
                     if resolvedAction.direction == .cycle {

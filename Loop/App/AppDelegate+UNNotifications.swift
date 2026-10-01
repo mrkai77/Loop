@@ -49,7 +49,7 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
     private static func registerNotificationCategories() {
         let setIconAction = UNNotificationAction(
             identifier: "setIconAction",
-            title: String(localized: "Set Current Icon", comment: "Label for a button that lets the user set their icon for Loop"),
+            title: String(localized: "Use This Icon", comment: "Notification action button that sets the newly unlocked icon as Loop's icon"),
             options: .destructive
         )
         let notificationCategory = UNNotificationCategory(
