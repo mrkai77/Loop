@@ -50,7 +50,7 @@ actor UpdateInstaller {
     func installUpdate(
         from downloadURL: URL,
         manifest: UpdateManifest,
-        progress: @escaping (UpdateProgress) async -> ()
+        progress: @escaping @MainActor @Sendable (UpdateProgress) -> ()
     ) async throws {
         log.info("Starting installation of update: \(manifest.version)")
 
