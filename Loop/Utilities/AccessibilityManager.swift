@@ -104,10 +104,20 @@ final class AccessibilityManager {
         resetInputMonitoring()
 
         let alert = NSAlert()
-        alert.messageText = .init(
-            localized: "Accessibility Request: Title",
-            defaultValue: "\(Bundle.main.appName) Needs Accessibility Permission"
-        )
+        // macOS 27 renamed the Accessibility privacy pane to Device Control and Data Access
+        alert.messageText = if #available(macOS 27, *) {
+            .init(
+                localized: "Accessibility Request: Title (macOS 27)",
+                defaultValue: "\(Bundle.main.appName) Needs Device Control and Data Access",
+                comment: "Title of the alert asking for permission, using the name of the privacy pane in macOS 27 and later"
+            )
+        } else {
+            .init(
+                localized: "Accessibility Request: Title",
+                defaultValue: "\(Bundle.main.appName) Needs Accessibility Permission",
+                comment: "Title of the alert asking for permission, using the name of the privacy pane in macOS 26 and earlier"
+            )
+        }
         alert.informativeText = String(
             localized: "Accessibility Request: Content",
             defaultValue: "Grant access in System Settings so \(Bundle.main.appName) can resize windows."

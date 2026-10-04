@@ -326,7 +326,12 @@ struct AdvancedConfigurationView: View {
                         .foregroundStyle(.green)
                 }
 
-                Text("Accessibility access")
+                // macOS 27 renamed the Accessibility privacy pane to Device Control and Data Access
+                if #available(macOS 27, *) {
+                    Text("Device Control and Data Access", comment: "Name of the privacy pane in macOS 27 and later, shown as a permission in settings")
+                } else {
+                    Text("Accessibility access", comment: "Name of the privacy pane in macOS 26 and earlier, shown as a permission in settings")
+                }
             }
         } content: {
             Text("Request…", comment: "Button to request accessibility access")

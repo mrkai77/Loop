@@ -38,7 +38,7 @@ extension Defaults.Keys {
     static let previewBorderThickness = Key<CGFloat>("previewBorderThickness", default: 4)
     static let previewUseWindowCornerRadius = Key<Bool>("previewUseWindowCornerRadius", default: true)
     static let previewBackgroundStyle = Key<PreviewBackgroundStyle>("previewBackgroundStyle", default: .system)
-    static let previewBackgroundEnableBlur = Key<Bool>("previewBackgroundEnableBlur", default: true)
+    static let previewBackgroundEnableBlur = Key<Bool>("previewBackgroundEnableBlur", default: false)
     static let previewBackgroundAccentOpacity = Key<CGFloat>("previewBackgroundAccentOpacity", default: 0.1)
 
     // Behavior
