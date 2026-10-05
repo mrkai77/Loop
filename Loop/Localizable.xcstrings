@@ -4799,6 +4799,9 @@
         }
       }
     },
+    "Clockwise" : {
+      "comment" : "Name of the screen order that walks around the screen arrangement clockwise"
+    },
     "Color" : {
       "comment" : "Section header shown in settings",
       "localizations" : {
@@ -20001,6 +20004,9 @@
           }
         }
       }
+    },
+    "Next/previous screen order" : {
+      "comment" : "Label for the picker that sets the order the Next Screen and Previous Screen actions go through screens in"
     },
     "No Action" : {
       "comment" : "Window action: no selection",
@@ -36884,6 +36890,9 @@
           }
         }
       }
+    },
+    "Z-shaped" : {
+      "comment" : "Name of the screen order that walks the screens row by row, like reading a page"
     }
   },
   "version" : "1.1"

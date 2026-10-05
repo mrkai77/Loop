@@ -5,6 +5,7 @@
 //  Created by Kai Azim on 2024-01-11.
 //
 
+import Defaults
 import SwiftUI
 
 enum ScreenUtility {
@@ -94,17 +95,7 @@ enum ScreenUtility {
 
     /// Sorts all NSScreens in an order such that the next/previous screen are in positional order.
     private static func getOrderedScreens() -> [NSScreen] {
-        NSScreen.screens.sorted { screen1, screen2 in
-            if screen2.frame.maxY <= screen1.frame.minY {
-                return true
-            }
-
-            if screen1.frame.maxY <= screen2.frame.minY {
-                return false
-            }
-
-            return screen1.frame.minX < screen2.frame.minX
-        }
+        Defaults[.screenOrder].sorted(NSScreen.screens) { $0.frame }
     }
 
     // MARK: Directional Screens

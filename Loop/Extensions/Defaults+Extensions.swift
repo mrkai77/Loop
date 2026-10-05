@@ -82,6 +82,7 @@ extension Defaults.Keys {
     static let hapticFeedback = Defaults.Key<Bool>("hapticFeedback", default: true)
     static let enableRadialMenuCustomization = Defaults.Key<Bool>("enableRadialMenuCustomization", default: false)
     static let sizeIncrement = Key<CGFloat>("sizeIncrement", default: 20)
+    static let screenOrder = Key<ScreenOrder>("screenOrder", default: .zShaped)
 
     /// Excluded apps
     static let excludedApps = Key<[URL]>("excludedApps", default: [])
@@ -284,6 +285,7 @@ enum DefaultsiCloudSyncRegistrar {
         Defaults.iCloud.add(.hapticFeedback)
         Defaults.iCloud.add(.enableRadialMenuCustomization)
         Defaults.iCloud.add(.sizeIncrement)
+        Defaults.iCloud.add(.screenOrder)
 
         Defaults.iCloud.add(.excludedApps)
     }

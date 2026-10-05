@@ -132,6 +132,7 @@ struct AdvancedConfigurationView: View {
     @Default(.hapticFeedback) var hapticFeedback
     @Default(.sizeIncrement) var sizeIncrement
     @Default(.enableRadialMenuCustomization) var enableRadialMenuCustomization
+    @Default(.screenOrder) var screenOrder
 
     @State private var isConfirmingResetKeybinds: Bool = false
     @State private var isConfirmingResetRadialMenuActions: Bool = false
@@ -204,6 +205,14 @@ struct AdvancedConfigurationView: View {
             )
             LuminareToggle("Ignore full-screen windows", isOn: $ignoreFullscreen)
             LuminareToggle("Haptic feedback", isOn: $hapticFeedback)
+
+            LuminarePickerMenu(
+                "Next/previous screen order",
+                selection: $screenOrder,
+                items: ScreenOrder.allCases
+            ) { order in
+                Text("\(order.image) \(Text(order.name))")
+            }
 
             LuminareSlider(
                 "Size increment",
