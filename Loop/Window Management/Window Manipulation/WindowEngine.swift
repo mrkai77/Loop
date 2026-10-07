@@ -63,7 +63,7 @@ enum WindowEngine {
         if Defaults[.focusWindowOnResize] || useSystemWM {
             await window.focus()
         }
-        
+
         // Without the preview, windows resize live with the cursor, so moving it would fight the user
         if Defaults[.moveCursorWithWindow], Defaults[.previewVisibility] {
             CGWarpMouseCursorPosition(targetFrame.center)

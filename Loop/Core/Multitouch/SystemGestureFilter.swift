@@ -16,6 +16,20 @@ import Subsurface
 final class SystemGestureFilter {
     enum DockGesture: Hashable, CaseIterable {
         case swipeLeft, swipeRight, swipeUp, swipeDown, pinch, spread
+
+        var isSwipe: Bool {
+            switch self {
+            case .swipeLeft, .swipeRight, .swipeUp, .swipeDown: true
+            case .pinch, .spread: false
+            }
+        }
+    }
+
+    enum ScrollOwner {
+        case loop
+        case apps
+        /// Loop hasn't decided whether it takes the stroke
+        case undecided
     }
 
     struct Claims {
@@ -173,6 +187,41 @@ final class SystemGestureFilter {
         state.withLock { state in
             guard state.isRunning else { return }
             state.owners[fingerCount] = .dock
+        }
+    }
+
+    /// macOS turns unassigned three and four-finger swipes into scrolls
+    func scrollOwner(heldFor elapsed: Duration, direction: DockGesture?) -> ScrollOwner {
+        state.withLock { state in
+            guard state.isRunning, state.isTouching else { return .apps }
+
+            // Kept until every finger lifts, as fingers rarely leave together
+            if state.owners.values.contains(.loop) {
+                return .loop
+            }
+
+            guard state.owners[state.fingerCount] != .dock,
+                  !state.isMissionControlShowing,
+                  let claims = state.claims[state.fingerCount]
+            else {
+                return .apps
+            }
+
+            let mayBeInTitlebar = switch state.titlebarLookup {
+            case .inside: true
+            case .outside: false
+            case .pending: elapsed < Self.titlebarDeadline
+            }
+
+            // Pinches never scroll
+            let claimedSwipes = (mayBeInTitlebar ? claims.anywhere.union(claims.titlebarOnly) : claims.anywhere)
+                .filter(\.isSwipe)
+
+            guard !claimedSwipes.isEmpty else { return .apps }
+            if let direction, !claimedSwipes.contains(direction) {
+                return .apps
+            }
+            return .undecided
         }
     }
 

@@ -17,8 +17,16 @@ extension CGEventField {
     static let dockSwipeVelocity = CGEventField(rawValue: 129)!
 
     static let gesturePhase = CGEventField(rawValue: 132)!
+    /// `IOHIDSwipeMask` of a navigation swipe
+    static let swipeMask = CGEventField(rawValue: 134)!
 
     enum GestureHIDType: Int64 {
+        case rotation = 5
+        case zoom = 8
+        /// `kIOHIDEventTypeNavigationSwipe`, used by apps to swipe between pages
+        case navigationSwipe = 16
+        /// `kIOHIDEventTypeZoomToggle`, for smart zoom
+        case zoomToggle = 22
         /// `kIOHIDEventTypeDockSwipe`
         case dockSwipe = 23
     }
