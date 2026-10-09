@@ -19,6 +19,8 @@ final class ResizeContext {
         fileprivate let window: Window?
         fileprivate let resolvedWindowProperties: Window.ResolvedProperties?
         fileprivate let resolvedRecord: WindowRecords.ResolvedRecord?
+        /// The frame grow/shrink/move should start from, using the revealed frame for stashed windows
+        fileprivate let baseFrame: CGRect?
     }
 
     private(set) var window: Window?
@@ -91,10 +93,19 @@ final class ResizeContext {
             nil
         }
 
+        // Matches how Loop opens on a stashed window, so resizing doesn't start from the off-screen frame
+        let baseFrame: CGRect? = if let window,
+                                    let revealedFrame = await StashManager.shared.getRevealedFrameForStashedWindow(id: window.cgWindowID) {
+            revealedFrame
+        } else {
+            resolvedWindowProperties?.frame
+        }
+
         return PreparedWindowTarget(
             window: window,
             resolvedWindowProperties: resolvedWindowProperties,
-            resolvedRecord: resolvedRecord
+            resolvedRecord: resolvedRecord,
+            baseFrame: baseFrame
         )
     }
 
@@ -111,8 +122,7 @@ final class ResizeContext {
         // like `focus to another window > grow` would resize the newly-focused window using
         // the *previous* window's cached frame — grow/shrink/move read `cachedTargetFrame.raw`
         // as their base until a frame has been applied.
-        if let window {
-            let frame = window.frame
+        if let frame = target.baseFrame {
             cachedTargetFrame = ComputedFrame(raw: frame, normalized: .zero, padded: frame)
         }
 
