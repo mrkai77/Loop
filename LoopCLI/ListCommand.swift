@@ -16,53 +16,49 @@ struct ListCommand: ParsableCommand, CLIRequestCommand {
     @Argument(help: "What to list")
     var subject: ListSubject
 
-    @Flag(name: .customLong("directions"), help: "List only built-in direction actions")
-    var directionsOnly = false
+    @Flag(name: .customLong("preset"), help: "List only preset actions")
+    var presetOnly = false
 
-    @Flag(name: .customLong("keybinds"), help: "List only keybind-backed actions")
-    var keybindsOnly = false
-
-    @Flag(name: .customLong("ids"), help: "Show action UUIDs in `list actions` output")
-    var ids = false
+    @Flag(name: .customLong("custom"), help: "List only custom actions")
+    var customOnly = false
 
     @OptionGroup
     var outputOptions: OutputOptions
 
-    var outputConfiguration: CLIOutputConfiguration {
-        CLIOutputConfiguration(
-            mode: outputOptions.outputMode,
-            showIDs: ids
-        )
+    var outputMode: OutputOptions.Mode {
+        outputOptions.outputMode
     }
 
     func validate() throws {
-        if directionsOnly, keybindsOnly {
-            throw ValidationError("--directions and --keybinds are mutually exclusive")
+        if presetOnly, customOnly {
+            throw ValidationError("--preset and --custom are mutually exclusive")
         }
 
-        if subject != .actions, directionsOnly || keybindsOnly {
-            throw ValidationError("--directions and --keybinds are only valid with `list actions`")
-        }
-
-        if subject != .actions, ids {
-            throw ValidationError("--ids is only valid with `list actions`")
+        if subject != .actions, presetOnly || customOnly {
+            throw ValidationError("--preset and --custom are only valid with `list actions`")
         }
     }
 
-    func makeRequest(using _: LoopCLIApplication) throws -> CLIRequest {
+    func makeRequest() throws -> CLIRequest {
         let routeComponents: [String] = switch subject {
         case .windows:
             ["list", "windows"]
         case .screens:
             ["list", "screens"]
-        case .actions where directionsOnly:
-            ["list", "actions", "directions"]
-        case .actions where keybindsOnly:
-            ["list", "actions", "keybinds"]
+        case .actions where presetOnly:
+            ["list", "actions", "preset"]
+        case .actions where customOnly:
+            ["list", "actions", "custom"]
         case .actions:
             ["list", "actions"]
         }
 
         return CLIRequest(routeComponents: routeComponents)
     }
+}
+
+enum ListSubject: String, CaseIterable, ExpressibleByArgument {
+    case windows
+    case screens
+    case actions
 }

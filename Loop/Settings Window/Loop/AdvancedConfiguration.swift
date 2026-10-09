@@ -108,10 +108,7 @@ final class AdvancedConfigurationModel: ObservableObject {
     }
 
     var canPerformCommandLineToolAction: Bool {
-        !isCommandLineToolOperationInProgress && (
-            commandLineToolInstallStatus == .notInstalled
-                || commandLineToolInstallStatus == .installedStale
-        )
+        !isCommandLineToolOperationInProgress && commandLineToolInstallStatus != .blocked
     }
 
     var isCommandLineToolInstalled: Bool {
@@ -122,7 +119,9 @@ final class AdvancedConfigurationModel: ObservableObject {
         switch commandLineToolInstallStatus {
         case .installedStale:
             "Repair…"
-        case .notInstalled, .installedCurrent, .blocked:
+        case .installedCurrent:
+            "Uninstall…"
+        case .notInstalled, .blocked:
             "Install…"
         }
     }
@@ -131,7 +130,7 @@ final class AdvancedConfigurationModel: ObservableObject {
         commandLineToolErrorMessage = nil
     }
 
-    func installOrRepairCommandLineTool() {
+    func performCommandLineToolAction() {
         guard canPerformCommandLineToolAction else { return }
         let status = commandLineToolInstallStatus
 
@@ -141,7 +140,9 @@ final class AdvancedConfigurationModel: ObservableObject {
                 try await installer.install()
             case .installedStale:
                 try await installer.reinstall()
-            case .installedCurrent, .blocked:
+            case .installedCurrent:
+                try await installer.uninstall()
+            case .blocked:
                 break
             }
         }
@@ -176,7 +177,7 @@ final class AdvancedConfigurationModel: ObservableObject {
             do {
                 try await operation(commandLineToolInstaller)
             } catch {
-                log.error("Error installing Loop CLI: \(error.localizedDescription)")
+                log.error("Command-line tool operation failed: \(error.localizedDescription)")
                 commandLineToolErrorMessage = error.localizedDescription
             }
         }
@@ -231,10 +232,8 @@ struct AdvancedConfigurationView: View {
             generalSection
             radialMenuSection
             keybindsSection
-            commandLineToolSection
             permissionsSection
-                .onAppear(perform: model.startTracking)
-                .onDisappear(perform: model.stopTracking)
+            commandLineToolSection
         }
         .animation(luminareAnimation, value: enableRadialMenuCustomization)
         .animation(luminareAnimation, value: useSystemWindowManagerWhenAvailable)
@@ -243,6 +242,8 @@ struct AdvancedConfigurationView: View {
         } message: {
             Text(model.commandLineToolErrorMessage ?? "")
         }
+        .onAppear(perform: model.startTracking)
+        .onDisappear(perform: model.stopTracking)
     }
 
     private var generalSection: some View {
@@ -410,18 +411,33 @@ struct AdvancedConfigurationView: View {
     }
 
     private var commandLineToolSection: some View {
-        LuminareSection(String(localized: "Command Line Interface", comment: "Section header shown in settings")) {
+        LuminareSection(String(localized: "Command-Line Tool", comment: "Section header shown in settings")) {
             LuminareCompose {
-                Button {
-                    model.installOrRepairCommandLineTool()
-                } label: {
-                    Text(model.commandLineToolActionTitle)
-                        .padding(.horizontal, sectionHorizontalPadding)
+                if #available(macOS 14.0, *) {
+                    Button {
+                        model.performCommandLineToolAction()
+                    } label: {
+                        Text(model.commandLineToolActionTitle)
+                            .padding(.horizontal, sectionHorizontalPadding)
+                    }
+                    .luminareRoundingBehavior(top: true, bottom: true)
+                    .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
+                    .luminareComposeIgnoreSafeArea(edges: .trailing)
+                    .disabled(!model.canPerformCommandLineToolAction)
+                    .geometryGroup()
+                } else {
+                    // no geometryGroup available below macOS Sequoia :(
+                    Button {
+                        model.performCommandLineToolAction()
+                    } label: {
+                        Text(model.commandLineToolActionTitle)
+                            .padding(.horizontal, sectionHorizontalPadding)
+                    }
+                    .luminareRoundingBehavior(top: true, bottom: true)
+                    .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
+                    .luminareComposeIgnoreSafeArea(edges: .trailing)
+                    .disabled(!model.canPerformCommandLineToolAction)
                 }
-                .luminareRoundingBehavior(top: true, bottom: true)
-                .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
-                .luminareComposeIgnoreSafeArea(edges: .trailing)
-                .disabled(!model.canPerformCommandLineToolAction)
             } label: {
                 HStack {
                     if model.isCommandLineToolInstalled {
@@ -429,15 +445,18 @@ struct AdvancedConfigurationView: View {
                             .foregroundStyle(.green)
                     }
 
-                    Text("Loop CLI")
+                    Text("`loop` command")
                         .padding(.trailing, 4)
-                        .luminareToolTip(attachedTo: .topTrailing) {
-                            Text(model.commandLineToolInstallStatus.description)
-                                .padding(6)
+                        .luminareToolTip(attachedTo: .topTrailing, hidden: model.commandLineToolInstallStatus.warning == nil) {
+                            if let warning = model.commandLineToolInstallStatus.warning {
+                                Text(warning)
+                                    .padding(6)
+                            }
                         }
                 }
             }
         }
+        .animation(luminareAnimation, value: model.commandLineToolInstallStatus)
     }
 
     private func accessibilityComponent() -> some View {

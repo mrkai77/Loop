@@ -57,7 +57,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
             try executeAtomicSwap(rollbackID: rollbackID)
             reply(nil)
         } catch {
-            reply(error as NSError)
+            reply(Self.xpcError(error))
         }
     }
 
@@ -66,7 +66,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
             try executeRestoreFromBackup(rollbackID: rollbackID)
             reply(nil)
         } catch {
-            reply(error as NSError)
+            reply(Self.xpcError(error))
         }
     }
 
@@ -75,7 +75,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
             try executeRemoveCurrentBundle()
             reply(nil)
         } catch {
-            reply(error as NSError)
+            reply(Self.xpcError(error))
         }
     }
 
@@ -84,7 +84,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
             try executeInstallCommandLineTool(reinstall: false)
             reply(nil)
         } catch {
-            reply(error as NSError)
+            reply(Self.xpcError(error))
         }
     }
 
@@ -93,8 +93,26 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
             try executeInstallCommandLineTool(reinstall: true)
             reply(nil)
         } catch {
-            reply(error as NSError)
+            reply(Self.xpcError(error))
         }
+    }
+
+    func uninstallCommandLineTool(withReply reply: @escaping (NSError?) -> ()) {
+        do {
+            try executeUninstallCommandLineTool()
+            reply(nil)
+        } catch {
+            reply(Self.xpcError(error))
+        }
+    }
+
+    /// Swift error descriptions don't survive XPC, so send the message as a plain `NSError`
+    private static func xpcError(_ error: Error) -> NSError {
+        NSError(
+            domain: "com.MrKai77.Loop.PrivilegedHelper",
+            code: (error as NSError).code,
+            userInfo: [NSLocalizedDescriptionKey: error.localizedDescription]
+        )
     }
 
     private func executeAtomicSwap(rollbackID: String) throws {
@@ -197,6 +215,26 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
             throw PrivilegedHelperError.commandLineToolInstallFailed(
                 reason: "Failed to create symlink at \(destinationURL.path): \(error.localizedDescription)"
             )
+        }
+    }
+
+    private func executeUninstallCommandLineTool() throws {
+        let destinationURL = PrivilegedHelperConstants.commandLineToolSymlinkURL
+
+        switch try commandLineToolDestinationState(at: destinationURL) {
+        case .missing:
+            return
+        case .loopManaged:
+            do {
+                try fileManager.removeItem(at: destinationURL)
+                log.success("Removed Loop CLI symlink at \(destinationURL.path)")
+            } catch {
+                throw PrivilegedHelperError.commandLineToolUninstallFailed(
+                    reason: "Failed to remove symlink at \(destinationURL.path): \(error.localizedDescription)"
+                )
+            }
+        case let .occupied(reason):
+            throw PrivilegedHelperError.commandLineToolUninstallFailed(reason: reason)
         }
     }
 

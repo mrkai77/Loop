@@ -10,223 +10,211 @@ import Darwin
 import Foundation
 
 struct CLIOutputFormatter {
+    private let executableName: String
     private let supportsANSIStyle = isatty(STDOUT_FILENO) != 0
         && ProcessInfo.processInfo.environment["NO_COLOR"] == nil
         && ProcessInfo.processInfo.environment["TERM"]?.lowercased() != "dumb"
 
-    func format(_ response: CLIResponse, configuration: CLIOutputConfiguration) -> String {
-        switch configuration.mode {
-        case .json:
+    init(executableName: String) {
+        self.executableName = executableName
+    }
+
+    func format(_ response: CLIResponse, mode: OutputOptions.Mode) -> String {
+        guard mode == .human, let result = response.result else {
             return response.rawOutput
-        case .human:
-            guard let result = response.result else {
-                return response.rawOutput
-            }
+        }
 
-            switch result {
-            case let .windowList(result):
-                return formatWindows(result.windows)
-            case let .screenList(result):
-                return formatScreens(result.screens)
-            case let .actionList(result):
-                return formatActions(result, showIDs: configuration.showIDs)
-            case let .execution(result):
-                return formatExecution(result)
-            }
+        switch result {
+        case let .windowList(result):
+            return list(result.windows.map(windowItem), emptyMessage: "No windows")
+        case let .screenList(result):
+            return list(result.screens.map(screenItem), emptyMessage: "No screens")
+        case let .actionList(result):
+            return formatActions(result)
+        case let .execution(result):
+            return render(executionItem(result))
         }
     }
 
-    private func formatWindows(_ windows: [LoopWindowSummary]) -> String {
-        guard !windows.isEmpty else {
-            return "No windows"
+    func error(from response: CLIResponse) -> CLICommandError {
+        var lines: [String] = []
+
+        if let errorMessage = response.automationError?.message, !errorMessage.isEmpty {
+            lines.append(errorMessage)
+        } else if !response.rawOutput.isEmpty {
+            lines.append(response.rawOutput)
+        } else {
+            lines.append("Command failed")
         }
 
-        return windows.enumerated().map { index, window in
-            var lines = [windowPrimaryLine(appName: window.appName, title: window.title, fallback: "Window \(index + 1)")]
-
-            if let metadata = windowMetadataLine(
-                bundleID: window.bundleID,
-                idLabel: "Window ID",
-                id: window.id,
-                frame: window.frame
-            ) {
-                lines.append(dim(metadata))
-            }
-
-            return lines.joined(separator: "\n")
-        }.joined(separator: "\n\n")
-    }
-
-    private func formatScreens(_ screens: [LoopScreenSummary]) -> String {
-        guard !screens.isEmpty else {
-            return "No screens"
+        if let replacement = response.automationError?.replacementRoute, !replacement.isEmpty {
+            lines.append("Try: \(displayString(for: replacement))")
         }
 
-        return screens.enumerated().map { index, screen in
-            var lines = [screenPrimaryLine(screen, fallback: "Screen \(index + 1)")]
+        let availableRoutes = response.automationError?.availableRoutes ?? []
+        if !availableRoutes.isEmpty {
+            let displayedRoutes = availableRoutes.map(displayString)
+            lines.append("Available commands: \(displayedRoutes.joined(separator: ", "))")
+        }
 
-            if let metadata = screenMetadataLine(screen) {
-                lines.append(dim(metadata))
-            }
-
-            return lines.joined(separator: "\n")
-        }.joined(separator: "\n\n")
+        return CLICommandError(message: lines.joined(separator: "\n"))
     }
 
-    private func formatActions(_ result: LoopActionListResult, showIDs: Bool) -> String {
+    private func displayString(for route: String) -> String {
+        guard
+            let url = URL(string: route),
+            url.scheme?.lowercased() == "loop"
+        else {
+            return route
+        }
+
+        let components = (url.host.map { [$0.lowercased()] } ?? [])
+            + url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
+
+        switch components {
+        case ["list", "windows"]:
+            return "\(executableName) list windows"
+        case ["list", "screens"]:
+            return "\(executableName) list screens"
+        case ["list", "actions"]:
+            return "\(executableName) list actions"
+        case ["list", "actions", "preset"]:
+            return "\(executableName) list actions --preset"
+        case ["list", "actions", "custom"]:
+            return "\(executableName) list actions --custom"
+        default:
+            break
+        }
+
+        if components.count == 2, components[0] == "preset" {
+            return "\(executableName) exec --preset \(components[1])"
+        }
+
+        if components.count == 2, components[0] == "custom" {
+            return "\(executableName) exec --custom \(components[1])"
+        }
+
+        if components.count == 2, components[0] == "id" {
+            return "\(executableName) exec --id \(components[1])"
+        }
+
+        return route
+    }
+
+    // MARK: - Layout
+
+    /// Every entry is a bold name followed by an indented, dimmed line of details
+    private struct Item {
+        let name: String
+        let details: [String]
+    }
+
+    private func render(_ item: Item) -> String {
+        let details = item.details.filter { !$0.isEmpty }
+        guard !details.isEmpty else {
+            return bold(item.name)
+        }
+
+        return bold(item.name) + "\n" + dim("  " + details.joined(separator: " · "))
+    }
+
+    private func list(_ items: [Item], emptyMessage: String) -> String {
+        guard !items.isEmpty else {
+            return dim(emptyMessage)
+        }
+
+        return items.map(render).joined(separator: "\n")
+    }
+
+    private func section(_ title: String, items: [Item], emptyMessage: String) -> String {
+        underline(title) + "\n" + list(items, emptyMessage: emptyMessage)
+    }
+
+    // MARK: - Results
+
+    private func formatActions(_ result: LoopActionListResult) -> String {
         var sections: [String] = []
 
-        if !result.directionCategories.isEmpty {
-            sections.append(formatDirectionSections(result.directionCategories, showIDs: showIDs))
+        if result.filter != .customOnly {
+            for category in result.presetCategories where !category.actions.isEmpty {
+                sections.append(section(category.name, items: category.actions.map(actionItem), emptyMessage: ""))
+            }
         }
 
-        if !result.keybindActions.isEmpty || result.filter == .keybindsOnly || result.filter == .all {
-            sections.append(formatKeybindSection(result.keybindActions, showIDs: showIDs))
+        if result.filter != .presetOnly {
+            sections.append(section("Custom", items: result.customActions.map(actionItem), emptyMessage: "No custom actions"))
         }
 
-        let nonEmptySections = sections.filter { !$0.isEmpty }
-        if nonEmptySections.isEmpty {
-            return "No actions"
-        }
-
-        return nonEmptySections.joined(separator: "\n\n")
+        return sections.joined(separator: "\n\n")
     }
 
-    private func formatDirectionSections(_ categories: [LoopActionCategory], showIDs: Bool) -> String {
-        guard !categories.isEmpty else {
-            return "\(bold("- Direction Actions (Built-in) -"))\n\n\(dim("None"))"
-        }
-
-        var lines = [bold("- Direction Actions (Built-in) -")]
-
-        for category in categories where !category.actions.isEmpty {
-            lines.append("")
-            lines.append(bold(sanitizeInline(category.name)))
-            lines.append(contentsOf: formatActionRows(category.actions, showIDs: showIDs))
-        }
-
-        return lines.joined(separator: "\n")
+    private func windowItem(_ window: LoopWindowSummary) -> Item {
+        Item(
+            name: windowName(appName: window.appName, title: window.title),
+            details: ["ID \(window.id)", window.bundleID, frameString(window.frame)]
+        )
     }
 
-    private func formatKeybindSection(_ keybinds: [LoopActionDescriptor], showIDs: Bool) -> String {
-        var lines = [bold("- User-Configured Keybind Actions -")]
-
-        guard !keybinds.isEmpty else {
-            lines.append("")
-            lines.append(dim("None"))
-            return lines.joined(separator: "\n")
-        }
-
-        lines.append("")
-        lines.append(contentsOf: formatActionRows(keybinds, showIDs: showIDs))
-
-        return lines.joined(separator: "\n")
+    private func screenItem(_ screen: LoopScreenSummary) -> Item {
+        Item(
+            name: nonEmpty(screen.name) ?? "Screen",
+            details: ["IDr \(screen.id)", screen.isMain ? "main" : "", frameString(screen.frame)]
+        )
     }
 
-    private func formatExecution(_ result: LoopExecutionResult) -> String {
-        let name = sanitizeInline(result.action.name)
+    private func actionItem(_ action: LoopActionDescriptor) -> Item {
+        Item(
+            name: sanitized(action.name),
+            details: [sanitized(action.title), action.idString.map { "ID \($0)" } ?? ""]
+        )
+    }
+
+    private func executionItem(_ result: LoopExecutionResult) -> Item {
+        let action = sanitized(result.action.name)
 
         guard let window = result.targetWindow else {
-            return "Successfully executed \(name)"
+            return Item(name: "Ran \(action)", details: [])
         }
 
-        if let appName = nonEmptyString(window.appName).map(sanitizeInline) {
-            return "Successfully executed \(name) on \(appName) (Window ID: \(window.id))"
-        }
-
-        return "Successfully executed \(name) (Window ID: \(window.id))"
+        let target = nonEmpty(window.appName).map { " on \($0)" } ?? ""
+        return Item(name: "Ran \(action)\(target)", details: ["ID \(window.id)", window.bundleID])
     }
 
-    private func formatActionRows(_ actions: [LoopActionDescriptor], showIDs: Bool) -> [String] {
-        let rows = actions.map { action in
-            (name: sanitizeInline(action.name), id: action.idString)
-        }
+    // MARK: - Text
 
-        guard showIDs else {
-            return rows.map { blue($0.name) }
-        }
-
-        let nameColumnWidth = rows.map(\.name.count).max() ?? 0
-
-        return rows.map { row in
-            let paddedName = row.name.padding(toLength: nameColumnWidth, withPad: " ", startingAt: 0)
-            if let id = row.id {
-                return "\(blue(paddedName))  \(dim(id))"
-            }
-            return blue(paddedName)
-        }
-    }
-
-    private func windowPrimaryLine(appName: String, title: String, fallback: String) -> String {
-        let sanitizedAppName = nonEmptyString(appName).map(sanitizeInline)
-        let sanitizedTitle = nonEmptyString(title).map(quotedTitle)
-
-        switch (sanitizedAppName, sanitizedTitle) {
+    private func windowName(appName: String, title: String) -> String {
+        switch (nonEmpty(appName), nonEmpty(title)) {
         case let (appName?, title?):
-            return "\(bold(appName)) \(title)"
+            "\(appName) — \(title)"
         case let (appName?, nil):
-            return bold(appName)
+            appName
         case let (nil, title?):
-            return title
+            title
         case (nil, nil):
-            return fallback
+            "Untitled window"
         }
     }
 
-    private func windowMetadataLine(
-        bundleID: String,
-        idLabel: String,
-        id: UInt32,
-        frame: LoopRect?
-    ) -> String? {
-        var parts: [String] = []
-
-        if let bundleID = nonEmptyString(bundleID) {
-            parts.append("Bundle ID: \(bundleID)")
-        }
-
-        parts.append("\(idLabel): \(id)")
-
-        if let frame {
-            parts.append("Frame: \(formatLength(frame.width))x\(formatLength(frame.height)) @ \(formatCoordinate(frame.x)),\(formatCoordinate(frame.y))")
-        }
-
-        return parts.isEmpty ? nil : parts.joined(separator: " | ")
+    private func frameString(_ frame: LoopRect) -> String {
+        "\(number(frame.width))×\(number(frame.height)) at \(number(frame.x)),\(number(frame.y))"
     }
 
-    private func screenPrimaryLine(_ screen: LoopScreenSummary, fallback: String) -> String {
-        let name = nonEmptyString(screen.name).map(sanitizeInline) ?? fallback
-        return screen.isMain ? "\(bold(name)) [main]" : bold(name)
-    }
-
-    private func screenMetadataLine(_ screen: LoopScreenSummary) -> String? {
-        "Screen ID: \(screen.id) | Frame: \(formatLength(screen.frame.width))x\(formatLength(screen.frame.height)) @ \(formatCoordinate(screen.frame.x)),\(formatCoordinate(screen.frame.y))"
-    }
-
-    private func formatLength(_ value: CGFloat) -> String {
-        formatCGFloat(value)
-    }
-
-    private func formatCoordinate(_ value: CGFloat) -> String {
-        formatCGFloat(value)
-    }
-
-    private func formatCGFloat(_ value: CGFloat) -> String {
+    private func number(_ value: CGFloat) -> String {
         if value.rounded() == value {
             return String(Int(value))
         }
 
-        let formatted = String(format: "%.2f", Double(value))
-        return formatted
+        return String(format: "%.2f", Double(value))
             .replacingOccurrences(of: #"\.?0+$"#, with: "", options: .regularExpression)
     }
 
-    private func nonEmptyString(_ string: String) -> String? {
-        let trimmed = string.trimmingCharacters(in: .whitespacesAndNewlines)
-        return trimmed.isEmpty ? nil : trimmed
+    /// Trimmed and flattened to one line, or `nil` when empty
+    private func nonEmpty(_ string: String) -> String? {
+        let result = sanitized(string)
+        return result.isEmpty ? nil : result
     }
 
-    private func sanitizeInline(_ string: String) -> String {
+    private func sanitized(_ string: String) -> String {
         string
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -234,32 +222,37 @@ struct CLIOutputFormatter {
             .joined(separator: " ")
     }
 
-    private func quotedTitle(_ string: String) -> String {
-        let sanitized = sanitizeInline(string).replacingOccurrences(of: "'", with: "\\'")
-        return "'\(sanitized)'"
-    }
+    // MARK: - Styling
 
     private func bold(_ string: String) -> String {
-        guard supportsANSIStyle else {
-            return string
-        }
-
-        return "\u{001B}[1m\(string)\u{001B}[22m"
+        styled(string, "1", "22")
     }
 
     private func dim(_ string: String) -> String {
-        guard supportsANSIStyle else {
-            return string
-        }
-
-        return "\u{001B}[2m\(string)\u{001B}[22m"
+        styled(string, "2", "22")
     }
 
-    private func blue(_ string: String) -> String {
+    private func underline(_ string: String) -> String {
+        styled(string, "1;4", "22;24")
+    }
+
+    private func styled(_ string: String, _ on: String, _ off: String) -> String {
         guard supportsANSIStyle else {
             return string
         }
 
-        return "\u{001B}[34m\(string)\u{001B}[39m"
+        return "\u{001B}[\(on)m\(string)\u{001B}[\(off)m"
+    }
+}
+
+struct CLICommandError: LocalizedError, CustomStringConvertible {
+    let message: String
+
+    var errorDescription: String? {
+        message
+    }
+
+    var description: String {
+        message
     }
 }

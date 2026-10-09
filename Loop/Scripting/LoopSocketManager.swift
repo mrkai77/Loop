@@ -21,7 +21,6 @@ final class LoopSocketManager {
     // MARK: - Properties
 
     private let socketPath: String
-    private let handler: LoopCommandHandler
     private var serverFD: Int32 = -1
     private var isRunning = false
 
@@ -35,9 +34,8 @@ final class LoopSocketManager {
 
     // MARK: - Initialization
 
-    init(handler: LoopCommandHandler) {
-        self.handler = handler
-        self.socketPath = "/tmp/loop-\(getuid()).socket"
+    init() {
+        self.socketPath = LoopSocketPath.path
     }
 
     // MARK: - Public Methods
@@ -137,6 +135,15 @@ final class LoopSocketManager {
                 continue
             }
 
+            // Reject connections from other users
+            var peerUID: uid_t = 0
+            var peerGID: gid_t = 0
+            guard getpeereid(clientFD, &peerUID, &peerGID) == 0, peerUID == getuid() else {
+                log.warn("Rejected socket connection from another user")
+                close(clientFD)
+                continue
+            }
+
             // Set receive timeout
             var timeout = timeval(tv_sec: Int(Self.connectionTimeout), tv_usec: 0)
             setsockopt(clientFD, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
@@ -146,9 +153,21 @@ final class LoopSocketManager {
     }
 
     private func handleConnection(_ clientFD: Int32) {
-        defer { close(clientFD) }
+        guard let request = readRequest(clientFD) else {
+            Self.writeResponse(clientFD, Self.encodedErrorResponse(message: "Empty request"))
+            close(clientFD)
+            return
+        }
 
-        // Read request (until newline or max size)
+        Task {
+            let result = await LoopCommandHandler.shared.handleRequestURLString(request, source: .cli)
+            Self.writeResponse(clientFD, result.jsonResponse)
+            close(clientFD)
+        }
+    }
+
+    /// Reads until a newline or the size limit, returning `nil` for an empty request
+    private func readRequest(_ clientFD: Int32) -> String? {
         var buffer = [UInt8](repeating: 0, count: Self.maxRequestSize)
         var totalRead = 0
 
@@ -157,50 +176,18 @@ final class LoopSocketManager {
             if bytesRead <= 0 { break }
             totalRead += bytesRead
 
-            // Check for newline delimiter
             if buffer[..<totalRead].contains(UInt8(ascii: "\n")) {
                 break
             }
         }
 
-        guard totalRead > 0 else {
-            writeResponse(clientFD, encodedErrorResponse(message: "Empty request"))
-            return
-        }
-
-        // Trim newline and parse
-        let requestString = String(bytes: buffer[..<totalRead], encoding: .utf8)?
+        let request = String(bytes: buffer[..<totalRead], encoding: .utf8)?
             .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
 
-        guard !requestString.isEmpty else {
-            writeResponse(clientFD, encodedErrorResponse(message: "Empty request"))
-            return
-        }
-
-        // Dispatch to main thread for window/screen API access
-        let semaphore = DispatchSemaphore(value: 0)
-        var response = ""
-
-        DispatchQueue.main.async { [weak self] in
-            guard let self else {
-                response = Self.fallbackEncodedErrorResponse(message: "Server shutting down")
-                semaphore.signal()
-                return
-            }
-            response = handler.handleRequestURLString(requestString, source: .cli).jsonResponse
-            semaphore.signal()
-        }
-
-        _ = semaphore.wait(timeout: .now() + Self.connectionTimeout)
-
-        if response.isEmpty {
-            response = encodedErrorResponse(message: "Request timed out")
-        }
-
-        writeResponse(clientFD, response)
+        return request.isEmpty ? nil : request
     }
 
-    private func encodedErrorResponse(message: String) -> String {
+    private static func encodedErrorResponse(message: String) -> String {
         do {
             return try LoopAutomationJSON.encodeString(
                 LoopAutomationResponse(
@@ -208,7 +195,7 @@ final class LoopSocketManager {
                 )
             )
         } catch {
-            return Self.fallbackEncodedErrorResponse(message: message)
+            return fallbackEncodedErrorResponse(message: message)
         }
     }
 
@@ -216,7 +203,7 @@ final class LoopSocketManager {
         #"{"error":{"message":"\#(message)"},"success":false}"#
     }
 
-    private func writeResponse(_ fd: Int32, _ response: String) {
+    private static func writeResponse(_ fd: Int32, _ response: String) {
         let data = response + "\n"
         data.utf8.withContiguousStorageIfAvailable { buffer in
             _ = Darwin.write(fd, buffer.baseAddress!, buffer.count)

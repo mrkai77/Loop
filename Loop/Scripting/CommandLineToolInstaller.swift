@@ -15,16 +15,14 @@ final class CommandLineToolInstaller {
         case installedStale
         case blocked
 
-        var description: LocalizedStringKey {
+        var warning: LocalizedStringKey? {
             switch self {
-            case .notInstalled:
-                "Installs `/usr/local/bin/loop` to run Loop from the shell."
-            case .installedCurrent:
-                "`/usr/local/bin/loop` is installed and points to this version of Loop."
+            case .notInstalled, .installedCurrent:
+                nil
             case .installedStale:
                 "`/usr/local/bin/loop` points to a different or moved version of Loop. Repair it to update the symlink."
             case .blocked:
-                "`/usr/local/bin/loop` is already in use by another file or symlink. Remove it manually before installing Loop CLI."
+                "`/usr/local/bin/loop` is already in use by another file or symlink. Remove it manually before installing the command-line tool."
             }
         }
     }
@@ -83,6 +81,14 @@ final class CommandLineToolInstaller {
             prompt: "\(Bundle.main.appName) needs administrator permission to install its command-line tool."
         ) { session in
             try await session.reinstallCommandLineTool()
+        }
+    }
+
+    func uninstall() async throws {
+        try await privilegedHelperCoordinator.withPrivilegedSession(
+            prompt: "\(Bundle.main.appName) needs administrator permission to uninstall its command-line tool."
+        ) { session in
+            try await session.uninstallCommandLineTool()
         }
     }
 

@@ -23,14 +23,14 @@ struct ActionIdentifier: ExpressibleByArgument {
 struct ExecCommand: ParsableCommand, CLIRequestCommand {
     static let configuration = CommandConfiguration(
         commandName: "exec",
-        abstract: "Execute a direction action, keybind-backed action, or UUID-addressed action"
+        abstract: "Execute a preset action, a custom action, or an action by UUID"
     )
 
-    @Option(name: .customLong("direction"), help: "Execute a built-in direction action")
-    var direction: String?
+    @Option(name: .customLong("preset"), help: "Execute a preset action by name")
+    var preset: String?
 
-    @Option(name: .customLong("keybind"), help: "Execute a keybind-backed action by name")
-    var keybind: String?
+    @Option(name: .customLong("custom"), help: "Execute a custom action by name")
+    var custom: String?
 
     @Option(name: .customLong("id"), help: "Execute an action by UUID")
     var actionID: ActionIdentifier?
@@ -41,35 +41,32 @@ struct ExecCommand: ParsableCommand, CLIRequestCommand {
     @OptionGroup
     var outputOptions: OutputOptions
 
-    var outputConfiguration: CLIOutputConfiguration {
-        CLIOutputConfiguration(
-            mode: outputOptions.outputMode,
-            showIDs: false
-        )
+    var outputMode: OutputOptions.Mode {
+        outputOptions.outputMode
     }
 
     func validate() throws {
-        let selectorCount = (direction == nil ? 0 : 1)
-            + (keybind == nil ? 0 : 1)
+        let selectorCount = (preset == nil ? 0 : 1)
+            + (custom == nil ? 0 : 1)
             + (actionID == nil ? 0 : 1)
         guard selectorCount == 1 else {
-            throw ValidationError("Exactly one of --direction, --keybind, or --id is required")
+            throw ValidationError("Exactly one of --preset, --custom, or --id is required")
         }
     }
 
-    func makeRequest(using _: LoopCLIApplication) throws -> CLIRequest {
+    func makeRequest() throws -> CLIRequest {
         let queryItems = targetOptions.queryItems
 
-        if let direction {
+        if let preset {
             return CLIRequest(
-                routeComponents: ["direction", direction],
+                routeComponents: ["preset", preset],
                 queryItems: queryItems
             )
         }
 
-        if let keybind {
+        if let custom {
             return CLIRequest(
-                routeComponents: ["keybind", keybind],
+                routeComponents: ["custom", custom],
                 queryItems: queryItems
             )
         }
@@ -81,6 +78,6 @@ struct ExecCommand: ParsableCommand, CLIRequestCommand {
             )
         }
 
-        throw ValidationError("Exactly one of --direction, --keybind, or --id is required")
+        throw ValidationError("Exactly one of --preset, --custom, or --id is required")
     }
 }

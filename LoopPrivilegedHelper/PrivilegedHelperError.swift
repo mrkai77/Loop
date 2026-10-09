@@ -13,6 +13,7 @@ enum PrivilegedHelperError: LocalizedError {
     case pathValidationFailed(operation: String, path: String, reason: String)
     case bundleValidationFailed(path: String, reason: String)
     case commandLineToolInstallFailed(reason: String)
+    case commandLineToolUninstallFailed(reason: String)
 
     var errorDescription: String? {
         switch self {
@@ -27,6 +28,8 @@ enum PrivilegedHelperError: LocalizedError {
             return "Rejected privileged bundle at \(path): \(reason)"
         case let .commandLineToolInstallFailed(reason):
             return "Could not install Loop command-line tool: \(reason)"
+        case let .commandLineToolUninstallFailed(reason):
+            return "Could not uninstall Loop command-line tool: \(reason)"
         }
     }
 }

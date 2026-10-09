@@ -34,6 +34,11 @@ import Foundation
     func reinstallCommandLineTool(
         withReply reply: @escaping (NSError?) -> ()
     )
+
+    /// Removes the Loop CLI symlink, but only when it's Loop-managed.
+    func uninstallCommandLineTool(
+        withReply reply: @escaping (NSError?) -> ()
+    )
 }
 
 enum PrivilegedHelperConstants {

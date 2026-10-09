@@ -18,7 +18,7 @@ final class LoopSocketClient {
 
     private let socketPath: String
 
-    init(socketPath: String = "/tmp/loop-\(getuid()).socket") {
+    init(socketPath: String = LoopSocketPath.path) {
         self.socketPath = socketPath
     }
 
@@ -48,16 +48,15 @@ final class LoopSocketClient {
         }
 
         guard connectResult == 0 else {
-            throw SocketRuntimeError(
-                message: "Loop is not running (could not connect to \(socketPath))"
-            )
+            throw SocketRuntimeError(message: "Loop is not running")
         }
 
-        var timeout = timeval(tv_sec: 5, tv_usec: 0)
+        // Longer than Loop's own command timeout, so Loop can still report it
+        var timeout = timeval(tv_sec: 15, tv_usec: 0)
         setsockopt(fileDescriptor, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
         setsockopt(fileDescriptor, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
 
-        let serializedRequest = request.serializedRequest + "\n"
+        let serializedRequest = request.url.absoluteString + "\n"
         let bytesSent = serializedRequest.utf8.withContiguousStorageIfAvailable { buffer in
             Darwin.write(fileDescriptor, buffer.baseAddress!, buffer.count)
         } ?? -1
@@ -86,5 +85,62 @@ final class LoopSocketClient {
         }
 
         return CLIResponse(rawOutput: response)
+    }
+}
+
+// MARK: - Request & Response
+
+struct CLIRequest {
+    let url: URL
+
+    init(routeComponents: [String], queryItems: [URLQueryItem] = []) {
+        precondition(!routeComponents.isEmpty, "CLIRequest requires at least one route component")
+
+        var components = URLComponents()
+        components.scheme = "loop"
+        components.host = routeComponents[0]
+
+        if routeComponents.count > 1 {
+            components.path = "/" + routeComponents.dropFirst().joined(separator: "/")
+        }
+
+        if !queryItems.isEmpty {
+            components.queryItems = queryItems
+        }
+
+        guard let url = components.url else {
+            preconditionFailure("Failed to construct loop:// request for \(routeComponents)")
+        }
+
+        self.url = url
+    }
+}
+
+struct CLIResponse {
+    let rawOutput: String
+    let automationResponse: LoopAutomationResponse?
+
+    init(rawOutput: String) {
+        let trimmedOutput = rawOutput.trimmingCharacters(in: .whitespacesAndNewlines)
+        self.rawOutput = trimmedOutput
+        self.automationResponse = try? LoopAutomationJSON.decodeResponse(from: trimmedOutput)
+    }
+
+    var isSuccess: Bool {
+        automationResponse?.success == true
+    }
+
+    var result: LoopAutomationResult? {
+        automationResponse?.result
+    }
+
+    var automationError: LoopAutomationError? {
+        automationResponse?.error
+    }
+
+    /// The same shape Loop uses for failures, for errors that happen before Loop responds
+    static func encodedFailure(message: String) -> String {
+        let response = LoopAutomationResponse(error: LoopAutomationError(message: message))
+        return (try? LoopAutomationJSON.encodeString(response)) ?? #"{"error":{"message":"\#(message)"},"success":false}"#
     }
 }

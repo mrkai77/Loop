@@ -118,12 +118,12 @@ Loop can be controlled from the shell or AppleScript using its URL scheme:
 
 ```bash
 # Shell examples
-open "loop://direction/right"     # Move window to right half
-open "loop://direction/maximize"  # Maximize window
-open "loop://direction/next_screen" # Move to next screen
+open "loop://preset/right"     # Move window to right half
+open "loop://preset/maximize"  # Maximize window
+open "loop://preset/next_screen" # Move to next screen
 
 # AppleScript example
-osascript -e 'open location "loop://direction/left"'
+osascript -e 'open location "loop://preset/left"'
 ```
 
 You can also create custom scripts to chain multiple actions:
@@ -131,9 +131,9 @@ You can also create custom scripts to chain multiple actions:
 ```bash
 #!/bin/bash
 # Example: Move window right and then maximize
-open "loop://direction/right"
+open "loop://preset/right"
 sleep 0.5
-open "loop://direction/maximize"
+open "loop://preset/maximize"
 ```
 
 Read-style URL commands open a Loop output window with selectable JSON:
@@ -142,8 +142,8 @@ Read-style URL commands open a Loop output window with selectable JSON:
 open "loop://list/windows"              # List visible windows
 open "loop://list/screens"              # List connected screens
 open "loop://list/actions"              # List all executable actions
-open "loop://list/actions/directions"   # List built-in direction actions
-open "loop://list/actions/keybinds"     # List keybind-backed actions
+open "loop://list/actions/preset"       # List preset actions
+open "loop://list/actions/custom"       # List custom actions
 ```
 
 You can also execute an action directly by UUID when you already have one from `list/actions`:
@@ -157,16 +157,15 @@ For machine-readable shell output, install the CLI from Loop's Advanced tab. Thi
 ```bash
 loop list windows
 loop list screens
-loop list actions --directions
-loop list actions --ids
-loop exec --direction right
-loop exec --keybind "My Layout"
+loop list actions --preset
+loop exec --preset right
+loop exec --custom "My Layout"
 loop exec --id 123e4567-e89b-12d3-a456-426614174000
 loop list windows --json
-loop exec --direction right --json
+loop exec --preset right --json
 ```
 
-Successful `loop` commands print human-readable structured text by default. Pass `--json` to print the raw JSON response. Successful JSON now uses a shared envelope of `{ "success": true, "result": { ... } }`, and failures use `{ "success": false, "error": { ... } }`. Runtime failures print plain-text errors to `stderr`, and local usage errors are handled by the CLI's built-in help and validation output.
+Successful `loop` commands print human-readable structured text by default. Pass `--json` to print the raw JSON response. Successful JSON now uses a shared envelope of `{ "success": true, "result": { ... } }`, and failures use `{ "success": false, "error": { ... } }`. Runtime failures print plain-text errors to `stderr`, or the JSON failure to `stdout` with `--json`, and local usage errors are handled by the CLI's built-in help and validation output.
 
 ### Keyboard Shortcuts
 

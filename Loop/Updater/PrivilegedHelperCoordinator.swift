@@ -58,6 +58,11 @@ final class PrivilegedHelperCoordinator {
             let operation = PrivilegedOperation.reinstallCommandLineTool
             try await coordinator.performXPCOperation(connection: connection, operation: operation)
         }
+
+        func uninstallCommandLineTool() async throws {
+            let operation = PrivilegedOperation.uninstallCommandLineTool
+            try await coordinator.performXPCOperation(connection: connection, operation: operation)
+        }
     }
 
     private final class ContinuationCompletion: @unchecked Sendable {
@@ -220,7 +225,7 @@ final class PrivilegedHelperCoordinator {
                     authRef,
                     rightNameCString,
                     kAuthorizationRuleAuthenticateAsAdmin as CFTypeRef,
-                    prompt as CFString,
+                    nil,
                     nil,
                     nil
                 )
@@ -233,23 +238,37 @@ final class PrivilegedHelperCoordinator {
             log.warn("Failed to retrieve privileged helper authorization right \(rightName): \(authorizationErrorMessage(for: getStatus))")
         }
 
+        // The right has no stored description, so this prompt is the only text shown
         let rightsStatus: OSStatus = rightName.withCString { rightNameCString in
-            var requestedRight = AuthorizationItem(
-                name: rightNameCString,
-                valueLength: 0,
-                value: nil,
-                flags: 0
-            )
+            kAuthorizationEnvironmentPrompt.withCString { promptKeyCString in
+                prompt.withCString { promptCString in
+                    var requestedRight = AuthorizationItem(
+                        name: rightNameCString,
+                        valueLength: 0,
+                        value: nil,
+                        flags: 0
+                    )
+                    var promptItem = AuthorizationItem(
+                        name: promptKeyCString,
+                        valueLength: strlen(promptCString),
+                        value: UnsafeMutableRawPointer(mutating: promptCString),
+                        flags: 0
+                    )
 
-            return withUnsafeMutablePointer(to: &requestedRight) { rightPtr in
-                var requestedRights = AuthorizationRights(count: 1, items: rightPtr)
-                return AuthorizationCopyRights(
-                    authRef,
-                    &requestedRights,
-                    nil,
-                    [.interactionAllowed, .extendRights],
-                    nil
-                )
+                    return withUnsafeMutablePointer(to: &requestedRight) { rightPtr in
+                        withUnsafeMutablePointer(to: &promptItem) { promptPtr in
+                            var requestedRights = AuthorizationRights(count: 1, items: rightPtr)
+                            var environment = AuthorizationEnvironment(count: 1, items: promptPtr)
+                            return AuthorizationCopyRights(
+                                authRef,
+                                &requestedRights,
+                                &environment,
+                                [.interactionAllowed, .extendRights],
+                                nil
+                            )
+                        }
+                    }
+                }
             }
         }
 
@@ -264,7 +283,7 @@ final class PrivilegedHelperCoordinator {
 
     private func privilegedHelperAuthorizationRightName() -> String {
         let bundleIdentifier = Bundle.main.bundleIdentifier ?? PrivilegedHelperConstants.appBundleIdentifier
-        return "\(bundleIdentifier).privileged-helper-auth"
+        return "\(bundleIdentifier).privileged-helper-authorization"
     }
 
     private func makeJobDictionary(serviceName: String, helperPath: String) -> [String: Any] {
@@ -337,6 +356,7 @@ private enum PrivilegedOperation {
     case removeCurrentBundle
     case installCommandLineTool
     case reinstallCommandLineTool
+    case uninstallCommandLineTool
 
     var name: String {
         switch self {
@@ -350,6 +370,8 @@ private enum PrivilegedOperation {
             "install command-line tool"
         case .reinstallCommandLineTool:
             "reinstall command-line tool"
+        case .uninstallCommandLineTool:
+            "uninstall command-line tool"
         }
     }
 
@@ -365,6 +387,8 @@ private enum PrivilegedOperation {
             proxy.installCommandLineTool(withReply: reply)
         case .reinstallCommandLineTool:
             proxy.reinstallCommandLineTool(withReply: reply)
+        case .uninstallCommandLineTool:
+            proxy.uninstallCommandLineTool(withReply: reply)
         }
     }
 }

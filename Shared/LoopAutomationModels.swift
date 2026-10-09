@@ -9,14 +9,14 @@ import CoreGraphics
 import Foundation
 
 enum LoopActionKind: String, Codable {
-    case direction
-    case keybind
+    case preset
+    case custom
 }
 
 enum LoopActionListFilter: String, Codable {
     case all
-    case directionsOnly
-    case keybindsOnly
+    case presetOnly
+    case customOnly
 }
 
 enum LoopAutomationResultKind: String, Codable {
@@ -99,8 +99,8 @@ struct LoopScreenListResult: Codable {
 
 struct LoopActionListResult: Codable {
     let filter: LoopActionListFilter
-    let directionCategories: [LoopActionCategory]
-    let keybindActions: [LoopActionDescriptor]
+    let presetCategories: [LoopActionCategory]
+    let customActions: [LoopActionDescriptor]
 }
 
 struct LoopExecutionResult: Codable {
@@ -119,8 +119,8 @@ enum LoopAutomationResult: Codable {
         case windows
         case screens
         case filter
-        case directionCategories
-        case keybindActions
+        case presetCategories
+        case customActions
         case action
         case targetWindow
     }
@@ -159,8 +159,8 @@ enum LoopAutomationResult: Codable {
             self = try .actionList(
                 LoopActionListResult(
                     filter: container.decode(LoopActionListFilter.self, forKey: .filter),
-                    directionCategories: container.decode([LoopActionCategory].self, forKey: .directionCategories),
-                    keybindActions: container.decode([LoopActionDescriptor].self, forKey: .keybindActions)
+                    presetCategories: container.decode([LoopActionCategory].self, forKey: .presetCategories),
+                    customActions: container.decode([LoopActionDescriptor].self, forKey: .customActions)
                 )
             )
         case .execution:
@@ -184,8 +184,8 @@ enum LoopAutomationResult: Codable {
             try container.encode(result.screens, forKey: .screens)
         case let .actionList(result):
             try container.encode(result.filter, forKey: .filter)
-            try container.encode(result.directionCategories, forKey: .directionCategories)
-            try container.encode(result.keybindActions, forKey: .keybindActions)
+            try container.encode(result.presetCategories, forKey: .presetCategories)
+            try container.encode(result.customActions, forKey: .customActions)
         case let .execution(result):
             try container.encode(result.action, forKey: .action)
             try container.encodeIfPresent(result.targetWindow, forKey: .targetWindow)

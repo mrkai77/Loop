@@ -13,8 +13,7 @@ import UserNotifications
 
 @Loggable
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let loopCommandHandler = LoopCommandHandler()
-    private lazy var loopSocketManager = LoopSocketManager(handler: loopCommandHandler)
+    private let loopSocketManager = LoopSocketManager()
     private var pendingSettingsWindowOpen: Task<(), Never>?
 
     private static let terminateNotificationName = Notification.Name("com.MrKai77.Loop.terminate")
@@ -157,14 +156,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LogManager.shared.configuration.includeFileAndLineNumber = false
     }
 
-    @objc func handleGetURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent replyEvent: NSAppleEventDescriptor) {
+    @objc func handleGetURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent _: NSAppleEventDescriptor) {
         guard let urlString = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
               let url = URL(string: urlString) else {
             log.info("Failed to get URL from event")
             return
         }
 
-        processIncomingURL(url, replyEvent: replyEvent)
+        processIncomingURL(url)
     }
 
     func applicationShouldOpenUntitledFile(_: NSApplication) -> Bool {
@@ -207,19 +206,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func processIncomingURL(_ url: URL, replyEvent: NSAppleEventDescriptor? = nil) {
+    private func processIncomingURL(_ url: URL) {
         cancelPendingSettingsWindowOpen()
         log.info("Received URL: \(url)")
 
-        let result = loopCommandHandler.handle(url)
-        log.info("Response: \(result.jsonResponse)")
-
-        replyEvent?.setDescriptor(
-            NSAppleEventDescriptor(string: result.jsonResponse),
-            forKeyword: keyDirectObject
-        )
-
         Task { @MainActor in
+            let result = await LoopCommandHandler.shared.handle(url)
+            log.info("Response: \(result.jsonResponse)")
             result.presentIfNeeded()
         }
     }
