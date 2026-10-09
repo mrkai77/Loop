@@ -21,11 +21,11 @@ final class MultitouchTrigger {
     private let checkIfLoopOpen: () -> Bool
 
     private let gestureMonitor = SubsurfaceMonitor()
-    private let gestureBlocker: MultitouchGestureBlocker = .init()
     private(set) lazy var systemGestureFilter = SystemGestureFilter(
         gestureMonitor: gestureMonitor,
         isCursorInTitlebar: { [weak self] touchID in self?.targetResolver.isCursorInTitlebar(touchID: touchID) ?? false }
     )
+    private lazy var gestureBlocker = MultitouchGestureBlocker(systemGestureFilter: systemGestureFilter)
 
     #if DEBUG
         let debugOverlayController = GestureDebugOverlayController()
