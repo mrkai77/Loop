@@ -51,8 +51,7 @@ enum WindowFrameResolver {
         let bounds = resizeContext.paddedBounds
         let direction = action.direction
 
-        let noFrameActions: [WindowDirection] = [.noAction, .noSelection, .cycle, .minimize, .hide]
-        guard !noFrameActions.contains(direction), !direction.willFocusWindow else {
+        guard direction.hasTargetFrame else {
             return (CGRect(origin: bounds.center, size: .zero), nil)
         }
 

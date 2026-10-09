@@ -19,6 +19,8 @@ final class ResizeContext {
         fileprivate let window: Window?
         fileprivate let resolvedWindowProperties: Window.ResolvedProperties?
         fileprivate let resolvedRecord: WindowRecords.ResolvedRecord?
+        /// The frame grow/shrink/move should start from, using the revealed frame for stashed windows
+        fileprivate let baseFrame: CGRect?
     }
 
     private(set) var window: Window?
@@ -91,10 +93,19 @@ final class ResizeContext {
             nil
         }
 
+        // Matches how Loop opens on a stashed window, so resizing doesn't start from the off-screen frame
+        let baseFrame: CGRect? = if let window,
+                                    let revealedFrame = await StashManager.shared.getRevealedFrameForStashedWindow(id: window.cgWindowID) {
+            revealedFrame
+        } else {
+            resolvedWindowProperties?.frame
+        }
+
         return PreparedWindowTarget(
             window: window,
             resolvedWindowProperties: resolvedWindowProperties,
-            resolvedRecord: resolvedRecord
+            resolvedRecord: resolvedRecord,
+            baseFrame: baseFrame
         )
     }
 
@@ -106,6 +117,14 @@ final class ResizeContext {
         resolvedWindowProperties = target.resolvedWindowProperties
         resolvedRecord = target.resolvedRecord
         lastAppliedFrame = nil
+
+        // Reset the cached base frame to the new window's actual frame. Otherwise a sequence
+        // like `focus to another window > grow` would resize the newly-focused window using
+        // the *previous* window's cached frame — grow/shrink/move read `cachedTargetFrame.raw`
+        // as their base until a frame has been applied.
+        if let frame = target.baseFrame {
+            cachedTargetFrame = ComputedFrame(raw: frame, normalized: .zero, padded: frame)
+        }
 
         needsRecompute = true
 
@@ -201,6 +220,13 @@ final class ResizeContext {
         // re-entrant call returns the cached frame instead of recomputing and recursing
         // until the stack overflows.
         needsRecompute = false
+
+        // Actions with no target frame return a zero-size sentinel from `getFrame`; caching it
+        // would clobber the base frame that a later grow/shrink/move reads. Keep the real cached
+        // frame. (Uses `WindowDirection.hasTargetFrame`, shared with `WindowFrameResolver`.)
+        guard action.direction.hasTargetFrame else {
+            return
+        }
 
         let result = WindowFrameResolver.getFrame(resizeContext: self)
 

@@ -43,9 +43,14 @@ final class PreviewViewModel: ObservableObject {
             paddedFrame.origin.y -= bounds.minY
         }
 
+        // Frameless actions (no-op, minimize/hide, focus, space/screen switching) have no target
+        // frame; hide the preview rather than leaving the previous action's cached frame on screen
+        // (`recomputeTargetFrame` deliberately keeps that cache so grow/shrink/move can resize from it).
         // In settings preview, actions that manipulate existing window frames (larger/smaller,
         // grow/shrink, move) cannot be previewed without a real window.
-        let shouldBecomeVisible = if isSettingsPreview, context.action.willManipulateExistingWindowFrame {
+        let shouldBecomeVisible = if !context.action.direction.hasTargetFrame {
+            false
+        } else if isSettingsPreview, context.action.willManipulateExistingWindowFrame {
             false
         } else {
             paddedFrame.size.area > 0

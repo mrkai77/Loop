@@ -150,6 +150,15 @@ enum WindowDirection: String, CaseIterable, Identifiable, Codable {
         }
     }
 
+    /// Whether this direction resolves to a concrete target frame. False for no-op,
+    /// minimize/hide/minimizeOthers, cycle, and focus/space/screen-switching actions —
+    /// none of which produce a frame. Shared by `WindowFrameResolver.getFrame` and
+    /// `ResizeContext.recomputeTargetFrame` so the two "no-frame" lists can't drift apart.
+    var hasTargetFrame: Bool {
+        let noFrameActions: [WindowDirection] = [.noAction, .noSelection, .cycle, .minimize, .minimizeOthers, .hide]
+        return !(noFrameActions.contains(self) || willFocusWindow || willChangeSpace || willChangeScreen)
+    }
+
     var hasRadialMenuAngle: Bool {
         let noAngleActions: [WindowDirection] = [.noAction, .noSelection, .minimize, .minimizeOthers, .hide, .initialFrame, .undo, .cycle]
         return !(noAngleActions.contains(self) || shouldFillRadialMenu || willChangeScreen || willChangeSpace || willAdjustSize || willShrink || willGrow || willMove || willFocusWindow)
