@@ -70,7 +70,7 @@ struct BehaviorConfigurationView: View {
                 selection: windowSelection,
                 items: WindowSelection.allCases
             ) { selection in
-                Text("\(Image(systemName: selection.icon)) \(selection.title)")
+                Text("\(Image(selection.icon)) \(selection.title)")
             }
 
             // If the system WM is enabled, the window under the cursor requires focus.
@@ -181,10 +181,10 @@ private enum WindowSelection: CaseIterable {
         }
     }
 
-    var icon: String {
+    var icon: ImageResource {
         switch self {
-        case .frontmost: "interface.window.on.rectangle.dashed"
-        case .underCursor: "interface.window.and.pointer.arrow"
+        case .frontmost: .interfaceWindowOnRectangleDashed
+        case .underCursor: .interfaceWindowAndPointerArrow
         }
     }
 }
