@@ -885,7 +885,7 @@ final class LoopCommandHandler {
             try? await Task.sleep(for: .seconds(0.1))
 
             log.info("Executing action: \(action) on \(window?.title ?? "unknown")")
-            _ = try await WindowActionEngine.shared.apply(
+            _ = try? await WindowActionEngine.shared.apply(
                 action,
                 window: window,
                 screen: screen
