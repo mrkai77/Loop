@@ -11,14 +11,24 @@ import AppKit
 final class CommandOutputWindowController: NSWindowController, NSWindowDelegate, NSToolbarDelegate {
     private enum ToolbarIdentifier {
         static let toolbar = NSToolbar.Identifier("LoopCommandOutputToolbar")
+        static let format = NSToolbarItem.Identifier("LoopCommandOutputFormat")
         static let copy = NSToolbarItem.Identifier("LoopCommandOutputCopy")
     }
 
-    private let output: String
+    private let text: LoopAutomationText
+    private let json: String
     private let onClose: () -> ()
 
-    init(title: String, content: String, onClose: @escaping () -> ()) {
-        self.output = content
+    private let textView: NSTextView
+    private var showsJSON = false
+
+    private var output: String {
+        showsJSON ? json : text.plainText
+    }
+
+    init(title: String, text: LoopAutomationText, json: String, onClose: @escaping () -> ()) {
+        self.text = text
+        self.json = json
         self.onClose = onClose
 
         let scrollView = NSScrollView()
@@ -36,8 +46,7 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
         textView.allowsUndo = false
         textView.usesFindBar = true
         textView.drawsBackground = false
-        textView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
-        textView.string = content
+        textView.textStorage?.setAttributedString(Self.attributedString(for: text))
         textView.textContainerInset = NSSize(width: 12, height: 12)
         textView.minSize = .zero
         textView.maxSize = NSSize(
@@ -54,6 +63,7 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
         textView.textContainer?.heightTracksTextView = false
 
         scrollView.documentView = textView
+        self.textView = textView
 
         let contentView = NSVisualEffectView(frame: NSRect(x: 0, y: 0, width: 720, height: 560))
         contentView.material = .popover
@@ -105,6 +115,41 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
         onClose()
     }
 
+    @objc private func changeFormat(_ sender: NSToolbarItemGroup) {
+        showsJSON = sender.selectedIndex == 1
+        let content = showsJSON ? LoopAutomationText(json) : text
+        textView.textStorage?.setAttributedString(Self.attributedString(for: content))
+    }
+
+    private static func attributedString(for text: LoopAutomationText) -> NSAttributedString {
+        let result = NSMutableAttributedString()
+        let regularFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .regular)
+        let boldFont = NSFont.monospacedSystemFont(ofSize: 12, weight: .semibold)
+
+        for run in text.runs {
+            var attributes: [NSAttributedString.Key: Any] = [
+                .font: regularFont,
+                .foregroundColor: NSColor.labelColor
+            ]
+
+            switch run.style {
+            case .plain:
+                break
+            case .bold:
+                attributes[.font] = boldFont
+            case .secondary:
+                attributes[.foregroundColor] = NSColor.secondaryLabelColor
+            case .heading:
+                attributes[.font] = boldFont
+                attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue
+            }
+
+            result.append(NSAttributedString(string: run.text, attributes: attributes))
+        }
+
+        return result
+    }
+
     @objc private func copyOutput(_: Any?) {
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
@@ -121,11 +166,11 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
     }
 
     func toolbarAllowedItemIdentifiers(_: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [ToolbarIdentifier.copy]
+        [ToolbarIdentifier.format, ToolbarIdentifier.copy, .space]
     }
 
     func toolbarDefaultItemIdentifiers(_: NSToolbar) -> [NSToolbarItem.Identifier] {
-        [ToolbarIdentifier.copy]
+        [ToolbarIdentifier.format, .space, ToolbarIdentifier.copy]
     }
 
     func toolbar(
@@ -133,6 +178,21 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
         itemForItemIdentifier itemIdentifier: NSToolbarItem.Identifier,
         willBeInsertedIntoToolbar _: Bool
     ) -> NSToolbarItem? {
+        if itemIdentifier == ToolbarIdentifier.format {
+            let item = NSToolbarItemGroup(
+                itemIdentifier: itemIdentifier,
+                titles: [String(localized: "Text"), String(localized: "JSON")],
+                selectionMode: .selectOne,
+                labels: nil,
+                target: self,
+                action: #selector(changeFormat(_:))
+            )
+            item.label = String(localized: "Format")
+            item.paletteLabel = String(localized: "Format")
+            item.selectedIndex = 0
+            return item
+        }
+
         guard itemIdentifier == ToolbarIdentifier.copy else {
             return nil
         }

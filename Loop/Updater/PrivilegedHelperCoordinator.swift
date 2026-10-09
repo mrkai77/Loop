@@ -34,16 +34,19 @@ final class PrivilegedHelperCoordinator {
             self.connection = connection
         }
 
+        /// Invokes the helper atomic swap using a rollback token instead of caller-provided paths.
         func atomicSwap(rollbackID: String) async throws {
             let operation = PrivilegedOperation.atomicSwap(rollbackID: rollbackID)
             try await coordinator.performXPCOperation(connection: connection, operation: operation)
         }
 
+        /// Invokes helper restore for the rollback token selected by the caller.
         func restoreFromBackup(rollbackID: String) async throws {
             let operation = PrivilegedOperation.restore(rollbackID: rollbackID)
             try await coordinator.performXPCOperation(connection: connection, operation: operation)
         }
 
+        /// Removes the authenticated client's current app bundle.
         func removeCurrentBundle() async throws {
             let operation = PrivilegedOperation.removeCurrentBundle
             try await coordinator.performXPCOperation(connection: connection, operation: operation)
@@ -123,6 +126,7 @@ final class PrivilegedHelperCoordinator {
             removeSubmittedJob(serviceName: serviceName, authRef: authRef)
         }
 
+        // Give launchd a brief moment to bootstrap the helper listener.
         try await Task.sleep(for: .milliseconds(250))
 
         let connection = NSXPCConnection(machServiceName: serviceName, options: .privileged)
@@ -144,6 +148,7 @@ final class PrivilegedHelperCoordinator {
             let completion = ContinuationCompletion()
             var timeoutTask: Task<(), Never>?
 
+            // Keep completion synchronous so competing callbacks cannot resume more than once.
             let finish: (Result<(), Error>) -> () = { result in
                 guard completion.tryComplete() else { return }
                 timeoutTask?.cancel()
@@ -175,6 +180,7 @@ final class PrivilegedHelperCoordinator {
                 return
             }
 
+            // NSXPC reports remote failures via callbacks; direct throwing proxy calls can raise uncaught Objective-C exceptions.
             operation.invoke(on: proxy) { error in
                 if let error {
                     finish(.failure(self.operationFailed(error.localizedDescription)))
@@ -221,6 +227,8 @@ final class PrivilegedHelperCoordinator {
         let getStatus = rightName.withCString { AuthorizationRightGet($0, nil) }
         if getStatus == errAuthorizationDenied {
             let setStatus = rightName.withCString { rightNameCString in
+                // Mirrors Sparkle's code. If kSMRightModifySystemDaemons is added,
+                // the permission prompt changes, seems to change the wording.
                 AuthorizationRightSet(
                     authRef,
                     rightNameCString,
@@ -379,6 +387,7 @@ private enum PrivilegedOperation {
         }
     }
 
+    /// Dispatches the selected privileged operation on the typed helper proxy.
     func invoke(on proxy: PrivilegedHelperProtocol, reply: @escaping (NSError?) -> ()) {
         switch self {
         case let .atomicSwap(rollbackID):

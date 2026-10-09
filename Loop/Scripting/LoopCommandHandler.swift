@@ -15,9 +15,9 @@
  - loop://list/actions
  - loop://list/actions/preset
  - loop://list/actions/custom
- - loop://preset/<name>
- - loop://custom/<name>
- - loop://id/<uuid>
+ - loop://exec/preset/<name>
+ - loop://exec/custom/<name>
+ - loop://exec/id/<uuid>
 
  Socket / CLI transport:
  - loop-cli parses CLI arguments locally and sends canonical loop:// URLs over the socket
@@ -61,6 +61,7 @@ final class LoopCommandHandler {
         let kind: CommandKind
         let title: String
         let jsonResponse: String
+        let readableResponse: LoopAutomationText
         let isSuccess: Bool
         let errorMessage: String?
 
@@ -74,7 +75,8 @@ final class LoopCommandHandler {
             case .read:
                 CommandOutputWindowManager.shared.show(
                     title: title,
-                    content: jsonResponse
+                    text: readableResponse,
+                    json: jsonResponse
                 )
             case .write:
                 guard !isSuccess else {
@@ -146,7 +148,7 @@ final class LoopCommandHandler {
         let title: String
 
         var urlPath: String {
-            "preset/\(name)"
+            "exec/preset/\(name)"
         }
     }
 
@@ -161,11 +163,11 @@ final class LoopCommandHandler {
         }
 
         var urlPath: String {
-            "custom/\(name)"
+            "exec/custom/\(name)"
         }
 
         var idPath: String {
-            "id/\(idString)"
+            "exec/id/\(idString)"
         }
     }
 
@@ -374,28 +376,23 @@ final class LoopCommandHandler {
                 response: handleListCommand(parameters)
             )
 
-        case "preset":
+        case "exec":
             return await makeExecutionResult(
                 source: source,
                 kind: .write,
                 components: components,
-                response: handlePresetCommand(parameters, params: params)
+                response: handleExecCommand(parameters, params: params)
             )
 
-        case "custom":
-            return await makeExecutionResult(
+        case "preset", "custom", "id":
+            return makeExecutionResult(
                 source: source,
                 kind: .write,
                 components: components,
-                response: handleCustomCommand(parameters, params: params)
-            )
-
-        case "id":
-            return await makeExecutionResult(
-                source: source,
-                kind: .write,
-                components: components,
-                response: handleIDCommand(parameters, params: params)
+                response: failureResponse(
+                    message: "Unknown command: \(commandString)",
+                    replacementRoute: urlCommandString(["exec"] + components)
+                )
             )
 
         default:
@@ -510,6 +507,24 @@ final class LoopCommandHandler {
     }
 
     // MARK: - Write Commands
+
+    private func handleExecCommand(_ parameters: [String], params: TargetParams) async -> LoopAutomationResponse {
+        let arguments = Array(parameters.dropFirst())
+
+        switch parameters.first?.lowercased() {
+        case "preset":
+            return await handlePresetCommand(arguments, params: params)
+        case "custom":
+            return await handleCustomCommand(arguments, params: params)
+        case "id":
+            return await handleIDCommand(arguments, params: params)
+        case let type:
+            return failureResponse(
+                message: type.map { "Unknown action type: \($0)" } ?? "No action type given",
+                availableRoutes: publicWriteRoutes()
+            )
+        }
+    }
 
     private func handlePresetCommand(_ parameters: [String], params: TargetParams) async -> LoopAutomationResponse {
         guard parameters.count == 1 else {
@@ -729,11 +744,11 @@ final class LoopCommandHandler {
 
     private func publicWriteRoutes() -> [String] {
         [
-            urlCommandString(["preset", "right_half"]),
-            urlCommandString(["preset", "maximize"]),
-            urlCommandString(["preset", "next_screen"]),
-            urlCommandString(["custom", "my_layout"]),
-            urlCommandString(["id", "<uuid>"])
+            urlCommandString(["exec", "preset", "right_half"]),
+            urlCommandString(["exec", "preset", "maximize"]),
+            urlCommandString(["exec", "preset", "next_screen"]),
+            urlCommandString(["exec", "custom", "my_layout"]),
+            urlCommandString(["exec", "id", "<uuid>"])
         ]
     }
 
@@ -797,6 +812,8 @@ final class LoopCommandHandler {
             kind: kind,
             title: outputTitle(for: components),
             jsonResponse: jsonString(response),
+            readableResponse: response.result.map { LoopAutomationFormatter().format($0) }
+                ?? LoopAutomationText(response.error?.message ?? jsonString(response)),
             isSuccess: response.success,
             errorMessage: response.error?.message
         )

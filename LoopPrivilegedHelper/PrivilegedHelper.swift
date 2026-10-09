@@ -115,6 +115,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         )
     }
 
+    /// Executes a privileged atomic swap using rollback-token-derived paths in user Application Support.
     private func executeAtomicSwap(rollbackID: String) throws {
         let operation = "atomic swap"
 
@@ -141,6 +142,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         }
     }
 
+    /// Restores the current app directly from rollback-token-derived backup path in user Application Support.
     private func executeRestoreFromBackup(rollbackID: String) throws {
         let operation = "restore"
 
@@ -171,6 +173,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         }
     }
 
+    /// Removes the authenticated client's current app bundle path.
     private func executeRemoveCurrentBundle() throws {
         let currentBundleURL = LoopSupportPaths.canonical(context.clientBundleURL)
 
@@ -343,6 +346,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         return standardizedTargetPath.hasSuffix(PrivilegedHelperConstants.loopManagedCommandLineToolSuffix)
     }
 
+    /// Derives and validates atomic swap paths from trusted connection context and rollback token.
     private func deriveAndValidateAtomicSwapPaths(
         for rollbackID: String,
         operation: String
@@ -399,6 +403,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         )
     }
 
+    /// Derives and validates restore paths from trusted connection context and rollback token.
     private func deriveAndValidateRestorePaths(
         for rollbackID: String,
         operation: String
@@ -440,6 +445,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         )
     }
 
+    /// Validates bundle code signature using the same static validation path as non-privileged install flow.
     private func validateBundleForInstall(
         at bundleURL: URL,
         operation: String,
@@ -479,6 +485,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         }
     }
 
+    /// Validates rollback token format to prevent traversal and unexpected path materialization.
     private func validateRollbackID(_ rollbackID: String, operation: String) throws {
         guard !rollbackID.isEmpty else {
             throw pathValidationFailure(
@@ -517,6 +524,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         }
     }
 
+    /// Ensures a candidate path remains within the expected root after canonicalization.
     private func ensurePathInside(
         _ candidate: URL,
         root: URL,
@@ -535,6 +543,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         }
     }
 
+    /// Converts Security framework status codes to readable log/error strings.
     private func securityErrorMessage(for status: OSStatus) -> String {
         if let message = SecCopyErrorMessageString(status, nil) as String? {
             return "\(message) (OSStatus \(status))"
@@ -542,6 +551,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         return "OSStatus \(status)"
     }
 
+    /// Logs and constructs a privileged path validation failure with operation context.
     private func pathValidationFailure(
         operation: String,
         rollbackID: String,
@@ -559,6 +569,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         return .pathValidationFailed(operation: operation, path: path, reason: reason)
     }
 
+    /// Logs and constructs a privileged bundle validation failure with operation context.
     private func bundleValidationFailure(
         operation: String,
         rollbackID: String,
@@ -576,12 +587,14 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         return .bundleValidationFailed(path: path, reason: reason)
     }
 
+    /// Returns true when a canonicalized URL is equal to or contained within a canonicalized root.
     private func isPath(_ url: URL, inside root: URL) -> Bool {
         let canonicalURLPath = LoopSupportPaths.canonical(url).path
         let canonicalRootPath = LoopSupportPaths.canonical(root).path
         return canonicalURLPath == canonicalRootPath || canonicalURLPath.hasPrefix("\(canonicalRootPath)/")
     }
 
+    /// Moves current app to backup and installs the staged app atomically with rollback on failure.
     private func performAtomicSwap(
         currentURL: URL,
         stagedURL: URL,
@@ -641,6 +654,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         log.success("Privileged atomic swap completed")
     }
 
+    /// Restores the app from backup and reapplies root ownership.
     private func performRestoreFromBackup(currentURL: URL, backupBundleURL: URL) throws {
         log.info("Starting privileged restore from backup")
         log.info("Current app: \(currentURL.path)")
@@ -656,12 +670,14 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         log.success("Privileged restore completed")
     }
 
+    /// Applies root ownership recursively to a directory tree.
     private func applyRootOwnershipRecursively(at url: URL) throws {
         log.info("Applying root ownership recursively at \(url.path)")
         try applyOwnershipRecursively(at: url, uid: 0, gid: 0)
         log.success("Applied root ownership recursively at \(url.path)")
     }
 
+    /// Applies a target uid/gid recursively to the root URL and its descendants.
     private func applyOwnershipRecursively(at rootURL: URL, uid: uid_t, gid: gid_t) throws {
         var itemCount = 0
         try applyOwnership(to: rootURL, uid: uid, gid: gid)
@@ -683,6 +699,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         log.success("Applied ownership to \(itemCount) items under \(rootURL.path)")
     }
 
+    /// Applies ownership to a single filesystem entry using `lchown`.
     private func applyOwnership(to itemURL: URL, uid: uid_t, gid: gid_t) throws {
         let result: Int32 = itemURL.withUnsafeFileSystemRepresentation { path in
             guard let path else {

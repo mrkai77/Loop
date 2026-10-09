@@ -114,18 +114,18 @@ To set Caps Lock as your trigger key, you have two options:
 
 #### c. Shell/AppleScript
 
-Loop can be controlled from the shell or AppleScript using its URL scheme. Action names are the ones listed by `loop://list/actions`:
+Loop can be controlled from the shell or AppleScript using its URL scheme. Action names are the ones listed by `loop://list/actions`. Pass `-g` to `open` so Loop stays in the background and the action applies to the window you're using:
 
 ```bash
 # Shell examples
-open "loop://preset/right_half"   # Move window to right half
-open "loop://preset/maximize"     # Maximize window
-open "loop://preset/next_screen"  # Move to next screen
-open "loop://custom/my_layout"    # Run one of your custom actions
-open "loop://id/123e4567-e89b-12d3-a456-426614174000"  # Run an action by its UUID
+open -g "loop://exec/preset/right_half"   # Move window to right half
+open -g "loop://exec/preset/maximize"     # Maximize window
+open -g "loop://exec/preset/next_screen"  # Move to next screen
+open -g "loop://exec/custom/my_layout"    # Run one of your custom actions
+open -g "loop://exec/id/123e4567-e89b-12d3-a456-426614174000"  # Run an action by its UUID
 
 # AppleScript example
-osascript -e 'open location "loop://preset/left_half"'
+osascript -e 'do shell script "open -g loop://exec/preset/left_half"'
 ```
 
 You can also create custom scripts to chain multiple actions:
@@ -133,22 +133,22 @@ You can also create custom scripts to chain multiple actions:
 ```bash
 #!/bin/bash
 # Example: Move window right and then maximize
-open "loop://preset/right_half"
+open -g "loop://exec/preset/right_half"
 sleep 0.5
-open "loop://preset/maximize"
+open -g "loop://exec/preset/maximize"
 ```
 
 Actions apply to the frontmost window by default. To target something else, add a query parameter:
 
 ```bash
-open "loop://preset/maximize?windowID=1234"               # A specific window, from list/windows
-open "loop://preset/left_half?bundleID=com.apple.Safari"  # An app's window, opening the app if needed
-open "loop://preset/right_half?screenID=2"                # A specific screen, from list/screens
+open -g "loop://exec/preset/maximize?windowID=1234"               # A specific window, from list/windows
+open -g "loop://exec/preset/left_half?bundleID=com.apple.Safari"  # An app's window, opening the app if needed
+open -g "loop://exec/preset/right_half?screenID=2"                # A specific screen, from list/screens
 ```
 
 `windowID` and `bundleID` can't be combined. If a command fails, Loop shows an alert explaining why.
 
-List commands open a Loop output window with selectable JSON:
+List commands open a Loop output window, with a toolbar button to switch between readable text and JSON:
 
 ```bash
 open "loop://list/windows"         # List visible windows

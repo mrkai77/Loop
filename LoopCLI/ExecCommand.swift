@@ -59,21 +59,21 @@ struct ExecCommand: ParsableCommand, CLIRequestCommand {
 
         if let preset {
             return CLIRequest(
-                routeComponents: ["preset", preset],
+                routeComponents: ["exec", "preset", preset],
                 queryItems: queryItems
             )
         }
 
         if let custom {
             return CLIRequest(
-                routeComponents: ["custom", custom],
+                routeComponents: ["exec", "custom", custom],
                 queryItems: queryItems
             )
         }
 
         if let actionID {
             return CLIRequest(
-                routeComponents: ["id", actionID.value.uuidString.lowercased()],
+                routeComponents: ["exec", "id", actionID.value.uuidString.lowercased()],
                 queryItems: queryItems
             )
         }

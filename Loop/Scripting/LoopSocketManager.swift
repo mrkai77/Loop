@@ -15,7 +15,7 @@ import Scribe
 /// the JSON response back before closing the connection.
 ///
 /// Request format: `loop://<route>[?windowID=<id>&bundleID=<id>&screenID=<id>]`
-/// Example: `loop://direction/right?bundleID=com.apple.Safari`
+/// Example: `loop://exec/preset/right_half?bundleID=com.apple.Safari`
 @Loggable
 final class LoopSocketManager {
     // MARK: - Properties

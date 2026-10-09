@@ -16,11 +16,12 @@ final class CommandOutputWindowManager {
 
     private init() {}
 
-    func show(title: String, content: String) {
+    func show(title: String, text: LoopAutomationText, json: String) {
         let identifier = UUID()
         let controller = CommandOutputWindowController(
             title: title,
-            content: content
+            text: text,
+            json: json
         ) { [weak self] in
             self?.removeController(for: identifier)
         }
