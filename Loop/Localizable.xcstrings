@@ -272,13 +272,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%1$@ could not install the update at %2$@ (%3$@). Would you like to install this update in your Applications folder instead?"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%1$@ could not install the update at %2$@ (%3$@). Would you like to install this update in your Applications folder instead?"
           }
         },
@@ -290,7 +290,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%1$@ could not install the update at %2$@ (%3$@). Would you like to install this update in your Applications folder instead?"
           }
         },
@@ -302,7 +302,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%1$@ non può installare l'aggiornamento in %2$@ (%3$@). Vuoi installare l'aggiornamento nella cartella Applicazioni invece che in quella attuale?"
           }
         },
@@ -314,43 +314,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%1$@ could not install the update at %2$@ (%3$@). Would you like to install this update in your Applications folder instead?"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%1$@ kon de update niet installeren op %2$@ (%3$@). Wil je de update in de Applicaties-folder installeren?"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%1$@ could not install the update at %2$@ (%3$@). Would you like to install this update in your Applications folder instead?"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%1$@ não conseguiu instalar a atualização em %2$@ (%3$@). Gostaria de instalar a atualização para sua pasta Aplicativos?"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%1$@ could not install the update at %2$@ (%3$@). Would you like to install this update in your Applications folder instead?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%1$@ could not install the update at %2$@ (%3$@). Would you like to install this update in your Applications folder instead?"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%1$@ could not install the update at %2$@ (%3$@). Would you like to install this update in your Applications folder instead?"
           }
         }
@@ -371,6 +371,12 @@
             "value" : "%@ isn’t in your Applications folder. Would you like to install the update to your Applications folder instead?"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ isn’t in your Applications folder. Would you like to install the update to your Applications folder instead?"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -385,7 +391,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ non è in Applicazioni. Vuoi installare l'aggiornamento in Applicazioni invece che nella cartella attuale?"
           }
         },
@@ -397,43 +403,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@가 응용 프로그램 폴더에 없습니다. 응용 프로그램 폴더에 업데이트를 설치하시겠습니까?"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ staat niet in je Applications-folder. Wil je de update in je Applications-folder installeren?"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ znajduje się poza folderem Aplikacje. Czy chcesz zainstalować aktualizację do folderu Aplikacje?"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ não está na sua pasta Aplicativos. Gostaria de instalar a atualização para sua pasta Aplicativos?"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ не находится в папке «Приложения». Хотите установить обновление в папку «Приложения»?"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@不在你的应用程序文件夹中。你想要将更新安装到应用程序文件夹吗？"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@不在你的應用程式資料夾中。你想要將更新安裝到應用程式資料夾嗎？"
           }
         }
@@ -443,31 +449,37 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ يضع النوافذ قليلاً فوق المركز المطلق، مما يمكن أن يكون أكثر ملاءمة من الناحية العملية."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ platziert Fenster etwas über der absoluten Mitte, was als ergonomischer empfunden werden kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ places windows slightly above center,\nwhich many people find more comfortable."
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ sitúa la ventana algo por encima del centro absoluto, lo que resulta más ergonómico."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ place les fenêtres légèrement au-dessus du centre absolu,\nce qui peut être jugé plus ergonomique."
+            "value" : "%@ place les fenêtres légèrement au-dessus du centre,\nce que beaucoup trouvent plus confortable."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ posiziona la finestra leggermente al di sopra del centro assoluto,\nrisultando più ergonomica per alcuni."
           }
         },
@@ -479,43 +491,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@는 절대 중앙보다 약간 위에 창을 배치하여, 더 인체공학적으로 찾을 수 있습니다."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ plaatst vensters een beetje boven het center, wat dus meer ergonomisch kan zijn."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ ustawia okna trochę powyżej środka, co może być uznane za bardziej ergonomiczne."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ coloca as janelas levemente acima do centro absoluto, o que pode ser mais ergonômico."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ устанавливает окна немного выше настоящего центра, это положение является более эргономичным."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@将窗口放置在稍高于屏幕中心的位置，使其更加人性化。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@將視窗放置在稍高於屏幕中心的位置，使其更加人性化。"
           }
         }
@@ -663,7 +675,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "%1$lld-finger %2$@"
+            "value" : "%1$lld-vinger %2$@"
           }
         },
         "pl" : {
@@ -752,7 +764,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "%lld-finger Swipe or Magnify"
+            "value" : "%lld-vinger Veeg of Vergroot"
           }
         },
         "pl" : {
@@ -993,8 +1005,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Veuillez accorder l’accès pour pouvoir redimensionner les fenêtres."
+            "state" : "translated",
+            "value" : "Accordez l’accès dans Réglages Système pour permettre à %@ de redimensionner les fenêtres."
           }
         },
         "it" : {
@@ -1005,8 +1017,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "ウインドウのサイズを変更できるようにするには、アクセスを許可してください。"
+            "state" : "translated",
+            "value" : "%@がウインドウのサイズを変更できるように、システム設定でアクセスを許可してください。"
           }
         },
         "ko" : {
@@ -1058,13 +1070,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ يحتاج إلى أذونات الوصول"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ braucht Zugriff auf Bedienungshilfen"
           }
         },
@@ -1076,19 +1088,19 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ necesita permisos de Accesibilidad"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ nécessite des autorisations d’accessibilité"
+            "value" : "%@ nécessite l’autorisation d’accessibilité"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ ha bisogno del permesso di accessibilità"
           }
         },
@@ -1100,43 +1112,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ 접근성 권한이 필요합니다"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ Heeft toegankelijkheid toegang nodig"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ Potrzebuje pozwolenia w sekcji Dostępność"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ Precisa de Permissões de Acessibilidade"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ нужны разрешения универсального доступа"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@需要辅助功能权限"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@需要輔助功能權限"
           }
         }
@@ -1147,13 +1159,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ يحتاج إلى إذن التحكم في الأجهزة والوصول إلى البيانات"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ braucht Gerätesteuerung und Datenzugriff"
           }
         },
@@ -1165,67 +1177,67 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ necesita permisos de Control de dispositivos y acceso a datos"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@ nécessite l’autorisation Contrôle de l’appareil et accès aux données"
+            "value" : "%@ nécessite l’autorisation « Contrôle de l’appareil et accès aux données »"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ ha bisogno del permesso Controllo del dispositivo e accesso ai dati"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%@には「デバイスの制御とデータへのアクセス」の許可が必要です"
+            "value" : "%@には“デバイスの制御とデータへのアクセス”の許可が必要です"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@에 기기 제어 및 데이터 접근 권한이 필요합니다"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ heeft toegang tot Apparaatbeheer en gegevenstoegang nodig"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ potrzebuje pozwolenia w sekcji Sterowanie urządzeniami i dostęp do danych"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ Precisa de Permissão de Controle do Dispositivo e Acesso a Dados"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@ нужно разрешение «Управление устройством и доступ к данным»"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@需要设备控制和数据访问权限"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "%@需要裝置控制和資料取用權限"
           }
         }
@@ -1316,6 +1328,95 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "操作"
+          }
+        }
+      }
+    },
+    "Active" : {
+      "comment" : "Target window option: act on the active window",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Active"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Active"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Active"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Active"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Active"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アクティブ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Active"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Active"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Active"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Active"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Active"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Active"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Active"
           }
         }
       }
@@ -1588,7 +1689,93 @@
       }
     },
     "Always" : {
-      "comment" : "Preview visibility option: show the preview when looping and window snapping"
+      "comment" : "Preview visibility option: show the preview when looping and window snapping",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Always"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Always"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Always"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Toujours"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Always"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "常に"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Always"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Always"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Always"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Always"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Always"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Always"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Always"
+          }
+        }
+      }
     },
     "Always start from the first action" : {
       "comment" : "Toggle in the “Cycles” section of the “Keybinds” tab: cycles always start from their first action, rather than continuing where they were left.",
@@ -1601,8 +1788,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Zyklus immer beim ersten Element starten"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Always start from the first action"
           }
         },
         "es" : {
@@ -1614,60 +1807,60 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Toujours commencer les séquences à partir du premier élément"
+            "value" : "Toujours commencer par la première action"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Cicla sempre dal primo elemento"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "常にサイクルを最初の項目から開始"
+            "value" : "常に最初のアクションから開始"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "항상 첫 번째 항목부터 순환 시작"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Start posities altijd vanaf de eerste positie"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Zawsze rozpoczynaj cykl od pierwszej pozycji"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Sempre começar os ciclos pelo primeiro “item”"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Всегда начинать циклы с первого элемента"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "总是重新开始循环"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "總是重新開始循環"
           }
         }
@@ -1684,8 +1877,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Animiert"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animate stashing"
           }
         },
         "es" : {
@@ -1697,60 +1896,60 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Animé"
+            "value" : "Animer la mise de côté"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Animazione"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "アニメーション"
+            "value" : "スタッシュ時にアニメーション"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "애니메이션"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Geanimeerd"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Animowane"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Animado"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Анимировано"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "展示动画"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "展示動畫"
           }
         }
@@ -1761,19 +1960,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "تحريك تغيير حجم النافذة"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ändern der Fenstergröße animieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Animate window resizing"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Animar redimensionamiento de la venta"
           }
         },
@@ -1785,7 +1990,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Animazione ridimensionamento finestre"
           }
         },
@@ -1797,43 +2002,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "창 크기 조정 애니메이션"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Vergroting van vensters animeren"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Animuj zmianę wielkości okna"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Animar o redimensionamento da janela"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Анимировать изменение размера окон"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "窗口大小调整动画"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "視窗大小調整動畫"
           }
         }
@@ -1942,6 +2147,12 @@
             "value" : "Another gesture is set up the same way."
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another gesture is set up the same way."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -1951,7 +2162,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ce geste entre en conflit avec d’autres gestes."
+            "value" : "Un autre geste est configuré de la même façon."
           }
         },
         "it" : {
@@ -1963,7 +2174,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このジェスチャと競合する他のジェスチャがあります。"
+            "value" : "同じ設定のジェスチャがほかにあります。"
           }
         },
         "ko" : {
@@ -2020,8 +2231,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Es gibt andere Tastenkombinationen, die mit dieser in Konflikt stehen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Another keybind uses this key combination."
           }
         },
         "es" : {
@@ -2038,55 +2255,55 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ci sono delle scorciatoie in conflitto con questi tasti."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "このキーの組み合わせと競合する他のキー設定があります。"
+            "value" : "このキーの組み合わせはほかのキー設定で使用されています。"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "이 키 조합과 충돌하는 다른 키바인드가 있습니다"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Andere toetscombinaties conflicteren met deze toetscombinatie."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Istnieją skróty klawiszowe, które kolidują z tą kombinacją."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Existem outras teclas que estão em conflito com esta combinação de teclas."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "У вас уже есть другие назначения клавиш на эту комбинацию клавиш."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "此按键组合与已有快捷键冲突。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "此按鍵組合與已有按鍵綁定衝突。"
           }
         }
@@ -2146,7 +2363,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Anywhere"
+            "value" : "Overal"
           }
         },
         "pl" : {
@@ -2625,15 +2842,20 @@
     },
     "Blur" : {
       "comment" : "Text for a toggle that enables/disables blurring the preview.",
-      "isCommentAutoGenerated" : true,
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Blur"
           }
         },
         "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Blur"
+          }
+        },
+        "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Blur"
@@ -2641,67 +2863,67 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Blur"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Activer le flou"
+            "value" : "Flou"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Abilita sfocatura"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ぼかしを有効化"
+            "value" : "ぼかし"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "블러 활성화"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Vervaging"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Zastosuj rozmycie"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Habilitar desfoque"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Включить размытие"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "启用模糊"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "啟用模糊"
           }
         }
@@ -2849,7 +3071,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Both"
+            "value" : "Allebei"
           }
         },
         "pl" : {
@@ -3749,7 +3971,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Por padrão, o Loop resume ciclos de onde você parou pela última vez em cada janela."
+            "value" : "Por padrão, o \"Loop\" resume ciclos de onde você parou pela última vez em cada janela."
           }
         },
         "ru" : {
@@ -4132,7 +4354,7 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "تحقق من وجود تحديثات…"
           }
         },
@@ -4150,7 +4372,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Comprobar actualizaciones…"
           }
         },
@@ -4226,8 +4448,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Wähle eine Keybind-Datei aus"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a Keybinds File"
           }
         },
         "es" : {
@@ -4239,12 +4467,12 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Sélectionner un fichier de raccourcis"
+            "value" : "Choisir un fichier de raccourcis"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Seleziona file scorciatoie"
           }
         },
@@ -4256,43 +4484,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "키바인드 파일 선택"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Selecteer een bestand met toetscombinaties"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Wybierz plik ze skrótami klawiszowymi"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Selecione o arquivo de atalhos do Loop"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Выберите файл с горячими клавишами"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "选择快捷键文件"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "選定按鍵綁定檔案"
           }
         }
@@ -4401,6 +4629,12 @@
             "value" : "Click “Add” to add a gesture"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click “Add” to add a gesture"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -4410,7 +4644,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Appuyez sur « Ajouter » pour ajouter un geste"
+            "value" : "Cliquez sur « Ajouter » pour ajouter un geste"
           }
         },
         "it" : {
@@ -4422,7 +4656,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「追加」を押すと、新しいジェスチャを追加できます。"
+            "value" : "ジェスチャを追加するには“追加”をクリックします"
           }
         },
         "ko" : {
@@ -4473,79 +4707,85 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "اضغط على «إضافة» لإضافة مفتاح"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Drücke „Hinzufügen“ um eine Tastenbelegung hinzuzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click “Add” to add a keybind"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Presiona añadir para añadir una combinación de teclas "
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Appuyez sur « Ajouter » pour ajouter un raccourci"
+            "value" : "Cliquez sur « Ajouter » pour ajouter un raccourci"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Premi “Aggiungi” per aggiungere una scorciatoia"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「追加」を押すと、新しいキー設定を追加できます。"
+            "value" : "キー設定を追加するには“追加”をクリックします"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "키 바인딩을 추가하려면 “추가”를 누르세요"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Druk op “Toevoegen” om een toetscombinatie toe te voegen"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Naciśnij „Dodaj”, aby dodać skrót klawiszowy"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Pressione “Adicionar” para adicionar um atalho"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Нажмите «Добавить», чтобы добавить сочетание клавиш"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "点按“添加”以添加快捷键"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "點按“添加”來添加按鍵綁定"
           }
         }
@@ -4562,73 +4802,79 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Drücke „Hinzufügen“ um etwas in den Zyklus hinzuzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click “Add” to add an action"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Presiona “añadir” para añadir a la rotación"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Appuyez sur « Ajouter » pour ajouter une action"
+            "value" : "Cliquez sur « Ajouter » pour ajouter une action"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Premi “Aggiungi” per aggiungere un'azione"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「追加」を押すと、新しいアクションを追加できます。"
+            "value" : "アクションを追加するには“追加”をクリックします"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "“추가”를 눌러 액션을 추가하세요."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Klik op “Toevoegen” om een actie toe te voegen"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Naciśnij „Dodaj”, aby dodać akcję"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Pressione “Adicionar” para incluir uma ação"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Нажмите «Добавить», чтобы добавить действие"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "点按“添加”以添加操作"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "點按“添加”來添加操作"
           }
         }
@@ -4638,79 +4884,85 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "اضغط على «إضافة» لإضافة تطبيق"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Drücke „Hinzufügen“ um eine Applikation hinzuzufügen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click “Add” to add an app"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Presiona añadir para añadir una aplicación"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Appuyez sur « Ajouter » pour ajouter une application"
+            "value" : "Cliquez sur « Ajouter » pour ajouter une app"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Premi “Aggiungi” per aggiungere un'applicazione"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「追加」を押すと、新しいアプリを追加できます。"
+            "value" : "アプリを追加するには“追加”をクリックします"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "애플리케이션을 추가하려면 “추가”를 누르세요"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Druk op “Toevoegen” om een applicatie toe te voegen"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Naciśnij „Dodaj”, aby dodać aplikację"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Pressione “Adicionar” para adicionar um aplicativo"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Нажмите «Добавить», чтобы добавить приложение"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "点按“添加”以添加应用"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "點按“添加”來添加應用程式"
           }
         }
@@ -4731,6 +4983,12 @@
             "value" : "Click to step through cycle actions."
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Click to step through cycle actions."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -4739,8 +4997,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Clic gauche pour parcourir la séquence d’actions."
+            "state" : "translated",
+            "value" : "Cliquez pour parcourir les actions de la séquence."
           }
         },
         "it" : {
@@ -4751,8 +5009,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "左クリックでサイクル内のアクションを順番に切り替えます。"
+            "state" : "translated",
+            "value" : "クリックでサイクル内のアクションを順番に切り替えます。"
           }
         },
         "ko" : {
@@ -4800,7 +5058,93 @@
       }
     },
     "Clockwise" : {
-      "comment" : "Name of the screen order that walks around the screen arrangement clockwise"
+      "comment" : "Name of the screen order that walks around the screen arrangement clockwise",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clockwise"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clockwise"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Clockwise"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clockwise"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sens horaire"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clockwise"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "時計回り"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clockwise"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clockwise"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clockwise"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clockwise"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clockwise"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clockwise"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Clockwise"
+          }
+        }
+      }
     },
     "Color" : {
       "comment" : "Section header shown in settings",
@@ -5034,7 +5378,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Continue the swipe or magnify gesture to step through cycle actions."
+            "value" : "Ga door met het veeg of vergroot gebaar om door de cyclus acties te gaan."
           }
         },
         "pl" : {
@@ -5616,6 +5960,12 @@
             "value" : "Customize actions"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Customize actions"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -5624,8 +5974,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Autoriser la personnalisation du menu radial"
+            "state" : "translated",
+            "value" : "Personnaliser les actions"
           }
         },
         "it" : {
@@ -5636,8 +5986,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "円形メニューのカスタマイズを許可"
+            "state" : "translated",
+            "value" : "アクションをカスタマイズ"
           }
         },
         "ko" : {
@@ -5699,6 +6049,12 @@
             "value" : "Customize this action’s custom frame."
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Customize this action’s custom frame."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -5713,7 +6069,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Personalizza la finestra di questa azione."
           }
         },
@@ -5725,43 +6081,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "이 액션의 사용자 지정 프레임을 설정합니다."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Pas het frame van de actie aan."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ustaw niestandardową akcję tej ramki."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Personalize o quadro desta ação."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Изменить рамку этого действия."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "自定义此操作的边框位置。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "自訂該操作的邊框位置。"
           }
         }
@@ -5821,7 +6177,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Customize this gesture."
+            "value" : "Dit gebaar aanpassen."
           }
         },
         "pl" : {
@@ -5868,6 +6224,12 @@
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "Customize this gesture’s action."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "Customize this gesture’s action."
           }
         },
@@ -5943,19 +6305,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "تخصيص إجراء ربط المفتاح هذا."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Aktion dieser Tastenkombination anpassen."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Customize this keybind’s action."
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Personalizar la acción de esta combinación"
           }
         },
@@ -5967,7 +6335,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Personalizza l’azione di questa scorciatoia."
           }
         },
@@ -5979,43 +6347,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "이 키바인드의 동작을 사용자 정의하세요."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Pas deze toetscombinatie aan."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ustaw akcję tego skrótu klawiszowego."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Customize a ação dessa tecla."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Изменить действие этого сочетания клавиш."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "自定义此快捷键触发的操作。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "自訂該按鍵綁定觸發的操作。"
           }
         }
@@ -6075,7 +6443,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Customize this radial menu action."
+            "value" : "Pas deze radiaal menu actie aan."
           }
         },
         "pl" : {
@@ -6353,7 +6721,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Ciclo para trás com Shift"
+            "value" : "Ciclo para trás com \"Shift\""
           }
         },
         "ru" : {
@@ -6531,7 +6899,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Design"
+            "value" : "\"Design\""
           }
         },
         "ru" : {
@@ -6648,19 +7016,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "التحكم في الأجهزة والوصول إلى البيانات"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Gerätesteuerung und Datenzugriff"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Device Control and Data Access"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Control de dispositivos y acceso a datos"
           }
         },
@@ -6672,7 +7046,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Controllo del dispositivo e accesso ai dati"
           }
         },
@@ -6684,43 +7058,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "기기 제어 및 데이터 접근"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Apparaatbeheer en gegevenstoegang"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Sterowanie urządzeniami i dostęp do danych"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Controle do Dispositivo e Acesso a Dados"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Управление устройством и доступ к данным"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "设备控制和数据访问"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "裝置控制和資料取用"
           }
         }
@@ -6780,7 +7154,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Direction"
+            "value" : "Richting"
           }
         },
         "pl" : {
@@ -6826,8 +7200,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Linke und rechte Tasten unterschiedlich behandeln"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Distinguish left and right modifier keys"
           }
         },
         "es" : {
@@ -6839,60 +7219,60 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Traiter les touches gauche et droite différemment"
+            "value" : "Distinguer les touches de modification gauche et droite"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Distinzione tra tasto sinistro e destro"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "左右のキーを別扱い"
+            "value" : "左右の修飾キーを区別"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "왼쪽 키와 오른쪽 키를 다르게 취급"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Behandel linker- en rechtertoetsen anders"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Rozróżniaj klawisze po prawej i lewej stronie klawiatury"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Tratar as teclas esquerda e direita de forma diferente"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Разные левая и правая клавиши"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "分开对待键盘两侧的修饰键"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "分開對待鍵盤兩側的修飾鍵"
           }
         }
@@ -7079,19 +7459,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "تم"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Fertig"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Aceptar"
           }
         },
@@ -7103,7 +7489,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Fine"
           }
         },
@@ -7115,43 +7501,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "완료"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Gereed"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Gotowe"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "OK"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Готово"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "完成"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "完成"
           }
         }
@@ -7299,7 +7685,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Down"
+            "value" : "Omlaag"
           }
         },
         "pl" : {
@@ -7335,7 +7721,93 @@
       }
     },
     "Dragging" : {
-      "comment" : "Section header shown in settings, for settings about dragging windows"
+      "comment" : "Section header shown in settings, for settings about dragging windows",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dragging"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dragging"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dragging"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dragging"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Glissement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dragging"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ドラッグ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dragging"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dragging"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dragging"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dragging"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dragging"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dragging"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dragging"
+          }
+        }
+      }
     },
     "Each %@ action tracks one window. To stash\nmore windows, add more %@ actions." : {
       "comment" : "Information in a popover displaying how a stash action can only keep track of a single window. Both %1$@ and %2$@ are replaced with the language's localization of the \"Stash\" action.",
@@ -7367,60 +7839,60 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Une action %1$@ ne peut suivre qu’une seule fenêtre. Pour mettre de côté\nplusieurs fenêtres, ajoutez une autre action %2$@."
+            "value" : "Chaque action %1$@ suit une seule fenêtre. Pour mettre de côté\nd’autres fenêtres, ajoutez d’autres actions %1$@."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Una singola azione %1$@ può tracciare solamente una finestra.\nPer nascondere più finestre, aggiungi altre azioni %2$@."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "1つの%1$@アクションで追跡できるウインドウは1つだけです。\n複数のウインドウをスタッシュするには、別の%2$@アクションを追加してください。"
+            "value" : "各%1$@アクションで追跡できるウインドウは1つです。\nさらにウインドウをスタッシュするには、%1$@アクションを追加してください。"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "단일 %1$@ 액션은 하나의 창만 추적할 수 있습니다. 여러 창을 숨기려면 %2$@ 액션을 추가로 설정하세요."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Een enkele %1$@-actie kan maar één venster volgen. Om meerdere vensters tijdelijk op te slaan, voeg extra %2$@-acties toe."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Pojedyncza akcja %1$@ może śledzić tylko jedno okno. Aby użyć opcji Stash na więcej niż jednym oknie, dodaj dodatkowe %2$@ akcje."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Uma ação %1$@ pode rastrear apenas uma janela. Para ocultar múltiplas janelas, adicione ações %2$@ adicionais."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Действие %1$@ может следить только за одним окном. Добавьте дополнительные %2$@ действий, чтобы спрятать несколько окон."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "单个%1$@操作只能应用于单个窗口。要收纳多个窗口，请添加更多%2$@操作。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "單個%1$@操作只能應用於單個視窗。要收納多個視窗，請添加更多%2$@操作。"
           }
         }
@@ -7542,8 +8014,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Erreur de lecture des raccourcis"
+            "state" : "translated",
+            "value" : "Impossible d’importer les raccourcis"
           }
         },
         "it" : {
@@ -7554,8 +8026,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "キー設定の読み取りエラー"
+            "state" : "translated",
+            "value" : "キー設定を読み込めませんでした"
           }
         },
         "ko" : {
@@ -7606,19 +8078,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "تصدير روابط المفاتيح"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Tastenbelegungen Exportieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export Keybinds"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Exportar combinaciones"
           }
         },
@@ -7630,7 +8108,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Esporta scorciatoie"
           }
         },
@@ -7642,43 +8120,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "키바인드 내보내기"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Toetscombinaties exporteren"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Eksportuj skróty klawiszowe"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Exportar atalhos"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Экспортировать горячие клавиши"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "导出快捷键"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "匯出按鍵綁定"
           }
         }
@@ -7689,19 +8167,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "تصدير…"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Exportieren …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Export…"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Exportar…"
           }
         },
@@ -7713,7 +8197,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Esporta…"
           }
         },
@@ -7725,43 +8209,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "내보내기…"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Exporteer…"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Eksportuj…"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Exportar…"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Экспортировать…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "导出…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "輸出⋯"
           }
         }
@@ -7999,7 +8483,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Fingers"
+            "value" : "Vingers"
           }
         },
         "pl" : {
@@ -8494,6 +8978,12 @@
             "value" : "Focus Next in Stack"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus Next in Stack"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -8508,7 +8998,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Focus ciclico"
           }
         },
@@ -8520,43 +9010,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "스택에서 다음으로 포커스 이동"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Focussen op volgende in vensterstapel"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Przełącz na kolejny w stosie"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Focar no próximo da pilha"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Сфокусировать следующий в стеке"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "聚焦下一个窗口"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "取得下一個焦點"
           }
         }
@@ -8573,8 +9063,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Fokus verschieben, wenn gestasht"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus next window when stashing"
           }
         },
         "es" : {
@@ -8586,60 +9082,60 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Changer le focus lors de la mise de côté"
+            "value" : "Activer la fenêtre suivante lors de la mise de côté"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Sposta il focus quando nascondi"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "スタッシュ時にフォーカスを移動"
+            "value" : "スタッシュ時に次のウインドウにフォーカス"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "스태시 시 포커스 전환"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Focus wisselen wanneer venster is opgeborgen"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Zmień ostrość, kiedy na stosie"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Desfocar quando oculto"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Поменять фокус при скрытии"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "收纳时移动焦点"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "收納時移動焦點"
           }
         }
@@ -8838,6 +9334,12 @@
             "value" : "Fenster beim manipulieren fokussieren"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Focus window on resize"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "translated",
@@ -8905,9 +9407,6 @@
           }
         }
       }
-    },
-    "Active" : {
-      "comment" : "Target window option: act on the active window"
     },
     "Fourth Fourth" : {
       "comment" : "Window action",
@@ -9003,19 +9502,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "ملء الشاشة"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Vollbild"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Full Screen"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Pantalla completa"
           }
         },
@@ -9027,7 +9532,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Schermo intero"
           }
         },
@@ -9039,43 +9544,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "전체 화면"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Volledig scherm"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Pełny ekran"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Tela cheia"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Полноэкранный"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "全屏"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "全屏"
           }
         }
@@ -9224,7 +9729,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Gesture"
+            "value" : "Gebaar"
           }
         },
         "pl" : {
@@ -9313,7 +9818,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Gestures"
+            "value" : "Gebaren"
           }
         },
         "pl" : {
@@ -11716,7 +12221,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Meta Loop"
+            "value" : "\"Meta Loop\""
           }
         },
         "ru" : {
@@ -11892,7 +12397,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rosé Pine"
+            "value" : "\"Rosé Pine\""
           }
         },
         "ru" : {
@@ -12207,8 +12712,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Vous serez désormais averti lorsque vous débloquerez une nouvelle icône."
+            "state" : "translated",
+            "value" : "Vous serez averti lorsque vous débloquerez une nouvelle icône."
           }
         },
         "it" : {
@@ -12219,7 +12724,7 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "新しいアイコンをアンロックしたときに通知されるようになります。"
           }
         },
@@ -12398,7 +12903,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "すでに25回もLoopしました！ご褒美として、新しいアイコン「%@」をプレゼント！さらにLoopして、新しいアイコンをアンロックしましょう！"
+            "value" : "すでに25回もLoopしました！ご褒美として、新しいアイコン“%@”をプレゼント！さらにLoopして、新しいアイコンをアンロックしましょう！"
           }
         },
         "ko" : {
@@ -12539,19 +13044,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "تجاهل النوافذ الكاملة الشاشة"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Vollbildfenster ignorieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ignore full-screen windows"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ignorar las ventanas a pantalla completa"
           }
         },
@@ -12563,7 +13074,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ignora finestre a tutto schermo"
           }
         },
@@ -12575,43 +13086,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "전체 화면 창 무시"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Volledig scherm-vensters negeren"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ignoruj okna pełnoekranowe"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ignorar janelas em tela cheia"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Игнорировать полноэкранные окна"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "忽略全屏窗口"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "忽略全屏視窗"
           }
         }
@@ -12797,13 +13308,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "استبدال"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ersetzen"
           }
         },
@@ -12815,7 +13326,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Reemplazar"
           }
         },
@@ -12827,7 +13338,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Sostituisci"
           }
         },
@@ -12839,43 +13350,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "대치"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Vervang"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Zastąp"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Substituir"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Заменить"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "替换"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "取代"
           }
         }
@@ -12974,19 +13485,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "استيراد…"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Importieren …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Import…"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Importar…"
           }
         },
@@ -12998,7 +13515,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Importa…"
           }
         },
@@ -13010,43 +13527,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "가져오기…"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Importeer…"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Importuj…"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Importar…"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Импортировать…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "导入…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "輸入⋯"
           }
         }
@@ -13067,6 +13584,12 @@
             "value" : "Include at least one modifier key."
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Include at least one modifier key."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -13076,60 +13599,60 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Veuillez inclure au moins une touche de modification."
+            "value" : "Incluez au moins une touche de modification."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Includi almeno un tasto modificatore."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "少なくとも1つの修飾キーを含めてください。"
+            "value" : "修飾キーを少なくとも1つ含めてください。"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "하나 이상의 보조 키를 포함해 주세요."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Voeg ten minste één aanpassingstoets toe."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Proszę podać co najmniej jeden klawisz."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Por favor, inclua pelo menos uma tecla modificadora."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Пожалуйста, используйте хотя бы одну специальную клавишу."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "请包含至少一个修饰键。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "請包括至少一個修飾鍵。"
           }
         }
@@ -13499,8 +14022,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Installation fehlgeschlagen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install Failed"
           }
         },
         "es" : {
@@ -13517,7 +14046,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Installazione fallita"
           }
         },
@@ -13529,43 +14058,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "설치 실패"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Installatie mislukt"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Instalacja nie powiodła się"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Falha na instalação"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ошибка установки"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "安装失败"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "安裝失敗"
           }
         }
@@ -13586,6 +14115,12 @@
             "value" : "Install in Applications Folder"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install in Applications Folder"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -13595,12 +14130,12 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Installer dans votre dossier Applications"
+            "value" : "Installer dans le dossier Applications"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Installa nella cartella Applicazioni"
           }
         },
@@ -13612,43 +14147,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "응용 프로그램 폴더에 설치"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Installeren in je Applicaties-folder"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Zainstaluj do folderu Aplikacje"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Instalar na sua pasta Aplicativos"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Установить в папку Приложения"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "安装到应用程序文件夹"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "安裝到應用程式資料夾"
           }
         }
@@ -13745,7 +14280,6 @@
     },
     "Integrate with macOS window manager" : {
       "comment" : "Toggle to enable integration with macOS window manager.",
-      "isCommentAutoGenerated" : true,
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -13755,8 +14289,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "macOS Fenster Manager verwenden, wenn verfügbar"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Integrate with macOS window manager"
           }
         },
         "es" : {
@@ -13768,60 +14308,60 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Utiliser le gestionnaire de fenêtres de macOS si possible"
+            "value" : "Intégrer au gestionnaire de fenêtres de macOS"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Usa la gestione delle finestre di macOS quando possibile"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "利用可能な場合はmacOSのウインドウマネージャを使用"
+            "value" : "macOSのウインドウマネージャと統合"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "사용 가능한 경우 macOS 창 관리자 사용"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Gebruik MacOS Window Manager als deze beschikbaar is"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Używaj managera okien macOS, kiedy to możliwe"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Usar gerenciador de janelas do macOS quando disponível"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Использовать оконный менеджер macOS"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "尽量使用macOS原生窗口管理系统"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "儘可能使用macOS原生窗口管理系統。"
           }
         }
@@ -15085,6 +15625,12 @@
             "value" : "Linked keybind not found"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linked keybind not found"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -15094,12 +15640,12 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Impossible de résoudre le raccourci lié"
+            "value" : "Raccourci lié introuvable"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Impossibile trovare la scorciatoia collegata"
           }
         },
@@ -15111,43 +15657,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "연결된 키 바인딩을 확인하지 못했습니다"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Gelinkte toetscombinatie ophalen mislukt"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Nie udało się odnaleźć powiązanego skrótu klawiszowego"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Falha ao resolver tecla vinculada"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Не удалось определить связанную клавишу"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "无法解析关联的快捷键"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "無法解析關聯的按鍵綁定"
           }
         }
@@ -18084,8 +18630,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Die Funktion „Fenster zum Anordnen an Bildschirmrand ziehen“ ist in den macOS Einstellungen aktiviert, was zu Konflikten mit der Fenster-Snap Funktion führt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "macOS’s “Tile by dragging windows to screen edges” is turned on,\nwhich conflicts with Loop’s window snapping."
           }
         },
         "es" : {
@@ -18097,60 +18649,60 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "La fonctionnalité macOS « Faire glisser les fenêtres vers les bords de l’écran pour créer une mosaïque » est actuellement\nactivée, ce qui entre en conflit avec le magnétisme des fenêtres de Loop."
+            "value" : "L’option « Faire glisser les fenêtres vers les bords de l’écran pour créer une mosaïque » de macOS est activée,\nce qui entre en conflit avec le magnétisme des fenêtres de Loop."
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "La funzione “Disponi le finestre a mosaico trascinandole verso i bordi dello schermo” di macOS\nè attualmente abilitata, creando conflitto con la funzionalità “Aggancia ai bordi” di Loop."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "macOSの「ウインドウを画面の端にドラッグしてタイル表示」機能が\n現在有効になっており、Loopのウインドウスナップ機能と競合します。"
+            "value" : "macOSの“ウインドウを画面の端にドラッグしてタイル表示”がオンになっているため、\nLoopのウインドウスナップと競合します。"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "macOS의 “창을 화면 가장자리로 드래그하여 타일 배치” 기능이 현재 활성화되어 있으며, 이는 Loop의 창 스냅 기능과 충돌할 수 있습니다."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "MacOS' “Sleep vensters naar de linker- of rechterrand van het scherm om te plaatsen”-functie is actief, wat conflicteert met de vastgrijpfunctie van Loop"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Funkcja macOS „Dokuj okna, przeciągając je do lewej lub prawej krawędzi ekranu” jest obecnie włączona, co będzie kolidowało z funkcją przyciągania okien Loop."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "a funcionalidade do macOS “Organizar janelas ao arrastar para as bordas da tela” está atualmente ativada, o que entra em conflito com a funcionalidade de alinhamento de janelas do Loop."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Настройка плиточного расположения окон macOS включена, отключите привязку окон в настройках Loop."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "macOS的“将窗口拖移到屏幕边缘以平铺”功能已被启用，这将会与Loop的窗口吸附功能相冲突。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "macOS的「拖移視窗至螢幕邊緣來並排」功能已啟用，這將會與Loop的窗口吸附功能相衝突。"
           }
         }
@@ -18210,7 +18762,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Magnify"
+            "value" : "Vergroten"
           }
         },
         "pl" : {
@@ -18260,6 +18812,12 @@
             "value" : "Eckenradius des gewählten Fensters priorisieren"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Match target window"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -18268,8 +18826,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Prioriser le rayon des coins de la fenêtre sélectionnée"
+            "state" : "translated",
+            "value" : "Adapter à la fenêtre cible"
           }
         },
         "it" : {
@@ -18280,8 +18838,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "選択中のウインドウのコーナーの丸みを優先"
+            "state" : "translated",
+            "value" : "対象ウインドウに合わせる"
           }
         },
         "ko" : {
@@ -18332,79 +18890,85 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "مزامنة خلفية الشاشة"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Hintergrundbild synchronisieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Match Wallpaper"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Sincronizar fondo"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Synchroniser avec le fond d’écran"
+            "value" : "Assortir au fond d’écran"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Sincronizza sfondo"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "壁紙を同期"
+            "value" : "壁紙に合わせる"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "배경화면 동기화"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Achtergrond synchroniseren"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Synchronizuj tapetę"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Sincronizar plano de fundo"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Синхронизировать с обоями"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "同步墙纸"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "同步牆紙"
           }
         }
@@ -19460,7 +20024,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Переместить в папку «Приложения»?"
+            "value" : "Переместить в папку \"Приложения\"?"
           }
         },
         "zh-Hans" : {
@@ -19482,79 +20046,85 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "استخدام الشاشة مع المؤشر"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Bildschirm mit Mauszeiger verwenden"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Move to cursor’s screen"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Usar la pantalla del cursor"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Déplacer la fenêtre sur l’écran où se trouve le curseur"
+            "value" : "Déplacer vers l’écran du pointeur"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Usa schermo con cursore"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "カーソルのあるディスプレイにウインドウを移動"
+            "value" : "ポインタのあるディスプレイに移動"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "커서가 있는 화면 사용"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Scherm met cursor gebruiken"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Przenieś okno na ekran kursora"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Usar a tela com o cursor"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Использовать экран с курсором"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "使用光标所在的屏幕"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "使用游標所在的屏幕"
           }
         }
@@ -20006,7 +20576,93 @@
       }
     },
     "Next/previous screen order" : {
-      "comment" : "Label for the picker that sets the order the Next Screen and Previous Screen actions go through screens in"
+      "comment" : "Label for the picker that sets the order the Next Screen and Previous Screen actions go through screens in",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next/previous screen order"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next/previous screen order"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Next/previous screen order"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next/previous screen order"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ordre de l’écran suivant/précédent"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next/previous screen order"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "次／前のディスプレイの順序"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next/previous screen order"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next/previous screen order"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next/previous screen order"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next/previous screen order"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next/previous screen order"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next/previous screen order"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Next/previous screen order"
+          }
+        }
+      }
     },
     "No Action" : {
       "comment" : "Window action: no selection",
@@ -20101,31 +20757,37 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "لا توجد تطبيقات مستبعدة"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Keine ausgeschlossenen Anwendungen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No excluded apps"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "No hay aplicaciones excluidas"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Aucune application ignorée"
+            "value" : "Aucune app exclue"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Nessuna applicazione esclusa"
           }
         },
@@ -20137,43 +20799,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "제외된 애플리케이션 없음"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Geen uitgesloten apps"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Brak wykluczonych aplikacji"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Sem aplicações excluídas"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Нет игнорируемых приложений"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "无排除的应用"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "無排除的應用程式"
           }
         }
@@ -20233,7 +20895,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "No gestures"
+            "value" : "Geen gebaren"
           }
         },
         "pl" : {
@@ -20762,7 +21424,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Je kunt gerust zijn, geen updates te zien in de pijplijn!"
           }
         },
@@ -20850,8 +21512,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "-"
+            "state" : "needs_review",
+            "value" : "De kansen zijn in jouw voordeel, geen updates vandaag!"
           }
         },
         "pl" : {
@@ -21026,7 +21688,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Nieuwe versie? Sorry, we zijn te gehecht aan deze."
           }
         },
@@ -21290,7 +21952,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "In een sterrenstelsel hier ver ver vandaan.. nog steeds geen updates!"
           }
         },
@@ -21378,7 +22040,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Je hebt al de lieveling, geen updates nodig!"
           }
         },
@@ -21595,7 +22257,7 @@
         "ar" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "لقد أضعنا زر «التحديث». عذراً!"
+            "value" : "لقد أضعنا زر \"التحديث\". عذراً!"
           }
         },
         "de" : {
@@ -21613,7 +22275,7 @@
         "es" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Hemos perdido el botón “Actualizar”. ¡Uy!"
+            "value" : "Hemos perdido el botón \"Actualizar\". ¡Uy!"
           }
         },
         "fr" : {
@@ -21625,13 +22287,13 @@
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Abbiamo smarrito il pulsante “Aggiorna”. Ops!"
+            "value" : "Abbiamo smarrito il pulsante \"Aggiorna\". Ops!"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "「アップデート」ボタンを紛失しました。おっと！"
+            "value" : "“アップデート”ボタンを紛失しました。おっと！"
           }
         },
         "ko" : {
@@ -21661,7 +22323,7 @@
         "ru" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Мы поставили кнопку «Обновить» не туда. Упс!"
+            "value" : "Мы поставили кнопку \"Обновить\" не туда. Упс!"
           }
         },
         "zh-Hans" : {
@@ -22434,7 +23096,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Blijf scherp, er komt binnenkort meer informatie!"
           }
         },
@@ -22610,7 +23272,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "We komen terug.. met updates.. later"
           }
         },
@@ -22698,8 +23360,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "-"
+            "state" : "needs_review",
+            "value" : "Een cent voor je… gebrek aan updates."
           }
         },
         "pl" : {
@@ -22786,8 +23448,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "-"
+            "state" : "needs_review",
+            "value" : "Je hebt al de beste Loop!"
           }
         },
         "pl" : {
@@ -24610,8 +25272,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@ n’a pas l’autorisation d’envoyer des notifications pour le moment."
+            "state" : "translated",
+            "value" : "Les notifications de %@ sont désactivées."
           }
         },
         "it" : {
@@ -24622,8 +25284,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@の通知は現在許可されていません。"
+            "state" : "translated",
+            "value" : "%@の通知はオフになっています。"
           }
         },
         "ko" : {
@@ -24674,13 +25336,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "فتح إعدادات النظام"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Systemeinstellungen öffnen"
           }
         },
@@ -24692,7 +25354,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Abrir Ajustes del Sistema"
           }
         },
@@ -24704,7 +25366,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Apri Impostazioni di Sistema"
           }
         },
@@ -24716,43 +25378,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "시스템 설정 열기"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Open Systeeminstellingen"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Otwórz Ustawienia systemowe"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Abrir Ajustes do Sistema"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Открыть Системные настройки"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "打开系统设置"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "打開「系統設定」"
           }
         }
@@ -24786,8 +25448,8 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Activez-les dans Réglages Système."
+            "state" : "translated",
+            "value" : "Activez-les dans Réglages Système."
           }
         },
         "it" : {
@@ -24798,7 +25460,7 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "システム設定で有効にしてください。"
           }
         },
@@ -24851,19 +25513,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "إعلام عند فتح أيقونات جديدة"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Benachrichtige mich beim freischalten neuer App Icons"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Notify when new icons are unlocked"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Notificarme cuando se desbloqueen nuevos iconos"
           }
         },
@@ -24875,7 +25543,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Invia una notifica quando si sbloccano nuove icone"
           }
         },
@@ -24887,43 +25555,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "새 아이콘 잠금 해제 시 알림"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Notificatie bij het ontgrendelen van nieuwe iconen"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Powiadom o odblokowaniu nowych ikon"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Notificar quando desbloquear novos ícones"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Уведомлять о разблокировке новых иконок"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "在解锁新图标时发送通知"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "在解鎖新圖標時發送通知"
           }
         }
@@ -25022,19 +25690,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "فتح إعدادات النظام"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Systemeinstellungen öffnen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open System Settings"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Abrir Ajustes del Sistema"
           }
         },
@@ -25046,7 +25720,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Apri Impostazioni di Sistema"
           }
         },
@@ -25058,43 +25732,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "시스템 설정 열기"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Open Systeeminstellingen"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Otwórz Ustawienia systemowe"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Abrir Ajustes do Sistema"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Открыть Системные настройки"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "打开系统设置"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "打開「系統設定」"
           }
         }
@@ -25420,7 +26094,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Pinch"
+            "value" : "Knijp"
           }
         },
         "pl" : {
@@ -25642,8 +26316,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Mission Control unterdrücken"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prevent Mission Control at top edge"
           }
         },
         "es" : {
@@ -25655,30 +26335,30 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Bloquer Mission Control"
+            "value" : "Empêcher Mission Control en haut de l’écran"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ignora Mission Control"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Mission Controlを抑制"
+            "value" : "画面上端でMission Controlを表示しない"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Mission Control 억제"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Mission Control onderdrukken"
           }
         },
@@ -25690,25 +26370,25 @@
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Suprimir Controle de Missão"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Игнорировать Mission Control"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "禁用调度中心手势"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "禁用調度中心手勢"
           }
         }
@@ -26340,79 +27020,85 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "نصف قطر الزاوية"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Eckenradius"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Radius"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Radio de las esquinas"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Rayon des coins"
+            "value" : "Rayon"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Raggio degli angoli"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "コーナーの丸み"
+            "value" : "半径"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "모서리 반경"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Hoekradius"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Zaokrąglenie rogów"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Raio dos cantos"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Скругление"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "圆角半径"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "圓角半徑"
           }
         }
@@ -26429,8 +27115,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Neustarten, um abzuschließen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Relaunch to Complete"
           }
         },
         "es" : {
@@ -26447,7 +27139,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Riavvia per completare"
           }
         },
@@ -26459,43 +27151,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "완료하려면 다시 실행하세요"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Herstarten om te voltooien"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Uruchom ponownie, aby ukończyć"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Reiniciar para concluir"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Перезагрузить"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "重新启动以完成更新"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "重新啟動來完成更新"
           }
         }
@@ -26594,19 +27286,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "ذكرني لاحقًا"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Erinnere mich später"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Remind Me Later"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Recuérdame más adelante"
           }
         },
@@ -26618,7 +27316,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ricordamelo dopo"
           }
         },
@@ -26630,43 +27328,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "나중에 상기시켜 주세요"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Herinner me later"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Przypomnij mi później"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Lembre-me mais tarde"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Напомнить позже"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "稍后提醒"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "稍後提醒"
           }
         }
@@ -27120,19 +27818,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "إعادة تعيين إجراءات القائمة الدائرية…"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Radialmenü-Aktionen zurücksetzen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset radial menu actions…"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Restablecer acciones del menú radial…"
           }
         },
@@ -27144,7 +27848,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ripristina le azioni del menu radiale…"
           }
         },
@@ -27156,43 +27860,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "원형 메뉴 액션 초기화…"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Radiaalmenu-acties resetten…"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Resetuj akcje menu kołowego…"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Redefinir ações do menu radial…"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Сбросить действия радиального меню…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "重置环形菜单操作…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "重置環形菜單操作…"
           }
         }
@@ -27203,19 +27907,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "إعادة تعيين…"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Zurücksetzen …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reset…"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Restablecer…"
           }
         },
@@ -27227,7 +27937,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ripristina…"
           }
         },
@@ -27239,43 +27949,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "재설정…"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Stel opnieuw in…"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Wyzeruj…"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Redefinir…"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Сбросить…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "还原…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "重置…"
           }
         }
@@ -27374,31 +28084,37 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "استعادة إطار النافذة عند السحب"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Fenster wiederherstellen beim ziehen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Restore size when dragging"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Restaurar el marco de la ventana al arrastrar"
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Restaurer le cadre de la fenêtre lors du glissement"
+            "value" : "Restaurer la taille lors du glissement"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ridimensiona la finestra durante lo spostamento"
           }
         },
@@ -27410,43 +28126,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "드래그할 때 창 프레임 복원"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Vensterframe herstellen bij slepen"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Przywróć układ okna po przeciągnięciu"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Restaurar moldura da janela ao arrastar"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Восстановить окно при перетягивании"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "拖拽时恢复窗口大小"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "拖拽時恢復視窗大小"
           }
         }
@@ -28256,13 +28972,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Search"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Suchen"
           }
         },
@@ -28274,7 +28990,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Search"
           }
         },
@@ -28286,7 +29002,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Cerca"
           }
         },
@@ -28298,43 +29014,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "검색"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Zoeken"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Szukaj"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Procurar"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Поиск"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "搜索"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "搜尋"
           }
         }
@@ -28431,7 +29147,92 @@
     },
     "Select actions with cursor" : {
       "comment" : "Toggle in advanced settings: when on, moving the cursor while Loop is open selects an action",
-      "isCommentAutoGenerated" : true
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Select actions with cursor"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Select actions with cursor"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Select actions with cursor"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Select actions with cursor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sélectionner les actions avec le pointeur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Select actions with cursor"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポインタでアクションを選択"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Select actions with cursor"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Select actions with cursor"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Select actions with cursor"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Select actions with cursor"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Select actions with cursor"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Select actions with cursor"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Select actions with cursor"
+          }
+        }
+      }
     },
     "Send Feedback" : {
       "localizations" : {
@@ -29192,7 +29993,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Gestures"
+            "value" : "Gebaren"
           }
         },
         "pl" : {
@@ -29671,19 +30472,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "شارك ملاحظاتك على صفحتنا على GitHub، حيث يمكنك إخبارنا بأي أخطاء، اقتراح ميزات، أو تقديم مداخلات قيمة أخرى. نحن أيضًا نقبل التبرعات إذا شعرت أن Loop قد حسّن من سير العمل لديك :)"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Teile uns dein Feedback auf unserer GitHub-Seite mit, wo man uns über etwaige Fehler informieren, Funktionen vorschlagen oder andere wertvolle Rückmeldungen geben kann. Wir nehmen auch Spenden entgegen, falls du der Meinung bist, dass Loop deine Arbeitsweise verbessert hat :)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Share feedback on our GitHub page, where you can let us know about any bugs, suggest features, or share other ideas. If Loop has improved your workflow, you can also donate :)"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Comparte tus comentarios en nuestra página de GitHub, donde puedes informarnos sobre cualquier error, sugerir características o proporcionarnos otra información valiosa. También aceptamos donaciones si crees que Loop ha mejorado tu flujo de trabajo :)"
           }
         },
@@ -29695,55 +30502,55 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Condividi i tuoi feedback nella nostra pagina GitHub, dove puoi riportare bug, suggerire nuove funzioni, o fornirci altri input preziosi. Accettiamo anche donazioni se ritieni che Loop abbia migliorato il tuo workflow :)"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "GitHubページでフィードバックを共有してください。バグの報告や機能の提案、その他の貴重なご意見をお寄せいただけます。また、Loopがあなたの作業効率を向上させたと感じた場合は、寄付も受け付けています (•‿•)"
+            "value" : "GitHubページでフィードバックをお寄せください。バグの報告や機能の提案、そのほかのアイデアをお知らせいただけます。Loopで作業効率が上がったと感じたら、寄付もできます :)"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "GitHub 페이지에서 피드백을 공유하세요. 버그를 알려주거나 기능을 제안하거나 다른 소중한 의견을 제공할 수 있습니다. Loop가 여러분의 작업 흐름을 개선한 것 같다면 기부도 받습니다 :)"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Deel feedback op onze GitHub-pagina, waar je ons bugs kunt laten weten, functies kunt voorstellen of andere waardevolle input kunt geven. We accepteren ook donaties als je vindt dat Loop je werkproces heeft verbeterd :)"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Podziel się opinią na naszym GitHub. Możesz tam poinformować nas o błędach, zasugerować nowe funkcje lub podzielić się innymi cennymi spostrzeżeniami. Akceptujemy również darowizny, jeśli uważasz, że Loop poprawił Twoją ergonomię pracy :)"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Compartilhe comentários em nossa página do GitHub, onde você pode nos informar sobre quaisquer bugs, sugerir funcionalidades ou fornecer outras informações valiosas. Também aceitamos doações se você achar que o Loop melhorou seu fluxo de trabalho :)"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Поделитесь вашими впечателениями и предложениями на нашем Github, там вы можете рассказать нам о различных багах, предложить новые функции или рассказать о чем-то еще. Так же, если вы считаете что Loop улучшил ваше взаимодействие с окнами, вы можете оформить пожертвование :)"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "在我们的GitHub页面上分享你的反馈！无论你发现了漏洞还是想建议新功能，都请畅所欲言。如果你感觉Loop对你的工作流有很大帮助，我们很乐意接受捐赠 :)"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "在我們的GitHub頁面上分享你的反饋！無論你發現了漏洞還是想建議新功能，都請暢所欲言。如果你感覺Loop對你的工作流有很大幫助，我們很樂意接受捐贈 :)"
           }
         }
@@ -29754,19 +30561,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "عرض في الرصيف"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Im Dock zeigen"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Show in Dock"
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Mostrar en el dock"
           }
         },
@@ -29778,7 +30591,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Mostra nel dock"
           }
         },
@@ -29790,43 +30603,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "독에 표시"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Toon in dock"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Zatrzymaj w Docku"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Mostrar na Dock"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Отобразить в Dock"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "在程序坞中显示"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "在程序塢中顯示"
           }
         }
@@ -30997,8 +31810,14 @@
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Fenster Snapping aktivieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Snap by dragging to screen edges"
           }
         },
         "es" : {
@@ -31010,60 +31829,60 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Activer le magnétisme des fenêtres"
+            "value" : "Aimanter en faisant glisser vers les bords de l’écran"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Abilita aggancio ai bordi"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "ウインドウスナップを有効化"
+            "value" : "画面の端にドラッグしてスナップ"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "창 스내핑 활성화"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Venster"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Włącz przyciąganie okien"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ativar encaixe automático de janelas"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Включить привязку окон"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "开启窗口吸附"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "啟用視窗吸附"
           }
         }
@@ -31390,7 +32209,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Spread"
+            "value" : "Spreiden"
           }
         },
         "pl" : {
@@ -31491,7 +32310,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Stage Manager"
+            "value" : "\"Stage\" \"Manager\""
           }
         },
         "ru" : {
@@ -31693,7 +32512,92 @@
     },
     "Style" : {
       "comment" : "Section title for the preview background style picker.",
-      "isCommentAutoGenerated" : true
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Style"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Style"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Style"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Style"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Style"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Style"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "スタイル"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Style"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Style"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Style"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Style"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Style"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Style"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Style"
+          }
+        }
+      }
     },
     "Swipe" : {
       "comment" : "Gesture category label: swipe",
@@ -31749,7 +32653,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Swipe"
+            "value" : "Veeg"
           }
         },
         "pl" : {
@@ -31838,7 +32742,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Swipe Down"
+            "value" : "Veeg omlaag"
           }
         },
         "pl" : {
@@ -31927,7 +32831,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Swipe Left"
+            "value" : "Veeg naar links"
           }
         },
         "pl" : {
@@ -32016,7 +32920,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Swipe Right"
+            "value" : "Veeg naar rechts"
           }
         },
         "pl" : {
@@ -32105,7 +33009,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Swipe Up"
+            "value" : "Veeg omhoog"
           }
         },
         "pl" : {
@@ -32231,7 +33135,92 @@
     },
     "Target window" : {
       "comment" : "Label for the target window picker.",
-      "isCommentAutoGenerated" : true
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Target window"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Target window"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Target window"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Target window"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fenêtre cible"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Target window"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "対象ウインドウ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Target window"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Target window"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Target window"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Target window"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Target window"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Target window"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Target window"
+          }
+        }
+      }
     },
     "That keybind is already being used by %@." : {
       "localizations" : {
@@ -32955,6 +33944,12 @@
             "value" : "This resets all keybinds to their defaults."
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This resets all keybinds to their defaults."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -32969,7 +33964,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Questo ripristinerà tutte le scorciatoie ai loro valori di default."
           }
         },
@@ -32981,43 +33976,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "모든 키 바인딩이 원래 기본값으로 초기화됩니다."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Dit herstelt alle toetscombinaties naar hun originele standaard."
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Spowoduje to zresetowanie wszystkich skrótów klawiszowych do ich ustawień domyślnych."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Isso irá redefinir todas as teclas de atalho para os padrões originais."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Это сбросит все горячие клавиши до значений по умолчанию."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "这将重置所有快捷键为默认值。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "這將重置所有按鍵綁定為默認值。"
           }
         }
@@ -33038,6 +34033,12 @@
             "value" : "This resets all radial menu actions to their defaults."
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This resets all radial menu actions to their defaults."
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -33052,7 +34053,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Questo ripristinerà tutte le azioni ai loro valori di default."
           }
         },
@@ -33064,43 +34065,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "모든 원형 메뉴 액션이 기본 설정으로 초기화됩니다."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Dit zal alle radiaalmenu's resetten naar hun standaardinstellingen"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Spowoduje to zresetowanie wszystkich akcji menu kołowego do ich domyślnej konfiguracji."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Isso irá redefinir todas as ações do menu radial para a configuração padrão."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Это сбросит все действия радиального меню до значений по умолчанию."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "这将重置所有环形菜单操作为默认配置。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "這將重置所有環形菜單操作為默認設定。"
           }
         }
@@ -33118,6 +34119,12 @@
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "Title Bar Only"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "Title Bar Only"
           }
         },
@@ -34003,6 +35010,12 @@
             "value" : "Trackpad gestures"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trackpad gestures"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -34012,7 +35025,7 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Activer les gestes du trackpad"
+            "value" : "Gestes du trackpad"
           }
         },
         "it" : {
@@ -34024,7 +35037,7 @@
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "トラックパッドジェスチャを有効化"
+            "value" : "トラックパッドジェスチャ"
           }
         },
         "ko" : {
@@ -34263,6 +35276,12 @@
             "value" : "Try Again Later"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Try Again Later"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -34277,7 +35296,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Riprova più tardi"
           }
         },
@@ -34289,50 +35308,136 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "나중에 다시 시도하세요"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Probeer later nogmaals"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Spróbuj ponownie później"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Tente novamente mais tarde"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Попробуйте позже"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "请稍后再试"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "請過會兒再試"
           }
         }
       }
     },
     "Under Cursor" : {
-      "comment" : "Window selection option: act on the window under the cursor"
+      "comment" : "Window selection option: act on the window under the cursor",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Under Cursor"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Under Cursor"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Under Cursor"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Under Cursor"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Sous le pointeur"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Under Cursor"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ポインタの位置"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Under Cursor"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Under Cursor"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Under Cursor"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Under Cursor"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Under Cursor"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Under Cursor"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Under Cursor"
+          }
+        }
+      }
     },
     "Undo" : {
       "comment" : "Window action",
@@ -34743,7 +35848,7 @@
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Up"
+            "value" : "Omhoog"
           }
         },
         "pl" : {
@@ -35059,6 +36164,12 @@
             "value" : "Updating from %@"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Updating from %@"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -35068,60 +36179,60 @@
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Version actuelle : %@"
+            "value" : "Mise à jour depuis %@"
           }
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Aggiorna da: %@"
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "現在のバージョン: %@"
+            "value" : "%@からアップデート"
           }
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "업데이트 대상: %@"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Update van: %@"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Aktualizacja z: %@"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Atualizar da versão: %@"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Обновиться с %@"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "从%@更新"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "自%@更新"
           }
         }
@@ -35407,6 +36518,12 @@
             "value" : "Aktuelles Icon auswählen"
           }
         },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use This Icon"
+          }
+        },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
@@ -35415,7 +36532,7 @@
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Utiliser cette icône"
           }
         },
@@ -35427,8 +36544,8 @@
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "現在のアイコンに設定"
+            "state" : "translated",
+            "value" : "このアイコンを使用"
           }
         },
         "ko" : {
@@ -35479,19 +36596,25 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "استخدم هذا إذا كنت تستخدم شريط قوائم مخصص."
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Benutze dies, falls eine eigene Menüleiste benutzt wird."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Use this if you use a custom menu bar."
           }
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Usa esto si estás utilizando una barra de menú personalizada"
           }
         },
@@ -35503,7 +36626,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Per l'utilizzo con barra dei menu personalizzata."
           }
         },
@@ -35515,13 +36638,13 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "사용자 정의 메뉴바를 사용하는 경우 이것을 사용하세요."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Gebruik dit als je een eigen menubalk gebruikt."
           }
         },
@@ -35533,25 +36656,25 @@
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Use isso se você estiver usando uma barra de menu customizada."
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Включите это, если вы не используете встроенную строку меню."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "如果你正在使用自定义菜单栏，请选择此选项。"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "如果你正在使用自訂選單列，請選擇該選項。"
           }
         }
@@ -36269,7 +37392,93 @@
       }
     },
     "Window Snapping Only" : {
-      "comment" : "Preview visibility option: only show the preview when window snapping"
+      "comment" : "Preview visibility option: only show the preview when window snapping",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Window Snapping Only"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Window Snapping Only"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Window Snapping Only"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Window Snapping Only"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Magnétisme des fenêtres uniquement"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Window Snapping Only"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ウインドウスナップ時のみ"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Window Snapping Only"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Window Snapping Only"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Window Snapping Only"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Window Snapping Only"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Window Snapping Only"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Window Snapping Only"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Window Snapping Only"
+          }
+        }
+      }
     },
     "X" : {
       "comment" : "X axis label",
@@ -36892,8 +38101,94 @@
       }
     },
     "Z-shaped" : {
-      "comment" : "Name of the screen order that walks the screens row by row, like reading a page"
+      "comment" : "Name of the screen order that walks the screens row by row, like reading a page",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z-shaped"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z-shaped"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z-shaped"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z-shaped"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "En Z"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z-shaped"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Z字型"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z-shaped"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z-shaped"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z-shaped"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z-shaped"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z-shaped"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z-shaped"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Z-shaped"
+          }
+        }
+      }
     }
   },
-  "version" : "1.1"
+  "version" : "1.0"
 }
