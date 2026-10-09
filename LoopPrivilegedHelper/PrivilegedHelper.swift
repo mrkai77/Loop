@@ -193,13 +193,13 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         case .missing:
             guard !reinstall else {
                 throw PrivilegedHelperError.commandLineToolInstallFailed(
-                    reason: "No existing Loop CLI symlink was found at \(destinationURL.path)."
+                    reason: "No command-line tool is installed at \(destinationURL.path)."
                 )
             }
         case .loopManaged:
             guard reinstall else {
                 throw PrivilegedHelperError.commandLineToolInstallFailed(
-                    reason: "Loop CLI is already installed at \(destinationURL.path)."
+                    reason: "The command-line tool is already installed at \(destinationURL.path)."
                 )
             }
 
@@ -213,7 +213,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
             log.success("Installed Loop CLI symlink at \(destinationURL.path) -> \(sourceURL.path)")
         } catch {
             throw PrivilegedHelperError.commandLineToolInstallFailed(
-                reason: "Failed to create symlink at \(destinationURL.path): \(error.localizedDescription)"
+                reason: "Couldn’t create \(destinationURL.path): \(error.localizedDescription)"
             )
         }
     }
@@ -230,7 +230,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
                 log.success("Removed Loop CLI symlink at \(destinationURL.path)")
             } catch {
                 throw PrivilegedHelperError.commandLineToolUninstallFailed(
-                    reason: "Failed to remove symlink at \(destinationURL.path): \(error.localizedDescription)"
+                    reason: "Couldn’t remove \(destinationURL.path): \(error.localizedDescription)"
                 )
             }
         case let .occupied(reason):
@@ -247,13 +247,13 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
 
         guard fileManager.fileExists(atPath: sourceURL.path) else {
             throw PrivilegedHelperError.commandLineToolInstallFailed(
-                reason: "Bundled CLI was not found at \(sourceURL.path)."
+                reason: "This copy of Loop is missing its command-line tool at \(sourceURL.path)."
             )
         }
 
         guard fileManager.isExecutableFile(atPath: sourceURL.path) else {
             throw PrivilegedHelperError.commandLineToolInstallFailed(
-                reason: "Bundled CLI is not executable at \(sourceURL.path)."
+                reason: "The command-line tool at \(sourceURL.path) isn’t executable."
             )
         }
 
@@ -267,7 +267,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         if fileManager.fileExists(atPath: installDirectoryURL.path, isDirectory: &isDirectory) {
             guard isDirectory.boolValue else {
                 throw PrivilegedHelperError.commandLineToolInstallFailed(
-                    reason: "\(installDirectoryURL.path) exists but is not a directory."
+                    reason: "\(installDirectoryURL.path) isn’t a folder."
                 )
             }
             return
@@ -277,7 +277,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
             try fileManager.createDirectory(at: installDirectoryURL, withIntermediateDirectories: true)
         } catch {
             throw PrivilegedHelperError.commandLineToolInstallFailed(
-                reason: "Could not create \(installDirectoryURL.path): \(error.localizedDescription)"
+                reason: "Couldn’t create \(installDirectoryURL.path): \(error.localizedDescription)"
             )
         }
     }
@@ -287,11 +287,11 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         case .missing:
             return .missing
         case .other:
-            return .occupied(reason: "\(destinationURL.path) is already in use.")
+            return .occupied(reason: "\(destinationURL.path) is used by another app or file.")
         case .symbolicLink:
             let rawDestination = try symbolicLinkDestination(at: destinationURL)
             guard isLoopManagedCommandLineToolTarget(rawDestination) else {
-                return .occupied(reason: "\(destinationURL.path) is already in use by another symlink.")
+                return .occupied(reason: "\(destinationURL.path) is used by another app or file.")
             }
             return .loopManaged
         }

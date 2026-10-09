@@ -26,10 +26,8 @@ enum PrivilegedHelperError: LocalizedError {
             return "Rejected privileged \(operation) path \(path): \(reason)"
         case let .bundleValidationFailed(path, reason):
             return "Rejected privileged bundle at \(path): \(reason)"
-        case let .commandLineToolInstallFailed(reason):
-            return "Could not install Loop command-line tool: \(reason)"
-        case let .commandLineToolUninstallFailed(reason):
-            return "Could not uninstall Loop command-line tool: \(reason)"
+        case let .commandLineToolInstallFailed(reason), let .commandLineToolUninstallFailed(reason):
+            return reason
         }
     }
 }

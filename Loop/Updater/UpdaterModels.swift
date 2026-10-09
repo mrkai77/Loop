@@ -107,24 +107,23 @@ enum UpdateError: LocalizedError {
     case timeout
     case http(Int)
 
+    /// Shown in the update window, while the associated values keep internal details for the logs
     var errorDescription: String? {
         switch self {
         case let .network(error):
-            "Network error: \(error.localizedDescription)"
-        case let .invalidManifest(details):
-            details.map { "Invalid update manifest: \($0)" } ?? "Invalid update manifest"
-        case .checksumMismatch:
-            "File integrity check failed"
-        case let .installationFailed(reason):
-            "Installation failed: \(reason)"
+            String(localized: "The update couldn’t be downloaded. \(error.localizedDescription)")
+        case .invalidManifest:
+            String(localized: "The update information couldn’t be read.")
+        case .checksumMismatch, .security:
+            String(localized: "The update couldn’t be verified.")
+        case .installationFailed:
+            String(localized: "The update couldn’t be installed.")
         case let .incompatibleSystem(reason):
             reason
-        case let .security(reason):
-            "Security error: \(reason)"
         case .timeout:
-            "Request timed out"
-        case let .http(code):
-            "HTTP error (\(code))"
+            String(localized: "The update server didn’t respond.")
+        case .http:
+            String(localized: "The update server couldn’t be reached.")
         }
     }
 

@@ -158,7 +158,7 @@ struct CLIOutputFormatter {
     private func screenItem(_ screen: LoopScreenSummary) -> Item {
         Item(
             name: nonEmpty(screen.name) ?? "Screen",
-            details: ["IDr \(screen.id)", screen.isMain ? "main" : "", frameString(screen.frame)]
+            details: ["ID \(screen.id)", screen.isMain ? "main" : "", frameString(screen.frame)]
         )
     }
 

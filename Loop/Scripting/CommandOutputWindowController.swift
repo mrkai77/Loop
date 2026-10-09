@@ -138,13 +138,13 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
         }
 
         let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-        item.label = "Copy"
-        item.paletteLabel = "Copy"
-        item.toolTip = "Copy output to the clipboard"
+        item.label = String(localized: "Copy")
+        item.paletteLabel = String(localized: "Copy")
+        item.toolTip = String(localized: "Copy output to the clipboard")
         item.target = self
         item.action = #selector(copyOutput(_:))
 
-        if let image = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: "Copy") {
+        if let image = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: String(localized: "Copy")) {
             item.image = image
         }
 

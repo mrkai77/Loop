@@ -22,14 +22,19 @@ struct LoopCLICommand: ParsableCommand {
         Successful commands print human-readable text by default. Use --json to print raw JSON.
         Failures print plain-text errors to stderr.
 
+        Action names are the ones shown by `\(executableName) list actions`.
+
         Examples:
           \(executableName) list windows
-          \(executableName) list windows --json
+          \(executableName) list screens
           \(executableName) list actions --preset
-          \(executableName) exec --preset right
-          \(executableName) exec --preset right --json
+          \(executableName) list actions --custom
+          \(executableName) exec --preset right_half
           \(executableName) exec --custom "My Layout"
           \(executableName) exec --id 123e4567-e89b-12d3-a456-426614174000
+          \(executableName) exec --preset maximize --window-id 1234
+          \(executableName) exec --preset left_half --bundle-id com.apple.Safari
+          \(executableName) list windows --json
         """,
         subcommands: [ListCommand.self, ExecCommand.self]
     )

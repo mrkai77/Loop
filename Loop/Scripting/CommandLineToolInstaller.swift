@@ -20,9 +20,9 @@ final class CommandLineToolInstaller {
             case .notInstalled, .installedCurrent:
                 nil
             case .installedStale:
-                "`/usr/local/bin/loop` points to a different or moved version of Loop. Repair it to update the symlink."
+                "`/usr/local/bin/loop` points to another copy of Loop. Click Repair to use this one."
             case .blocked:
-                "`/usr/local/bin/loop` is already in use by another file or symlink. Remove it manually before installing the command-line tool."
+                "`/usr/local/bin/loop` is used by another app or file. Remove it, then try again."
             }
         }
     }
@@ -70,7 +70,7 @@ final class CommandLineToolInstaller {
 
     func install() async throws {
         try await privilegedHelperCoordinator.withPrivilegedSession(
-            prompt: "\(Bundle.main.appName) needs administrator permission to install its command-line tool."
+            prompt: String(localized: "\(Bundle.main.appName) is trying to install its command-line tool.")
         ) { session in
             try await session.installCommandLineTool()
         }
@@ -78,7 +78,7 @@ final class CommandLineToolInstaller {
 
     func reinstall() async throws {
         try await privilegedHelperCoordinator.withPrivilegedSession(
-            prompt: "\(Bundle.main.appName) needs administrator permission to install its command-line tool."
+            prompt: String(localized: "\(Bundle.main.appName) is trying to update its command-line tool.")
         ) { session in
             try await session.reinstallCommandLineTool()
         }
@@ -86,7 +86,7 @@ final class CommandLineToolInstaller {
 
     func uninstall() async throws {
         try await privilegedHelperCoordinator.withPrivilegedSession(
-            prompt: "\(Bundle.main.appName) needs administrator permission to uninstall its command-line tool."
+            prompt: String(localized: "\(Bundle.main.appName) is trying to uninstall its command-line tool.")
         ) { session in
             try await session.uninstallCommandLineTool()
         }

@@ -114,16 +114,18 @@ To set Caps Lock as your trigger key, you have two options:
 
 #### c. Shell/AppleScript
 
-Loop can be controlled from the shell or AppleScript using its URL scheme:
+Loop can be controlled from the shell or AppleScript using its URL scheme. Action names are the ones listed by `loop://list/actions`:
 
 ```bash
 # Shell examples
-open "loop://preset/right"     # Move window to right half
-open "loop://preset/maximize"  # Maximize window
-open "loop://preset/next_screen" # Move to next screen
+open "loop://preset/right_half"   # Move window to right half
+open "loop://preset/maximize"     # Maximize window
+open "loop://preset/next_screen"  # Move to next screen
+open "loop://custom/my_layout"    # Run one of your custom actions
+open "loop://id/123e4567-e89b-12d3-a456-426614174000"  # Run an action by its UUID
 
 # AppleScript example
-osascript -e 'open location "loop://preset/left"'
+osascript -e 'open location "loop://preset/left_half"'
 ```
 
 You can also create custom scripts to chain multiple actions:
@@ -131,41 +133,48 @@ You can also create custom scripts to chain multiple actions:
 ```bash
 #!/bin/bash
 # Example: Move window right and then maximize
-open "loop://preset/right"
+open "loop://preset/right_half"
 sleep 0.5
 open "loop://preset/maximize"
 ```
 
-Read-style URL commands open a Loop output window with selectable JSON:
+Actions apply to the frontmost window by default. To target something else, add a query parameter:
 
 ```bash
-open "loop://list/windows"              # List visible windows
-open "loop://list/screens"              # List connected screens
-open "loop://list/actions"              # List all executable actions
-open "loop://list/actions/preset"       # List preset actions
-open "loop://list/actions/custom"       # List custom actions
+open "loop://preset/maximize?windowID=1234"               # A specific window, from list/windows
+open "loop://preset/left_half?bundleID=com.apple.Safari"  # An app's window, opening the app if needed
+open "loop://preset/right_half?screenID=2"                # A specific screen, from list/screens
 ```
 
-You can also execute an action directly by UUID when you already have one from `list/actions`:
+`windowID` and `bundleID` can't be combined. If a command fails, Loop shows an alert explaining why.
+
+List commands open a Loop output window with selectable JSON:
 
 ```bash
-open "loop://id/123e4567-e89b-12d3-a456-426614174000"
+open "loop://list/windows"         # List visible windows
+open "loop://list/screens"         # List connected screens
+open "loop://list/actions"         # List all actions
+open "loop://list/actions/preset"  # List preset actions
+open "loop://list/actions/custom"  # List custom actions
 ```
 
-For machine-readable shell output, install the CLI from Loop's Advanced tab. This creates `/usr/local/bin/loop`, which points at the bundled `loop-cli` binary:
+For use in scripts and the terminal, install the command-line tool from Loop's Advanced settings. This creates `/usr/local/bin/loop`, which points to the `loop-cli` tool inside Loop:
 
 ```bash
 loop list windows
 loop list screens
 loop list actions --preset
-loop exec --preset right
+loop list actions --custom
+loop exec --preset right_half
 loop exec --custom "My Layout"
 loop exec --id 123e4567-e89b-12d3-a456-426614174000
+loop exec --preset maximize --window-id 1234
+loop exec --preset left_half --bundle-id com.apple.Safari
+loop exec --preset right_half --screen-id 2
 loop list windows --json
-loop exec --preset right --json
 ```
 
-Successful `loop` commands print human-readable structured text by default. Pass `--json` to print the raw JSON response. Successful JSON now uses a shared envelope of `{ "success": true, "result": { ... } }`, and failures use `{ "success": false, "error": { ... } }`. Runtime failures print plain-text errors to `stderr`, or the JSON failure to `stdout` with `--json`, and local usage errors are handled by the CLI's built-in help and validation output.
+Commands print readable text by default. Pass `--json` to print the raw JSON response instead: `{ "success": true, "result": { ... } }` on success, or `{ "success": false, "error": { ... } }` on failure. Without `--json`, errors are printed to `stderr`; with it, the error JSON goes to `stdout`. Run `loop help` to see all commands and options.
 
 ### Keyboard Shortcuts
 

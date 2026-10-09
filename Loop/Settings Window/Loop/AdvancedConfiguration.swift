@@ -23,6 +23,7 @@ final class AdvancedConfigurationModel: ObservableObject {
     @Published private(set) var isAccessibilityAccessGranted = AccessibilityManager.shared.isGranted
     @Published private(set) var commandLineToolInstallStatus: CommandLineToolInstaller.Status = .notInstalled
     @Published private(set) var isCommandLineToolOperationInProgress = false
+    @Published private(set) var commandLineToolErrorTitle = ""
     @Published var commandLineToolErrorMessage: String?
 
     private var lowPowerModeCheckerTask: Task<(), Never>?
@@ -134,7 +135,16 @@ final class AdvancedConfigurationModel: ObservableObject {
         guard canPerformCommandLineToolAction else { return }
         let status = commandLineToolInstallStatus
 
-        performCommandLineToolOperation { installer in
+        let failureTitle = switch status {
+        case .notInstalled, .blocked:
+            String(localized: "The command-line tool couldn’t be installed.")
+        case .installedStale:
+            String(localized: "The command-line tool couldn’t be repaired.")
+        case .installedCurrent:
+            String(localized: "The command-line tool couldn’t be uninstalled.")
+        }
+
+        performCommandLineToolOperation(failureTitle: failureTitle) { installer in
             switch status {
             case .notInstalled:
                 try await installer.install()
@@ -162,7 +172,10 @@ final class AdvancedConfigurationModel: ObservableObject {
         }
     }
 
-    private func performCommandLineToolOperation(_ operation: @escaping (CommandLineToolInstaller) async throws -> ()) {
+    private func performCommandLineToolOperation(
+        failureTitle: String,
+        _ operation: @escaping (CommandLineToolInstaller) async throws -> ()
+    ) {
         Task { @MainActor in
             guard !isCommandLineToolOperationInProgress else { return }
 
@@ -176,8 +189,11 @@ final class AdvancedConfigurationModel: ObservableObject {
 
             do {
                 try await operation(commandLineToolInstaller)
+            } catch is CancellationError {
+                // The user canceled the password prompt
             } catch {
                 log.error("Command-line tool operation failed: \(error.localizedDescription)")
+                commandLineToolErrorTitle = failureTitle
                 commandLineToolErrorMessage = error.localizedDescription
             }
         }
@@ -237,7 +253,7 @@ struct AdvancedConfigurationView: View {
         }
         .animation(luminareAnimation, value: enableRadialMenuCustomization)
         .animation(luminareAnimation, value: useSystemWindowManagerWhenAvailable)
-        .alert("Command-Line Tool Error", isPresented: commandLineToolErrorIsPresented) {
+        .alert(model.commandLineToolErrorTitle, isPresented: commandLineToolErrorIsPresented) {
             Button("OK", role: .cancel, action: model.clearCommandLineToolError)
         } message: {
             Text(model.commandLineToolErrorMessage ?? "")
@@ -445,7 +461,7 @@ struct AdvancedConfigurationView: View {
                             .foregroundStyle(.green)
                     }
 
-                    Text("`loop` command")
+                    Text("`loop` command", comment: "Settings label for the installable command-line tool. `loop` is the command's name and must not be translated")
                         .padding(.trailing, 4)
                         .luminareToolTip(attachedTo: .topTrailing, hidden: model.commandLineToolInstallStatus.warning == nil) {
                             if let warning = model.commandLineToolInstallStatus.warning {

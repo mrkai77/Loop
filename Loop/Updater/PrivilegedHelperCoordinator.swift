@@ -95,7 +95,7 @@ final class PrivilegedHelperCoordinator {
     }
 
     func withPrivilegedSession<T>(
-        prompt: String = "\(Bundle.main.appName) needs administrator permission to perform this action.",
+        prompt: String = String(localized: "\(Bundle.main.appName) is trying to make changes."),
         _ body: (PrivilegedSession) async throws -> T
     ) async throws -> T {
         let helperURL = try helperExecutableURL()
@@ -273,6 +273,10 @@ final class PrivilegedHelperCoordinator {
         }
 
         guard rightsStatus == errAuthorizationSuccess else {
+            if rightsStatus == errAuthorizationCanceled {
+                throw CancellationError()
+            }
+
             throw operationFailed(
                 "Authorization rights request failed: \(authorizationErrorMessage(for: rightsStatus))"
             )

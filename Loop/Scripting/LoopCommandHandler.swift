@@ -82,11 +82,11 @@ final class LoopCommandHandler {
                 }
 
                 let alert = NSAlert()
-                alert.messageText = "Loop Command Failed"
+                alert.messageText = String(localized: "The command couldn’t be run.")
                 alert.informativeText = errorMessage ?? jsonResponse
                 alert.alertStyle = .warning
 
-                let button = alert.addButton(withTitle: "OK")
+                let button = alert.addButton(withTitle: String(localized: "OK"))
                 if #available(macOS 26.0, *) {
                     button.tintProminence = .primary
                 }
@@ -299,7 +299,7 @@ final class LoopCommandHandler {
                 kind: .write,
                 components: [],
                 response: failureResponse(
-                    message: "Invalid scheme: \(url.scheme ?? "nil"). Required: loop://"
+                    message: "URLs must start with loop://"
                 )
             )
         }
@@ -552,7 +552,7 @@ final class LoopCommandHandler {
     private func handleIDCommand(_ parameters: [String], params: TargetParams) async -> LoopAutomationResponse {
         guard parameters.count == 1 else {
             return failureResponse(
-                message: "ID execution requires exactly one UUID",
+                message: "Running an action by ID requires exactly one UUID",
                 replacementRoute: urlCommandString(["list", "actions"])
             )
         }
@@ -589,7 +589,7 @@ final class LoopCommandHandler {
         let resolvedAction = resolveActionForCommandExecution(action, latestRecord: latestRecord)
 
         if resolvedAction.direction.isNoOp || resolvedAction.direction == .cycle {
-            return failureResponse(message: "Action is not executable: \(descriptor.name)")
+            return failureResponse(message: "Can’t run this action: \(descriptor.name)")
         }
 
         if !resolvedAction.direction.willFocusWindow, resolvedWindow == nil {
@@ -607,7 +607,7 @@ final class LoopCommandHandler {
         do {
             try await performAction(resolvedAction, on: resolvedWindow, screen: targetScreen)
         } catch {
-            return failureResponse(message: "Failed to execute \(descriptor.name): \(error.localizedDescription)")
+            return failureResponse(message: "Couldn’t run \(descriptor.name): \(error.localizedDescription)")
         }
 
         return LoopAutomationResponse(
@@ -653,8 +653,10 @@ final class LoopCommandHandler {
         )
     }
 
+    /// Accepts the listed name or its display name, e.g. `right_half` or "Right Half"
     private func presetActionDescriptor(name: String) -> PresetActionDescriptor? {
-        allPresetActionDescriptors().first { $0.name == name.lowercased() }
+        let slug = slugifyDisplayString(name)
+        return allPresetActionDescriptors().first { $0.name == slug }
     }
 
     private func customActionDescriptors() -> [CustomActionDescriptor] {
@@ -693,7 +695,8 @@ final class LoopCommandHandler {
     }
 
     private func customActionDescriptor(name: String) -> CustomActionDescriptor? {
-        customActionDescriptors().first { $0.name == name.lowercased() }
+        let slug = slugifyDisplayString(name)
+        return customActionDescriptors().first { $0.name == slug }
     }
 
     private func customActionDescriptor(id: UUID) -> CustomActionDescriptor? {
@@ -726,7 +729,7 @@ final class LoopCommandHandler {
 
     private func publicWriteRoutes() -> [String] {
         [
-            urlCommandString(["preset", "right"]),
+            urlCommandString(["preset", "right_half"]),
             urlCommandString(["preset", "maximize"]),
             urlCommandString(["preset", "next_screen"]),
             urlCommandString(["custom", "my_layout"]),
@@ -754,21 +757,21 @@ final class LoopCommandHandler {
 
     private func invalidListRootResponse() -> LoopAutomationResponse {
         failureResponse(
-            message: "No list type specified",
+            message: "No list type given",
             availableRoutes: publicListRoutes()
         )
     }
 
     private func invalidListRouteResponse(_ parameters: [String]) -> LoopAutomationResponse {
         failureResponse(
-            message: "Unknown list route: list/\(parameters.joined(separator: "/"))",
+            message: "Unknown list type: \(parameters.joined(separator: "/"))",
             availableRoutes: publicListRoutes()
         )
     }
 
     private func unknownCommandResponse(_ command: String?) -> LoopAutomationResponse {
         failureResponse(
-            message: "Unknown command: \(command ?? "nil")",
+            message: command.map { "Unknown command: \($0)" } ?? "No command given",
             availableRoutes: publicRoutes()
         )
     }
@@ -779,7 +782,7 @@ final class LoopCommandHandler {
         do {
             return try LoopAutomationJSON.encodeString(response)
         } catch {
-            return #"{"error":{"message":"Failed to serialize response"},"success":false}"#
+            return #"{"error":{"message":"Couldn’t encode the response"},"success":false}"#
         }
     }
 
@@ -801,7 +804,9 @@ final class LoopCommandHandler {
 
     private func outputTitle(for components: [String]) -> String {
         let commandPath = components.joined(separator: " ")
-        return commandPath.isEmpty ? "Loop Output" : "Loop Output: \(commandPath)"
+        return commandPath.isEmpty
+            ? String(localized: "Loop Output")
+            : String(localized: "Loop Output: \(commandPath)", comment: "Output window title; the value is the command that was run, such as “list windows”")
     }
 
     private func windowSummary(_ window: Window) -> LoopWindowSummary {
@@ -1056,7 +1061,7 @@ final class LoopCommandHandler {
             return "No window found with ID \(windowID)"
         }
         if let bundleID = params.bundleID {
-            return "Could not find or launch app: \(bundleID)"
+            return "Couldn’t find or open app: \(bundleID)"
         }
         return "No frontmost window found"
     }
