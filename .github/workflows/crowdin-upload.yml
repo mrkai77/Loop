@@ -13,10 +13,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: ⬇️ Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: ⬆️ Upload sources
-        uses: crowdin/github-action@v2
+        uses: crowdin/github-action@v3
         with:
           config: .github/crowdin.yml
         env:
