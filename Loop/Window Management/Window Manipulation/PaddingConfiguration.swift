@@ -95,8 +95,6 @@ struct PaddingConfiguration: Codable, Defaults.Serializable, Hashable {
 
     /// Applies inner window padding to the sides of the frame that don't touch the bounds edges.
     private func applyInnerPadding(to frame: CGRect, paddedBounds: CGRect, action: WindowAction) -> CGRect {
-        guard !action.direction.willMove else { return frame }
-
         var result = frame.intersection(paddedBounds)
         let halfPadding = window / 2
 

@@ -209,6 +209,12 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
             return false
         }
 
+        // These adjust the window's existing frame, which already has any padding it needs.
+        // Applying it again would shrink the window a little every time.
+        if willManipulateExistingWindowFrame {
+            return false
+        }
+
         if direction.isCustomizable, sizeMode == .initialSize || sizeMode == .preserveSize {
             return false
         }
