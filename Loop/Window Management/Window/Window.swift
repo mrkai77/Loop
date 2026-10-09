@@ -92,7 +92,7 @@ final class Window {
         }
 
         if let level = knownWindowLevel ?? SkyLightToolBelt.getWindowLevel(windowID: cgWindowID),
-           level < kCGNormalWindowLevel || level >= kCGPopUpMenuWindowLevel {
+           level < kCGNormalWindowLevel || level >= kCGMainMenuWindowLevel {
             throw WindowError.invalidWindowLevel(level)
         }
 
@@ -145,7 +145,7 @@ final class Window {
 
         let knownWindowLevel = windowInfo[kCGWindowLayer as String] as? CGWindowLevel
         if let knownWindowLevel,
-           knownWindowLevel < kCGNormalWindowLevel || knownWindowLevel >= kCGPopUpMenuWindowLevel {
+           knownWindowLevel < kCGNormalWindowLevel || knownWindowLevel >= kCGMainMenuWindowLevel {
             throw WindowError.invalidWindowLevel(knownWindowLevel)
         }
 
