@@ -1,5 +1,5 @@
 //
-//  UpdaterAuthorizationCoordinator.swift
+//  PrivilegedHelperCoordinator.swift
 //  Loop
 //
 //  Created by Kai Azim on 2026-02-23.
@@ -10,18 +10,26 @@ import Scribe
 import Security
 import ServiceManagement
 
+private struct PrivilegedHelperCoordinatorError: LocalizedError {
+    let message: String
+
+    var errorDescription: String? {
+        message
+    }
+}
+
 @Loggable
-final class UpdaterAuthorizationCoordinator {
+final class PrivilegedHelperCoordinator {
     enum PrivilegedHelperReadiness {
         case available
         case unavailable(reason: String)
     }
 
     final class PrivilegedSession {
-        private unowned let coordinator: UpdaterAuthorizationCoordinator
+        private unowned let coordinator: PrivilegedHelperCoordinator
         private let connection: NSXPCConnection
 
-        fileprivate init(coordinator: UpdaterAuthorizationCoordinator, connection: NSXPCConnection) {
+        fileprivate init(coordinator: PrivilegedHelperCoordinator, connection: NSXPCConnection) {
             self.coordinator = coordinator
             self.connection = connection
         }
@@ -43,6 +51,21 @@ final class UpdaterAuthorizationCoordinator {
             let operation = PrivilegedOperation.removeCurrentBundle
             try await coordinator.performXPCOperation(connection: connection, operation: operation)
         }
+
+        func installCommandLineTool() async throws {
+            let operation = PrivilegedOperation.installCommandLineTool
+            try await coordinator.performXPCOperation(connection: connection, operation: operation)
+        }
+
+        func reinstallCommandLineTool() async throws {
+            let operation = PrivilegedOperation.reinstallCommandLineTool
+            try await coordinator.performXPCOperation(connection: connection, operation: operation)
+        }
+
+        func uninstallCommandLineTool() async throws {
+            let operation = PrivilegedOperation.uninstallCommandLineTool
+            try await coordinator.performXPCOperation(connection: connection, operation: operation)
+        }
     }
 
     private final class ContinuationCompletion: @unchecked Sendable {
@@ -59,7 +82,6 @@ final class UpdaterAuthorizationCoordinator {
     }
 
     private let fileManager: FileManager
-
     private let operationTimeout: Duration = .seconds(90)
 
     init(fileManager: FileManager = .default) {
@@ -76,6 +98,7 @@ final class UpdaterAuthorizationCoordinator {
     }
 
     func withPrivilegedSession<T>(
+        prompt: String = String(localized: "\(Bundle.main.appName) is trying to make changes."),
         _ body: (PrivilegedSession) async throws -> T
     ) async throws -> T {
         let helperURL = try helperExecutableURL()
@@ -84,8 +107,8 @@ final class UpdaterAuthorizationCoordinator {
         let createStatus = AuthorizationCreate(nil, nil, [], &authRef)
 
         guard createStatus == errAuthorizationSuccess, let authRef else {
-            throw UpdateError.installationFailed(
-                "Could not request installation authorization: \(authorizationErrorMessage(for: createStatus))"
+            throw operationFailed(
+                "Could not request administrator authorization: \(authorizationErrorMessage(for: createStatus))"
             )
         }
 
@@ -93,9 +116,9 @@ final class UpdaterAuthorizationCoordinator {
             AuthorizationFree(authRef, [.destroyRights])
         }
 
-        try requestInstallerAuthorizationRight(authRef)
+        try requestPrivilegedHelperAuthorizationRight(authRef, prompt: prompt)
 
-        let serviceName = PrivilegedInstallerConstants.serviceName
+        let serviceName = PrivilegedHelperConstants.serviceName
         let jobDictionary = makeJobDictionary(serviceName: serviceName, helperPath: helperURL.path)
 
         try submit(jobDictionary, authRef: authRef)
@@ -107,7 +130,7 @@ final class UpdaterAuthorizationCoordinator {
         try await Task.sleep(for: .milliseconds(250))
 
         let connection = NSXPCConnection(machServiceName: serviceName, options: .privileged)
-        connection.remoteObjectInterface = NSXPCInterface(with: PrivilegedInstallerProtocol.self)
+        connection.remoteObjectInterface = NSXPCInterface(with: PrivilegedHelperProtocol.self)
         connection.resume()
 
         defer {
@@ -140,27 +163,27 @@ final class UpdaterAuthorizationCoordinator {
             }
 
             connection.interruptionHandler = {
-                self.log.warn("Privileged installer \(operation.name) interrupted during shared session")
-                finish(.failure(UpdateError.installationFailed("Privileged installer \(operation.name) interrupted")))
+                self.log.warn("Privileged helper \(operation.name) interrupted during shared session")
+                finish(.failure(self.operationFailed("Privileged helper \(operation.name) interrupted")))
             }
             connection.invalidationHandler = {
-                self.log.warn("Privileged installer \(operation.name) invalidated during shared session")
-                finish(.failure(UpdateError.installationFailed("Privileged installer \(operation.name) invalidated")))
+                self.log.warn("Privileged helper \(operation.name) invalidated during shared session")
+                finish(.failure(self.operationFailed("Privileged helper \(operation.name) invalidated")))
             }
 
             guard let proxy = connection.remoteObjectProxyWithErrorHandler({ error in
-                self.log.warn("Privileged installer \(operation.name) transport failed during shared session: \(error.localizedDescription)")
-                finish(.failure(UpdateError.installationFailed("Privileged installer \(operation.name) transport failed: \(error.localizedDescription)")))
-            }) as? PrivilegedInstallerProtocol else {
-                self.log.warn("Failed to connect to privileged installer helper for \(operation.name)")
-                finish(.failure(UpdateError.installationFailed("Failed to connect to privileged installer helper")))
+                self.log.warn("Privileged helper \(operation.name) transport failed during shared session: \(error.localizedDescription)")
+                finish(.failure(self.operationFailed("Privileged helper \(operation.name) transport failed: \(error.localizedDescription)")))
+            }) as? PrivilegedHelperProtocol else {
+                self.log.warn("Failed to connect to privileged helper for \(operation.name)")
+                finish(.failure(self.operationFailed("Failed to connect to privileged helper")))
                 return
             }
 
             // NSXPC reports remote failures via callbacks; direct throwing proxy calls can raise uncaught Objective-C exceptions.
             operation.invoke(on: proxy) { error in
                 if let error {
-                    finish(.failure(UpdateError.installationFailed(error.localizedDescription)))
+                    finish(.failure(self.operationFailed(error.localizedDescription)))
                 } else {
                     finish(.success(()))
                 }
@@ -173,8 +196,8 @@ final class UpdaterAuthorizationCoordinator {
                     return
                 }
 
-                self.log.warn("Privileged installer \(operation.name) timed out during shared session")
-                finish(.failure(UpdateError.installationFailed("Privileged installer \(operation.name) timed out")))
+                self.log.warn("Privileged helper \(operation.name) timed out during shared session")
+                finish(.failure(self.operationFailed("Privileged helper \(operation.name) timed out")))
             }
         }
     }
@@ -182,25 +205,24 @@ final class UpdaterAuthorizationCoordinator {
     private func helperExecutableURL() throws -> URL {
         let helperURL = Bundle.main.bundleURL
             .appendingPathComponent("Contents/Library/LaunchServices", isDirectory: true)
-            .appendingPathComponent(PrivilegedInstallerConstants.helperExecutableName, isDirectory: false)
+            .appendingPathComponent(PrivilegedHelperConstants.helperExecutableName, isDirectory: false)
 
         let canonicalHelperURL = helperURL.resolvingSymlinksInPath().standardizedFileURL
         let helperPath = canonicalHelperURL.path
 
         guard fileManager.fileExists(atPath: helperPath) else {
-            throw UpdateError.installationFailed("Privileged installer executable was not found at \(helperPath)")
+            throw operationFailed("Privileged helper executable was not found at \(helperPath)")
         }
 
         guard fileManager.isExecutableFile(atPath: helperPath) else {
-            throw UpdateError.installationFailed("Privileged installer executable is not executable at \(helperPath)")
+            throw operationFailed("Privileged helper executable is not executable at \(helperPath)")
         }
 
         return canonicalHelperURL
     }
 
-    private func requestInstallerAuthorizationRight(_ authRef: AuthorizationRef) throws {
-        let rightName = installerAuthorizationRightName()
-        let prompt = "\(Bundle.main.appName) needs administrator permission to install this update."
+    private func requestPrivilegedHelperAuthorizationRight(_ authRef: AuthorizationRef, prompt: String) throws {
+        let rightName = privilegedHelperAuthorizationRightName()
 
         let getStatus = rightName.withCString { AuthorizationRightGet($0, nil) }
         if getStatus == errAuthorizationDenied {
@@ -211,51 +233,69 @@ final class UpdaterAuthorizationCoordinator {
                     authRef,
                     rightNameCString,
                     kAuthorizationRuleAuthenticateAsAdmin as CFTypeRef,
-                    prompt as CFString,
+                    nil,
                     nil,
                     nil
                 )
             }
 
             if setStatus != errAuthorizationSuccess {
-                log.warn("Failed to set installer authorization right \(rightName): \(authorizationErrorMessage(for: setStatus))")
+                log.warn("Failed to set privileged helper authorization right \(rightName): \(authorizationErrorMessage(for: setStatus))")
             }
         } else if getStatus != errAuthorizationSuccess {
-            log.warn("Failed to retrieve installer authorization right \(rightName): \(authorizationErrorMessage(for: getStatus))")
+            log.warn("Failed to retrieve privileged helper authorization right \(rightName): \(authorizationErrorMessage(for: getStatus))")
         }
 
+        // The right has no stored description, so this prompt is the only text shown
         let rightsStatus: OSStatus = rightName.withCString { rightNameCString in
-            var requestedRight = AuthorizationItem(
-                name: rightNameCString,
-                valueLength: 0,
-                value: nil,
-                flags: 0
-            )
+            kAuthorizationEnvironmentPrompt.withCString { promptKeyCString in
+                prompt.withCString { promptCString in
+                    var requestedRight = AuthorizationItem(
+                        name: rightNameCString,
+                        valueLength: 0,
+                        value: nil,
+                        flags: 0
+                    )
+                    var promptItem = AuthorizationItem(
+                        name: promptKeyCString,
+                        valueLength: strlen(promptCString),
+                        value: UnsafeMutableRawPointer(mutating: promptCString),
+                        flags: 0
+                    )
 
-            return withUnsafeMutablePointer(to: &requestedRight) { rightPtr in
-                var requestedRights = AuthorizationRights(count: 1, items: rightPtr)
-                return AuthorizationCopyRights(
-                    authRef,
-                    &requestedRights,
-                    nil,
-                    [.interactionAllowed, .extendRights],
-                    nil
-                )
+                    return withUnsafeMutablePointer(to: &requestedRight) { rightPtr in
+                        withUnsafeMutablePointer(to: &promptItem) { promptPtr in
+                            var requestedRights = AuthorizationRights(count: 1, items: rightPtr)
+                            var environment = AuthorizationEnvironment(count: 1, items: promptPtr)
+                            return AuthorizationCopyRights(
+                                authRef,
+                                &requestedRights,
+                                &environment,
+                                [.interactionAllowed, .extendRights],
+                                nil
+                            )
+                        }
+                    }
+                }
             }
         }
 
         guard rightsStatus == errAuthorizationSuccess else {
-            throw UpdateError.installationFailed(
+            if rightsStatus == errAuthorizationCanceled {
+                throw CancellationError()
+            }
+
+            throw operationFailed(
                 "Authorization rights request failed: \(authorizationErrorMessage(for: rightsStatus))"
             )
         }
 
-        log.info("Authorization rights granted for one-shot privileged installer")
+        log.info("Authorization rights granted for one-shot privileged helper")
     }
 
-    private func installerAuthorizationRightName() -> String {
-        let bundleIdentifier = Bundle.main.bundleIdentifier ?? "com.MrKai77.Loop"
-        return "\(bundleIdentifier).updater-auth"
+    private func privilegedHelperAuthorizationRightName() -> String {
+        let bundleIdentifier = Bundle.main.bundleIdentifier ?? PrivilegedHelperConstants.appBundleIdentifier
+        return "\(bundleIdentifier).privileged-helper-authorization"
     }
 
     private func makeJobDictionary(serviceName: String, helperPath: String) -> [String: Any] {
@@ -283,7 +323,7 @@ final class UpdaterAuthorizationCoordinator {
 
         guard success else {
             let details = error?.takeRetainedValue().localizedDescription ?? "Unknown privileged submission failure"
-            throw UpdateError.installationFailed("Privileged installer submission failed: \(details)")
+            throw operationFailed("Privileged helper submission failed: \(details)")
         }
     }
 
@@ -302,7 +342,7 @@ final class UpdaterAuthorizationCoordinator {
         }
 
         let details = error?.takeRetainedValue().localizedDescription ?? "Unknown cleanup failure"
-        log.warn("Failed to remove privileged updater job \(serviceName): \(details)")
+        log.warn("Failed to remove privileged helper job \(serviceName): \(details)")
     }
 
     private func authorizationErrorMessage(for status: OSStatus) -> String {
@@ -316,12 +356,19 @@ final class UpdaterAuthorizationCoordinator {
 
         return "OSStatus \(status)"
     }
+
+    private func operationFailed(_ message: String) -> Error {
+        PrivilegedHelperCoordinatorError(message: message)
+    }
 }
 
 private enum PrivilegedOperation {
     case atomicSwap(rollbackID: String)
     case restore(rollbackID: String)
     case removeCurrentBundle
+    case installCommandLineTool
+    case reinstallCommandLineTool
+    case uninstallCommandLineTool
 
     var name: String {
         switch self {
@@ -331,11 +378,17 @@ private enum PrivilegedOperation {
             "restore"
         case .removeCurrentBundle:
             "remove current bundle"
+        case .installCommandLineTool:
+            "install command-line tool"
+        case .reinstallCommandLineTool:
+            "reinstall command-line tool"
+        case .uninstallCommandLineTool:
+            "uninstall command-line tool"
         }
     }
 
     /// Dispatches the selected privileged operation on the typed helper proxy.
-    func invoke(on proxy: PrivilegedInstallerProtocol, reply: @escaping (NSError?) -> ()) {
+    func invoke(on proxy: PrivilegedHelperProtocol, reply: @escaping (NSError?) -> ()) {
         switch self {
         case let .atomicSwap(rollbackID):
             proxy.atomicSwap(rollbackID: rollbackID, withReply: reply)
@@ -343,6 +396,12 @@ private enum PrivilegedOperation {
             proxy.restoreFromBackup(rollbackID: rollbackID, withReply: reply)
         case .removeCurrentBundle:
             proxy.removeCurrentBundle(withReply: reply)
+        case .installCommandLineTool:
+            proxy.installCommandLineTool(withReply: reply)
+        case .reinstallCommandLineTool:
+            proxy.reinstallCommandLineTool(withReply: reply)
+        case .uninstallCommandLineTool:
+            proxy.uninstallCommandLineTool(withReply: reply)
         }
     }
 }

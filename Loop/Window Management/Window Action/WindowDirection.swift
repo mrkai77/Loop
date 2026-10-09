@@ -151,7 +151,7 @@ enum WindowDirection: String, CaseIterable, Identifiable, Codable {
     }
 
     /// Whether this direction resolves to a concrete target frame. False for no-op,
-    /// minimize/hide/minimizeOthers, cycle, and focus/space/screen-switching actions —
+    /// minimize/hide/minimizeOthers, cycle, and focus/space/screen-switching actions -
     /// none of which produce a frame. Shared by `WindowFrameResolver.getFrame` and
     /// `ResizeContext.recomputeTargetFrame` so the two "no-frame" lists can't drift apart.
     var hasTargetFrame: Bool {

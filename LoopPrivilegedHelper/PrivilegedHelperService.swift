@@ -1,5 +1,5 @@
 //
-//  PrivilegedInstallerService.swift
+//  PrivilegedHelperService.swift
 //  Loop
 //
 //  Created by Kai Azim on 2026-02-23.
@@ -12,7 +12,7 @@ import Scribe
 import Security
 
 @Loggable
-final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
+final class PrivilegedHelperService: NSObject, NSXPCListenerDelegate {
     struct TrustedClientContext {
         let clientPID: pid_t
         let clientUID: uid_t
@@ -34,9 +34,9 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
     }
 
     func run() {
-        log.info("Starting privileged installer listener")
+        log.info("Starting privileged helper listener")
         listener.resume()
-        log.success("Privileged installer listener is running")
+        log.success("Privileged helper listener is running")
         RunLoop.current.run()
     }
 
@@ -60,8 +60,8 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
         newConnection.interruptionHandler = { [weak self] in
             self?.releaseActiveConnection(for: pid, reason: "interruption")
         }
-        newConnection.exportedInterface = NSXPCInterface(with: PrivilegedInstallerProtocol.self)
-        newConnection.exportedObject = PrivilegedInstaller(context: context)
+        newConnection.exportedInterface = NSXPCInterface(with: PrivilegedHelperProtocol.self)
+        newConnection.exportedObject = PrivilegedHelper(context: context)
         newConnection.resume()
         log.success("Accepted XPC connection (pid: \(pid), uid: \(context.clientUID))")
 
@@ -77,7 +77,7 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
         }
 
         guard let app = NSRunningApplication(processIdentifier: pid),
-              app.bundleIdentifier == PrivilegedInstallerConstants.appBundleIdentifier else {
+              app.bundleIdentifier == PrivilegedHelperConstants.appBundleIdentifier else {
             log.warn("Rejecting client pid \(pid) due to bundle identifier mismatch")
             return nil
         }
@@ -128,7 +128,7 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
 
         var requirement: SecRequirement?
         let requirementStatus = SecRequirementCreateWithString(
-            PrivilegedInstallerConstants.authorizedClientRequirement as CFString,
+            PrivilegedHelperConstants.authorizedClientRequirement as CFString,
             SecCSFlags(),
             &requirement
         )

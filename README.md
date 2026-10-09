@@ -114,17 +114,18 @@ To set Caps Lock as your trigger key, you have two options:
 
 #### c. Shell/AppleScript
 
-Loop can be controlled via shell commands or AppleScript using its URL scheme:
+Loop can be controlled from the shell or AppleScript using its URL scheme. Action names are the ones listed by `loop://list/actions`. Pass `-g` to `open` so Loop stays in the background and the action applies to the window you're using:
 
 ```bash
 # Shell examples
-open "loop://direction/right"     # Move window to right half
-open "loop://action/maximize"     # Maximize window
-open "loop://screen/next"         # Move to next screen
+open -g "loop://exec/preset/right_half"   # Move window to right half
+open -g "loop://exec/preset/maximize"     # Maximize window
+open -g "loop://exec/preset/next_screen"  # Move to next screen
+open -g "loop://exec/custom/my_layout"    # Run one of your custom actions
+open -g "loop://exec/id/123e4567-e89b-12d3-a456-426614174000"  # Run an action by its UUID
 
-# AppleScript examples
-osascript -e 'tell application "Loop" to activate'
-osascript -e 'open location "loop://direction/left"'
+# AppleScript example
+osascript -e 'do shell script "open -g loop://exec/preset/left_half"'
 ```
 
 You can also create custom scripts to chain multiple actions:
@@ -132,18 +133,48 @@ You can also create custom scripts to chain multiple actions:
 ```bash
 #!/bin/bash
 # Example: Move window right and then maximize
-open "loop://direction/right"
+open -g "loop://exec/preset/right_half"
 sleep 0.5
-open "loop://action/maximize"
+open -g "loop://exec/preset/maximize"
 ```
 
-For a complete list of available commands:
+Actions apply to the frontmost window by default. To target something else, add a query parameter:
 
 ```bash
-open "loop://list/all"           # List all commands
-open "loop://list/actions"       # List window actions
-open "loop://list/keybinds"      # List custom keybinds
+open -g "loop://exec/preset/maximize?windowID=1234"               # A specific window, from list/windows
+open -g "loop://exec/preset/left_half?bundleID=com.apple.Safari"  # An app's window, opening the app if needed
+open -g "loop://exec/preset/right_half?screenID=2"                # A specific screen, from list/screens
 ```
+
+`windowID` and `bundleID` can't be combined. If a command fails, Loop shows an alert explaining why.
+
+List commands open a Loop output window, with a toolbar button to switch between readable text and JSON:
+
+```bash
+open "loop://list/windows"         # List visible windows
+open "loop://list/screens"         # List connected screens
+open "loop://list/actions"         # List all actions
+open "loop://list/actions/preset"  # List preset actions
+open "loop://list/actions/custom"  # List custom actions
+```
+
+For use in scripts and the terminal, install the command-line tool from Loop's Advanced settings. This creates `/usr/local/bin/loop`, which points to the `loop-cli` tool inside Loop:
+
+```bash
+loop list windows
+loop list screens
+loop list actions --preset
+loop list actions --custom
+loop exec --preset right_half
+loop exec --custom "My Layout"
+loop exec --id 123e4567-e89b-12d3-a456-426614174000
+loop exec --preset maximize --window-id 1234
+loop exec --preset left_half --bundle-id com.apple.Safari
+loop exec --preset right_half --screen-id 2
+loop list windows --json
+```
+
+Commands print readable text by default. Pass `--json` to print the raw JSON response instead: `{ "success": true, "result": { ... } }` on success, or `{ "success": false, "error": { ... } }` on failure. Without `--json`, errors are printed to `stderr`; with it, the error JSON goes to `stdout`. Run `loop help` to see all commands and options.
 
 ### Keyboard Shortcuts
 

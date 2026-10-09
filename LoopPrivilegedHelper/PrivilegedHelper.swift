@@ -1,16 +1,17 @@
 //
-//  PrivilegedInstaller.swift
+//  PrivilegedHelper.swift
 //  Loop
 //
 //  Created by Kai Azim on 2026-03-01.
 //
 
+import Darwin
 import Foundation
 import Scribe
 import Security
 
 @Loggable
-final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
+final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
     private struct AtomicSwapPaths {
         let currentURL: URL
         let stagedURL: URL
@@ -24,15 +25,27 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
         let backupBundleURL: URL
     }
 
+    private enum ExistingFilesystemEntry {
+        case missing
+        case symbolicLink
+        case other
+    }
+
+    private enum CommandLineToolDestinationState {
+        case missing
+        case loopManaged
+        case occupied(reason: String)
+    }
+
     private static let maxRollbackIDLength = 128
     private static let allowedRollbackIDScalars = CharacterSet.alphanumerics
         .union(CharacterSet(charactersIn: "._-"))
 
-    private let context: PrivilegedInstallerService.TrustedClientContext
+    private let context: PrivilegedHelperService.TrustedClientContext
     private let fileManager: FileManager
 
     init(
-        context: PrivilegedInstallerService.TrustedClientContext,
+        context: PrivilegedHelperService.TrustedClientContext,
         fileManager: FileManager = .default
     ) {
         self.context = context
@@ -44,7 +57,7 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
             try executeAtomicSwap(rollbackID: rollbackID)
             reply(nil)
         } catch {
-            reply(error as NSError)
+            reply(Self.xpcError(error))
         }
     }
 
@@ -53,7 +66,7 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
             try executeRestoreFromBackup(rollbackID: rollbackID)
             reply(nil)
         } catch {
-            reply(error as NSError)
+            reply(Self.xpcError(error))
         }
     }
 
@@ -62,8 +75,44 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
             try executeRemoveCurrentBundle()
             reply(nil)
         } catch {
-            reply(error as NSError)
+            reply(Self.xpcError(error))
         }
+    }
+
+    func installCommandLineTool(withReply reply: @escaping (NSError?) -> ()) {
+        do {
+            try executeInstallCommandLineTool(reinstall: false)
+            reply(nil)
+        } catch {
+            reply(Self.xpcError(error))
+        }
+    }
+
+    func reinstallCommandLineTool(withReply reply: @escaping (NSError?) -> ()) {
+        do {
+            try executeInstallCommandLineTool(reinstall: true)
+            reply(nil)
+        } catch {
+            reply(Self.xpcError(error))
+        }
+    }
+
+    func uninstallCommandLineTool(withReply reply: @escaping (NSError?) -> ()) {
+        do {
+            try executeUninstallCommandLineTool()
+            reply(nil)
+        } catch {
+            reply(Self.xpcError(error))
+        }
+    }
+
+    /// Swift error descriptions don't survive XPC, so send the message as a plain `NSError`
+    private static func xpcError(_ error: Error) -> NSError {
+        NSError(
+            domain: "com.MrKai77.Loop.PrivilegedHelper",
+            code: (error as NSError).code,
+            userInfo: [NSLocalizedDescriptionKey: error.localizedDescription]
+        )
     }
 
     /// Executes a privileged atomic swap using rollback-token-derived paths in user Application Support.
@@ -135,6 +184,166 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
 
         try fileManager.removeItem(at: currentBundleURL)
         log.success("Removed current app bundle at \(currentBundleURL.path)")
+    }
+
+    private func executeInstallCommandLineTool(reinstall: Bool) throws {
+        let sourceURL = try validatedCommandLineToolSourceURL()
+        let destinationURL = PrivilegedHelperConstants.commandLineToolSymlinkURL
+
+        try ensureCommandLineToolInstallDirectoryExists()
+
+        switch try commandLineToolDestinationState(at: destinationURL) {
+        case .missing:
+            guard !reinstall else {
+                throw PrivilegedHelperError.commandLineToolInstallFailed(
+                    reason: "No command-line tool is installed at \(destinationURL.path)."
+                )
+            }
+        case .loopManaged:
+            guard reinstall else {
+                throw PrivilegedHelperError.commandLineToolInstallFailed(
+                    reason: "The command-line tool is already installed at \(destinationURL.path)."
+                )
+            }
+
+            try fileManager.removeItem(at: destinationURL)
+        case let .occupied(reason):
+            throw PrivilegedHelperError.commandLineToolInstallFailed(reason: reason)
+        }
+
+        do {
+            try fileManager.createSymbolicLink(at: destinationURL, withDestinationURL: sourceURL)
+            log.success("Installed Loop CLI symlink at \(destinationURL.path) -> \(sourceURL.path)")
+        } catch {
+            throw PrivilegedHelperError.commandLineToolInstallFailed(
+                reason: "Couldn’t create \(destinationURL.path): \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func executeUninstallCommandLineTool() throws {
+        let destinationURL = PrivilegedHelperConstants.commandLineToolSymlinkURL
+
+        switch try commandLineToolDestinationState(at: destinationURL) {
+        case .missing:
+            return
+        case .loopManaged:
+            do {
+                try fileManager.removeItem(at: destinationURL)
+                log.success("Removed Loop CLI symlink at \(destinationURL.path)")
+            } catch {
+                throw PrivilegedHelperError.commandLineToolUninstallFailed(
+                    reason: "Couldn’t remove \(destinationURL.path): \(error.localizedDescription)"
+                )
+            }
+        case let .occupied(reason):
+            throw PrivilegedHelperError.commandLineToolUninstallFailed(reason: reason)
+        }
+    }
+
+    private func validatedCommandLineToolSourceURL() throws -> URL {
+        let sourceURL = LoopSupportPaths.canonical(
+            context.clientBundleURL
+                .appendingPathComponent("Contents/MacOS", isDirectory: true)
+                .appendingPathComponent(PrivilegedHelperConstants.commandLineToolExecutableName, isDirectory: false)
+        )
+
+        guard fileManager.fileExists(atPath: sourceURL.path) else {
+            throw PrivilegedHelperError.commandLineToolInstallFailed(
+                reason: "This copy of Loop is missing its command-line tool at \(sourceURL.path)."
+            )
+        }
+
+        guard fileManager.isExecutableFile(atPath: sourceURL.path) else {
+            throw PrivilegedHelperError.commandLineToolInstallFailed(
+                reason: "The command-line tool at \(sourceURL.path) isn’t executable."
+            )
+        }
+
+        return sourceURL
+    }
+
+    private func ensureCommandLineToolInstallDirectoryExists() throws {
+        let installDirectoryURL = PrivilegedHelperConstants.commandLineToolInstallDirectoryURL
+        var isDirectory = ObjCBool(false)
+
+        if fileManager.fileExists(atPath: installDirectoryURL.path, isDirectory: &isDirectory) {
+            guard isDirectory.boolValue else {
+                throw PrivilegedHelperError.commandLineToolInstallFailed(
+                    reason: "\(installDirectoryURL.path) isn’t a folder."
+                )
+            }
+            return
+        }
+
+        do {
+            try fileManager.createDirectory(at: installDirectoryURL, withIntermediateDirectories: true)
+        } catch {
+            throw PrivilegedHelperError.commandLineToolInstallFailed(
+                reason: "Couldn’t create \(installDirectoryURL.path): \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func commandLineToolDestinationState(at destinationURL: URL) throws -> CommandLineToolDestinationState {
+        switch try filesystemEntry(at: destinationURL) {
+        case .missing:
+            return .missing
+        case .other:
+            return .occupied(reason: "\(destinationURL.path) is used by another app or file.")
+        case .symbolicLink:
+            let rawDestination = try symbolicLinkDestination(at: destinationURL)
+            guard isLoopManagedCommandLineToolTarget(rawDestination) else {
+                return .occupied(reason: "\(destinationURL.path) is used by another app or file.")
+            }
+            return .loopManaged
+        }
+    }
+
+    private func filesystemEntry(at url: URL) throws -> ExistingFilesystemEntry {
+        var statBuffer = stat()
+        let result = url.withUnsafeFileSystemRepresentation { path in
+            guard let path else { return -1 }
+            return Int(lstat(path, &statBuffer))
+        }
+
+        if result == 0 {
+            let fileType = statBuffer.st_mode & S_IFMT
+            return fileType == S_IFLNK ? .symbolicLink : .other
+        }
+
+        if errno == ENOENT {
+            return .missing
+        }
+
+        let errorCode = errno
+        throw PrivilegedHelperError.commandLineToolInstallFailed(
+            reason: "Could not inspect \(url.path): \(String(cString: strerror(errorCode))) (\(errorCode))"
+        )
+    }
+
+    private func symbolicLinkDestination(at url: URL) throws -> String {
+        do {
+            return try fileManager.destinationOfSymbolicLink(atPath: url.path)
+        } catch {
+            throw PrivilegedHelperError.commandLineToolInstallFailed(
+                reason: "Could not inspect symbolic link at \(url.path): \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func isLoopManagedCommandLineToolTarget(_ targetPath: String) -> Bool {
+        let standardizedTargetPath: String
+        if targetPath.hasPrefix("/") {
+            standardizedTargetPath = URL(fileURLWithPath: targetPath).standardizedFileURL.path
+        } else {
+            let baseURL = PrivilegedHelperConstants.commandLineToolInstallDirectoryURL
+            standardizedTargetPath = URL(fileURLWithPath: targetPath, relativeTo: baseURL)
+                .standardizedFileURL
+                .path
+        }
+
+        return PrivilegedHelperConstants.isLoopManagedCommandLineToolPath(standardizedTargetPath)
     }
 
     /// Derives and validates atomic swap paths from trusted connection context and rollback token.
@@ -348,7 +557,7 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
         rollbackID: String,
         path: String,
         reason: String
-    ) -> PrivilegedInstallerError {
+    ) -> PrivilegedHelperError {
         log.warn(
             """
             Rejected privileged \(operation) path for pid \(context.clientPID), uid \(context.clientUID), rollbackID \(rollbackID). \
@@ -366,7 +575,7 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
         rollbackID: String,
         path: String,
         reason: String
-    ) -> PrivilegedInstallerError {
+    ) -> PrivilegedHelperError {
         log.warn(
             """
             Rejected privileged \(operation) bundle for pid \(context.clientPID), uid \(context.clientUID), rollbackID \(rollbackID). \
@@ -501,7 +710,7 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
 
         guard result == 0 else {
             let errorCode = errno
-            throw PrivilegedInstallerError.ownershipChangeFailed(url: itemURL, code: errorCode)
+            throw PrivilegedHelperError.ownershipChangeFailed(url: itemURL, code: errorCode)
         }
 
         log.success("Applied ownership to \(itemURL.path) (uid: \(uid), gid: \(gid))")
