@@ -999,7 +999,7 @@ final class LoopCommandHandler {
         }
 
         guard let screen = resolveScreen(screenID: params.screenID) else {
-            return .failure("No screen found with ID \(params.screenID!)")
+            return .failure(params.screenID.map { "No screen found with ID \($0)" } ?? "No current screen found")
         }
 
         return .success(screen)

@@ -101,7 +101,12 @@ struct CLIRequest {
         components.host = routeComponents[0]
 
         if routeComponents.count > 1 {
-            components.path = "/" + routeComponents.dropFirst().joined(separator: "/")
+            // Encode "/" too, so a name like "Left 1/3" stays one path component
+            var allowedCharacters = CharacterSet.urlPathAllowed
+            allowedCharacters.remove("/")
+            components.percentEncodedPath = "/" + routeComponents.dropFirst()
+                .map { $0.addingPercentEncoding(withAllowedCharacters: allowedCharacters) ?? $0 }
+                .joined(separator: "/")
         }
 
         if !queryItems.isEmpty {

@@ -111,12 +111,13 @@ final class CommandLineToolInstaller {
     }
 
     private func isLoopManagedCommandLineToolTarget(_ targetPath: String) -> Bool {
-        resolvedSymbolicLinkDestinationURL(
-            targetPath,
-            relativeTo: PrivilegedHelperConstants.commandLineToolInstallDirectoryURL
+        PrivilegedHelperConstants.isLoopManagedCommandLineToolPath(
+            resolvedSymbolicLinkDestinationURL(
+                targetPath,
+                relativeTo: PrivilegedHelperConstants.commandLineToolInstallDirectoryURL
+            )
+            .path
         )
-        .path
-        .hasSuffix(PrivilegedHelperConstants.loopManagedCommandLineToolSuffix)
     }
 
     private func filesystemEntry(at url: URL) throws -> ExistingFilesystemEntry {

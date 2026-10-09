@@ -218,10 +218,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func scheduleSettingsWindowOpen() {
-        guard !launchedAsLoginItem, !Defaults[.startHidden] else {
-            return
-        }
-
         cancelPendingSettingsWindowOpen()
 
         pendingSettingsWindowOpen = Task { @MainActor [weak self] in

@@ -343,7 +343,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
                 .path
         }
 
-        return standardizedTargetPath.hasSuffix(PrivilegedHelperConstants.loopManagedCommandLineToolSuffix)
+        return PrivilegedHelperConstants.isLoopManagedCommandLineToolPath(standardizedTargetPath)
     }
 
     /// Derives and validates atomic swap paths from trusted connection context and rollback token.

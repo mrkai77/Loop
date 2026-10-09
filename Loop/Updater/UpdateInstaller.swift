@@ -511,6 +511,8 @@ actor UpdateInstaller {
                             }
                         }
                     }
+                } catch is CancellationError {
+                    throw UpdateError.installationFailed("Administrator authorization was canceled")
                 } catch {
                     guard !enteredPrivilegedSession else {
                         throw error

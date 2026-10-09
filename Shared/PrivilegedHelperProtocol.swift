@@ -59,5 +59,11 @@ enum PrivilegedHelperConstants {
         commandLineToolInstallDirectoryURL.appendingPathComponent(commandLineToolSymlinkName, isDirectory: false)
     }
 
-    static let loopManagedCommandLineToolSuffix = "/Loop.app/Contents/MacOS/\(commandLineToolExecutableName)"
+    /// Matches the tool inside any app bundle, since Loop may have been renamed, e.g. "Loop 2.app"
+    static func isLoopManagedCommandLineToolPath(_ path: String) -> Bool {
+        let components = URL(fileURLWithPath: path).pathComponents
+        guard components.count >= 4 else { return false }
+        return components.suffix(3) == ["Contents", "MacOS", commandLineToolExecutableName]
+            && components[components.count - 4].hasSuffix(".app")
+    }
 }
