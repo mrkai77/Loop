@@ -28,6 +28,7 @@ final class WindowDragManager {
 
     private var determineDraggedWindowTask: Task<(), Never>?
     private var accessibilityCheckerTask: Task<(), Never>?
+    private var missionControlSyncTask: Task<(), Never>?
 
     private var currentMousePosition: CGPoint {
         NSEvent.mouseLocation.flipY(screen: NSScreen.screens[0])
@@ -54,11 +55,26 @@ final class WindowDragManager {
                 }
             }
         }
+
+        // macOS 15 added its own setting for this, which also covers fast drags that the cursor warp can't catch
+        if #available(macOS 15, *) {
+            missionControlSyncTask = Task {
+                for await suppress in Defaults.updates(.suppressMissionControlOnTopDrag) {
+                    guard !Task.isCancelled else { return }
+
+                    if SystemWindowManager.MissionControl.enteredByTopWindowDrag == suppress {
+                        SystemWindowManager.MissionControl.enteredByTopWindowDrag = !suppress
+                    }
+                }
+            }
+        }
     }
 
     func shutdown() {
         accessibilityCheckerTask?.cancel()
         accessibilityCheckerTask = nil
+        missionControlSyncTask?.cancel()
+        missionControlSyncTask = nil
         removeListeners()
         resetDragState()
         previewController.close()
@@ -114,8 +130,10 @@ final class WindowDragManager {
                     }
 
                     if Defaults[.windowSnapping] {
-                        // Only warp cursor away from top edge if top snap area is enabled
-                        if Defaults[.suppressMissionControlOnTopDrag],
+                        // Only warp cursor away from top edge if top snap area is enabled.
+                        // On macOS 15+, the Dock’s own setting is synced instead (see `addObservers`)
+                        if #unavailable(macOS 15),
+                           Defaults[.suppressMissionControlOnTopDrag],
                            let frame = NSScreen.main?.displayBounds,
                            let mouseLocation = CGEvent.mouseLocation,
                            mouseLocation.y == frame.minY {

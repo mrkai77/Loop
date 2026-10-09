@@ -28,6 +28,22 @@ final class SystemWindowManager {
         }
     }
 
+    // MARK: - Mission Control
+
+    @available(macOS 15, *)
+    enum MissionControl {
+        private static let topWindowDragKey = "enterMissionControlByTopWindowDrag"
+
+        static var enteredByTopWindowDrag: Bool {
+            get {
+                dockDefaults?.object(forKey: topWindowDragKey) as? Bool ?? true
+            }
+            set {
+                dockDefaults?.set(newValue, forKey: topWindowDragKey)
+            }
+        }
+    }
+
     // MARK: - Move & Resize
 
     /// This is a direct mapping of the menu items in the "Move & Resize" menu
