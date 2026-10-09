@@ -25,13 +25,13 @@ import Foundation
         withReply reply: @escaping (NSError?) -> ()
     )
 
-    /// Installs the Loop CLI symlink at the fixed privileged destination.
+    /// Installs the Loop CLI symlink at the fixed privileged destination, replacing it only when it's Loop-managed.
     func installCommandLineTool(
         withReply reply: @escaping (NSError?) -> ()
     )
 
-    /// Reinstalls the Loop CLI symlink when the existing destination is already Loop-managed.
-    func reinstallCommandLineTool(
+    /// Removes the Loop CLI symlink, but only when it's Loop-managed.
+    func uninstallCommandLineTool(
         withReply reply: @escaping (NSError?) -> ()
     )
 }
@@ -54,5 +54,55 @@ enum PrivilegedHelperConstants {
         commandLineToolInstallDirectoryURL.appendingPathComponent(commandLineToolSymlinkName, isDirectory: false)
     }
 
-    static let loopManagedCommandLineToolSuffix = "/Loop.app/Contents/MacOS/\(commandLineToolExecutableName)"
+    static func commandLineToolURL(inBundle bundleURL: URL) -> URL {
+        LoopSupportPaths.canonical(
+            bundleURL
+                .appendingPathComponent("Contents/MacOS", isDirectory: true)
+                .appendingPathComponent(commandLineToolExecutableName, isDirectory: false)
+        )
+    }
+
+    /// Matches the tool inside any app bundle, since Loop may have been renamed, e.g. "Loop 2.app"
+    private static func isLoopManagedCommandLineToolPath(_ path: String) -> Bool {
+        let components = URL(fileURLWithPath: path).pathComponents
+        guard components.count >= 4 else { return false }
+        return components.suffix(3) == ["Contents", "MacOS", commandLineToolExecutableName]
+            && components[components.count - 4].hasSuffix(".app")
+    }
+
+    /// Inspects the entry at `commandLineToolSymlinkURL` without following it
+    static func commandLineToolLinkState(fileManager: FileManager = .default) throws -> CommandLineToolLinkState {
+        let linkPath = commandLineToolSymlinkURL.path
+
+        let attributes: [FileAttributeKey: Any]
+        do {
+            attributes = try fileManager.attributesOfItem(atPath: linkPath)
+        } catch let error as CocoaError where error.code == .fileReadNoSuchFile {
+            return .missing
+        }
+
+        guard attributes[.type] as? FileAttributeType == .typeSymbolicLink else {
+            return .occupied
+        }
+
+        // Resolve the raw target rather than the link URL, which stays unresolved when the target is gone
+        let rawTarget = try fileManager.destinationOfSymbolicLink(atPath: linkPath)
+        let destinationURL = LoopSupportPaths.canonical(
+            URL(fileURLWithPath: rawTarget, relativeTo: commandLineToolInstallDirectoryURL)
+        )
+
+        guard isLoopManagedCommandLineToolPath(destinationURL.path) else {
+            return .occupied
+        }
+
+        let isOwnedByRoot = (attributes[.ownerAccountID] as? NSNumber)?.intValue == 0
+        return .loopManaged(destinationURL: destinationURL, isOwnedByRoot: isOwnedByRoot)
+    }
+}
+
+enum CommandLineToolLinkState: Equatable {
+    case missing
+    /// A symlink to a `loop-cli` inside an app bundle
+    case loopManaged(destinationURL: URL, isOwnedByRoot: Bool)
+    case occupied
 }

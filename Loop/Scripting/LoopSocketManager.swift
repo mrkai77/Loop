@@ -10,216 +10,187 @@ import Scribe
 
 /// Listens on a Unix domain socket for commands from loop-cli.
 ///
-/// The server accepts connections, reads a newline-terminated canonical `loop://...`
-/// request URL, dispatches it to `LoopCommandHandler` on the main thread, and writes
-/// the JSON response back before closing the connection.
+/// Each connection carries one canonical `loop://...` request URL, read until the client shuts down
+/// writing. The request is dispatched to `LoopCommandHandler`, and the JSON response is written back
+/// before the connection is closed.
 ///
 /// Request format: `loop://<route>[?windowID=<id>&bundleID=<id>&screenID=<id>]`
-/// Example: `loop://direction/right?bundleID=com.apple.Safari`
+/// Example: `loop://exec/preset/right_half?bundleID=com.apple.Safari`
 @Loggable
 final class LoopSocketManager {
-    // MARK: - Properties
+    private let socketPath = LoopSocketPath.path
+    private let commandLineToolInstaller = CommandLineToolInstaller()
 
-    private let socketPath: String
-    private let handler: LoopCommandHandler
-    private var serverFD: Int32 = -1
-    private var isRunning = false
+    /// Only touched by `start()` and `stop()`, which run on the main thread
+    private var listener: DispatchSourceRead?
 
     private let acceptQueue = DispatchQueue(
         label: "com.MrKai77.Loop.server.accept",
         qos: .userInitiated
     )
 
+    /// Concurrent, so a client that never sends its request can't hold up the others
+    private let connectionQueue = DispatchQueue(
+        label: "com.MrKai77.Loop.server.connection",
+        qos: .userInitiated,
+        attributes: .concurrent
+    )
+
     private static let maxRequestSize = 4096
-    private static let connectionTimeout: TimeInterval = 5
-
-    // MARK: - Initialization
-
-    init(handler: LoopCommandHandler) {
-        self.handler = handler
-        self.socketPath = "/tmp/loop-\(getuid()).socket"
-    }
-
-    // MARK: - Public Methods
+    /// The CLI sends its request right after connecting, so this only has to cover a stalled client
+    private static let requestReadTimeout: Duration = .seconds(5)
 
     func start() {
+        guard listener == nil else { return }
+
         // Clean up stale socket from a previous crash
         unlink(socketPath)
 
-        // Create socket
-        serverFD = socket(AF_UNIX, SOCK_STREAM, 0)
+        let serverFD = socket(AF_UNIX, SOCK_STREAM, 0)
         guard serverFD >= 0 else {
             log.error("Failed to create socket: \(String(cString: strerror(errno)))")
             return
         }
 
-        // Bind to path
-        var addr = sockaddr_un()
-        addr.sun_family = sa_family_t(AF_UNIX)
+        let bindResult = LoopSocketPath.withSocketAddress { address, length in
+            bind(serverFD, address, length)
+        }
 
-        let pathBytes = socketPath.utf8CString
-        guard pathBytes.count <= MemoryLayout.size(ofValue: addr.sun_path) else {
+        guard let bindResult else {
             log.error("Socket path too long: \(socketPath)")
             close(serverFD)
-            serverFD = -1
             return
-        }
-
-        withUnsafeMutablePointer(to: &addr.sun_path) { ptr in
-            ptr.withMemoryRebound(to: CChar.self, capacity: pathBytes.count) { dest in
-                pathBytes.withUnsafeBufferPointer { src in
-                    _ = memcpy(dest, src.baseAddress!, src.count)
-                }
-            }
-        }
-
-        let bindResult = withUnsafePointer(to: &addr) { ptr in
-            ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
-                bind(serverFD, sockaddrPtr, socklen_t(MemoryLayout<sockaddr_un>.size))
-            }
         }
 
         guard bindResult == 0 else {
             log.error("Failed to bind socket: \(String(cString: strerror(errno)))")
             close(serverFD)
-            serverFD = -1
             return
         }
 
         // Set permissions to owner-only
         chmod(socketPath, 0o600)
 
-        // Start listening
         guard listen(serverFD, 5) == 0 else {
             log.error("Failed to listen on socket: \(String(cString: strerror(errno)))")
             close(serverFD)
             unlink(socketPath)
-            serverFD = -1
             return
         }
 
-        isRunning = true
-        log.info("Listening on \(socketPath)")
+        // So accept() can't block if a client gives up between the event and the call
+        _ = fcntl(serverFD, F_SETFL, fcntl(serverFD, F_GETFL) | O_NONBLOCK)
 
-        // Accept loop on background queue
-        acceptQueue.async { [weak self] in
-            self?.acceptLoop()
+        let listener = DispatchSource.makeReadSource(fileDescriptor: serverFD, queue: acceptQueue)
+        listener.setEventHandler { [weak self] in
+            self?.acceptConnection(serverFD)
         }
+        listener.setCancelHandler {
+            close(serverFD)
+        }
+        listener.resume()
+        self.listener = listener
+
+        log.info("Listening on \(socketPath)")
     }
 
     func stop() {
-        isRunning = false
-        if serverFD >= 0 {
-            close(serverFD)
-            serverFD = -1
-        }
+        listener?.cancel()
+        listener = nil
         unlink(socketPath)
         log.info("Server stopped")
     }
 
-    // MARK: - Private Methods
-
-    private func acceptLoop() {
-        while isRunning {
-            var clientAddr = sockaddr_un()
-            var clientAddrLen = socklen_t(MemoryLayout<sockaddr_un>.size)
-
-            let clientFD = withUnsafeMutablePointer(to: &clientAddr) { ptr in
-                ptr.withMemoryRebound(to: sockaddr.self, capacity: 1) { sockaddrPtr in
-                    accept(serverFD, sockaddrPtr, &clientAddrLen)
-                }
+    private func acceptConnection(_ serverFD: Int32) {
+        let clientFD = accept(serverFD, nil, nil)
+        guard clientFD >= 0 else {
+            if errno != EAGAIN, errno != ECONNABORTED {
+                log.error("Accept failed: \(String(cString: strerror(errno)))")
             }
+            return
+        }
 
-            guard clientFD >= 0 else {
-                if isRunning {
-                    log.error("Accept failed: \(String(cString: strerror(errno)))")
-                }
-                continue
+        // Accepted sockets inherit O_NONBLOCK from the listener
+        _ = fcntl(clientFD, F_SETFL, fcntl(clientFD, F_GETFL) & ~O_NONBLOCK)
+
+        connectionQueue.async { [weak self] in
+            guard let self else {
+                close(clientFD)
+                return
             }
-
-            // Set receive timeout
-            var timeout = timeval(tv_sec: Int(Self.connectionTimeout), tv_usec: 0)
-            setsockopt(clientFD, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
-
             handleConnection(clientFD)
         }
     }
 
     private func handleConnection(_ clientFD: Int32) {
-        defer { close(clientFD) }
-
-        // Read request (until newline or max size)
-        var buffer = [UInt8](repeating: 0, count: Self.maxRequestSize)
-        var totalRead = 0
-
-        while totalRead < Self.maxRequestSize {
-            let bytesRead = read(clientFD, &buffer[totalRead], Self.maxRequestSize - totalRead)
-            if bytesRead <= 0 { break }
-            totalRead += bytesRead
-
-            // Check for newline delimiter
-            if buffer[..<totalRead].contains(UInt8(ascii: "\n")) {
-                break
-            }
-        }
-
-        guard totalRead > 0 else {
-            writeResponse(clientFD, encodedErrorResponse(message: "Empty request"))
+        // Reject connections from other users
+        var peerUID: uid_t = 0
+        var peerGID: gid_t = 0
+        guard getpeereid(clientFD, &peerUID, &peerGID) == 0, peerUID == getuid() else {
+            log.warn("Rejected socket connection from another user")
+            close(clientFD)
             return
         }
 
-        // Trim newline and parse
-        let requestString = String(bytes: buffer[..<totalRead], encoding: .utf8)?
-            .trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        LoopSocketIO.configure(clientFD, receiveTimeout: Self.requestReadTimeout)
 
-        guard !requestString.isEmpty else {
-            writeResponse(clientFD, encodedErrorResponse(message: "Empty request"))
+        // Installing the tool needs an administrator, so it doubles as consent to be controlled
+        if let reason = commandLineToolRejectionReason() {
+            log.warn("Rejected socket connection: \(reason)")
+            respond(clientFD, LoopAutomationJSON.encodedFailure(message: reason))
             return
         }
 
-        // Dispatch to main thread for window/screen API access
-        let semaphore = DispatchSemaphore(value: 0)
-        var response = ""
-
-        DispatchQueue.main.async { [weak self] in
-            guard let self else {
-                response = Self.fallbackEncodedErrorResponse(message: "Server shutting down")
-                semaphore.signal()
-                return
-            }
-            response = handler.handleRequestURLString(requestString, source: .cli).jsonResponse
-            semaphore.signal()
-        }
-
-        _ = semaphore.wait(timeout: .now() + Self.connectionTimeout)
-
-        if response.isEmpty {
-            response = encodedErrorResponse(message: "Request timed out")
-        }
-
-        writeResponse(clientFD, response)
-    }
-
-    private func encodedErrorResponse(message: String) -> String {
+        let request: String
         do {
-            return try LoopAutomationJSON.encodeString(
-                LoopAutomationResponse(
-                    error: LoopAutomationError(message: message)
-                )
-            )
+            request = try LoopSocketIO.readToEnd(from: clientFD, limit: Self.maxRequestSize)
+                .trimmingCharacters(in: .whitespacesAndNewlines)
         } catch {
-            return Self.fallbackEncodedErrorResponse(message: message)
+            respond(clientFD, LoopAutomationJSON.encodedFailure(message: "Couldn’t read the request: \(error.localizedDescription)"))
+            return
+        }
+
+        guard !request.isEmpty else {
+            respond(clientFD, LoopAutomationJSON.encodedFailure(message: "Empty request"))
+            return
+        }
+
+        Task {
+            let result = await LoopCommandHandler.shared.handleRequestURLString(request, source: .cli)
+            respond(clientFD, result.jsonResponse)
         }
     }
 
-    private static func fallbackEncodedErrorResponse(message: String) -> String {
-        #"{"error":{"message":"\#(message)"},"success":false}"#
+    private func commandLineToolRejectionReason() -> String? {
+        let path = PrivilegedHelperConstants.commandLineToolSymlinkURL.path
+        let status: CommandLineToolInstaller.Status
+        do {
+            status = try commandLineToolInstaller.status()
+        } catch {
+            return "Couldn’t check \(path): \(error.localizedDescription)"
+        }
+
+        return switch status {
+        case .installedCurrent:
+            nil
+        case .notInstalled:
+            "Loop only accepts commands while the command-line tool is installed. Install it in Loop’s Advanced settings."
+        case .installedStale:
+            "\(path) points to another copy of Loop. Click Repair in Loop’s Advanced settings."
+        case .installedWithoutAdministrator:
+            "\(path) isn’t owned by root, so other apps could have created it to control Loop. Click Repair in Loop’s Advanced settings."
+        case .blocked:
+            "\(path) belongs to another app or file. Remove it, then install the command-line tool in Loop’s Advanced settings."
+        }
     }
 
-    private func writeResponse(_ fd: Int32, _ response: String) {
-        let data = response + "\n"
-        data.utf8.withContiguousStorageIfAvailable { buffer in
-            _ = Darwin.write(fd, buffer.baseAddress!, buffer.count)
+    /// Closing the connection is what tells the client the response is complete
+    private func respond(_ clientFD: Int32, _ response: String) {
+        do {
+            try LoopSocketIO.write(response, to: clientFD)
+        } catch {
+            log.warn("Failed to write response: \(error.localizedDescription)")
         }
+        close(clientFD)
     }
 }

@@ -11,46 +11,17 @@ import AppKit
 final class CommandOutputWindowManager {
     static let shared = CommandOutputWindowManager()
 
-    private var controllers: [UUID: CommandOutputWindowController] = [:]
-    private var cascadePoint: NSPoint?
+    /// Keeps each controller alive until its window closes
+    private var controllers: [CommandOutputWindowController] = []
 
     private init() {}
 
-    func show(title: String, content: String) {
-        let identifier = UUID()
-        let controller = CommandOutputWindowController(
-            title: title,
-            content: content
-        ) { [weak self] in
-            self?.removeController(for: identifier)
+    func show(title: String, text: LoopAutomationText, json: String) {
+        let controller = CommandOutputWindowController(title: title, text: text, json: json) { [weak self] closed in
+            self?.controllers.removeAll { $0 === closed }
         }
 
-        controllers[identifier] = controller
-
-        if let window = controller.window {
-            let origin = cascadePoint ?? initialCascadePoint()
-            cascadePoint = window.cascadeTopLeft(from: origin)
-        }
-
+        controllers.append(controller)
         controller.show()
-    }
-
-    private func removeController(for identifier: UUID) {
-        controllers.removeValue(forKey: identifier)
-
-        if controllers.isEmpty {
-            cascadePoint = nil
-        }
-    }
-
-    private func initialCascadePoint() -> NSPoint {
-        if let screen = NSScreen.main ?? NSScreen.screens.first {
-            return NSPoint(
-                x: screen.visibleFrame.minX + 80,
-                y: screen.visibleFrame.maxY - 80
-            )
-        }
-
-        return NSPoint(x: 120, y: 800)
     }
 }

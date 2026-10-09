@@ -8,32 +8,28 @@
 import Foundation
 
 enum LoopAutomationJSON {
+    /// Long enough for an app to launch when targeting by bundle ID; the CLI waits a little longer than Loop does
+    static let commandTimeout: Duration = .seconds(10)
+
     static func makeEncoder() -> JSONEncoder {
         let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
+        encoder.outputFormatting = [.prettyPrinted, .sortedKeys, .withoutEscapingSlashes]
         return encoder
     }
 
-    static func makeDecoder() -> JSONDecoder {
-        JSONDecoder()
-    }
-
-    static func encodeString(_ response: LoopAutomationResponse) throws -> String {
-        let data = try makeEncoder().encode(response)
-        guard let string = String(data: data, encoding: .utf8) else {
-            throw EncodingError.invalidValue(
-                response,
-                EncodingError.Context(
-                    codingPath: [],
-                    debugDescription: "Failed to encode Loop automation response as UTF-8"
-                )
-            )
+    static func encodeString(_ response: LoopAutomationResponse) -> String {
+        guard let data = try? makeEncoder().encode(response) else {
+            return #"{"error":{"message":"Couldn’t encode the response"},"success":false}"#
         }
 
-        return string
+        return String(decoding: data, as: UTF8.self)
+    }
+
+    static func encodedFailure(message: String) -> String {
+        encodeString(LoopAutomationResponse(error: LoopAutomationError(message: message)))
     }
 
     static func decodeResponse(from string: String) throws -> LoopAutomationResponse {
-        try makeDecoder().decode(LoopAutomationResponse.self, from: Data(string.utf8))
+        try JSONDecoder().decode(LoopAutomationResponse.self, from: Data(string.utf8))
     }
 }

@@ -68,6 +68,7 @@ final class PrivilegedHelperService: NSObject, NSXPCListenerDelegate {
         return true
     }
 
+    /// Builds per-connection trusted context from authenticated process identity and uid-derived paths.
     private func trustedClientContext(for connection: NSXPCConnection) -> TrustedClientContext? {
         let pid = connection.processIdentifier
         guard pid > 0 else {
@@ -147,6 +148,7 @@ final class PrivilegedHelperService: NSObject, NSXPCListenerDelegate {
         return true
     }
 
+    /// Resolves a user's home directory and primary group from the system account database.
     private func userAccountInfo(for uid: uid_t) -> (homeDirectory: URL, primaryGroupID: gid_t)? {
         guard let passwdEntry = getpwuid(uid) else {
             return nil
@@ -163,6 +165,7 @@ final class PrivilegedHelperService: NSObject, NSXPCListenerDelegate {
         )
     }
 
+    /// Reserves a single active connection slot to prevent overlapping privileged sessions.
     private func reserveActiveConnection(for pid: pid_t) -> Bool {
         connectionStateLock.lock()
         defer { connectionStateLock.unlock() }
@@ -175,6 +178,7 @@ final class PrivilegedHelperService: NSObject, NSXPCListenerDelegate {
         return true
     }
 
+    /// Releases the active connection slot when that connection ends.
     private func releaseActiveConnection(for pid: pid_t, reason: String) {
         connectionStateLock.lock()
         defer { connectionStateLock.unlock() }

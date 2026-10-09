@@ -13,8 +13,7 @@ import UserNotifications
 
 @Loggable
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let loopCommandHandler = LoopCommandHandler()
-    private lazy var loopSocketManager = LoopSocketManager(handler: loopCommandHandler)
+    private let loopSocketManager = LoopSocketManager()
     private var pendingSettingsWindowOpen: Task<(), Never>?
 
     private static let terminateNotificationName = Notification.Name("com.MrKai77.Loop.terminate")
@@ -39,11 +38,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DataPatcher.run()
         }
 
-        // Normal user-facing launches should open Settings, but URL-driven launches need a chance
-        // to cancel that presentation when their URL event arrives immediately after startup.
+        // Show settings window only if not launched as login item AND startHidden is disabled
         if !launchedAsLoginItem, !Defaults[.startHidden] {
             scheduleSettingsWindowOpen()
         } else {
+            // Closing also hides the dock icon if needed.
             SettingsWindowManager.shared.close()
         }
 
@@ -157,24 +156,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LogManager.shared.configuration.includeFileAndLineNumber = false
     }
 
-    @objc func handleGetURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent replyEvent: NSAppleEventDescriptor) {
+    @objc func handleGetURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent _: NSAppleEventDescriptor) {
         guard let urlString = event.paramDescriptor(forKeyword: keyDirectObject)?.stringValue,
               let url = URL(string: urlString) else {
             log.info("Failed to get URL from event")
             return
         }
 
-        processIncomingURL(url, replyEvent: replyEvent)
-    }
-
-    func applicationShouldOpenUntitledFile(_: NSApplication) -> Bool {
-        !launchedAsLoginItem && !Defaults[.startHidden]
-    }
-
-    func applicationOpenUntitledFile(_: NSApplication) -> Bool {
-        cancelPendingSettingsWindowOpen()
-        SettingsWindowManager.shared.show()
-        return true
+        processIncomingURL(url)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
@@ -182,13 +171,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         return false
     }
 
-    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows: Bool) -> Bool {
-        guard !hasVisibleWindows else {
-            return false
-        }
-
+    func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
+        // Returning false keeps AppKit from opening anything itself, so a URL arriving next can still cancel this
         scheduleSettingsWindowOpen()
-        return true
+        return false
     }
 
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
@@ -207,28 +193,19 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func processIncomingURL(_ url: URL, replyEvent: NSAppleEventDescriptor? = nil) {
+    private func processIncomingURL(_ url: URL) {
         cancelPendingSettingsWindowOpen()
         log.info("Received URL: \(url)")
 
-        let result = loopCommandHandler.handle(url)
-        log.info("Response: \(result.jsonResponse)")
-
-        replyEvent?.setDescriptor(
-            NSAppleEventDescriptor(string: result.jsonResponse),
-            forKeyword: keyDirectObject
-        )
-
         Task { @MainActor in
+            let result = await LoopCommandHandler.shared.handle(url)
+            log.info("Response: \(result.jsonResponse)")
             result.presentIfNeeded()
         }
     }
 
+    /// Deferred so a URL event arriving right after launch or reopen can cancel it
     private func scheduleSettingsWindowOpen() {
-        guard !launchedAsLoginItem, !Defaults[.startHidden] else {
-            return
-        }
-
         cancelPendingSettingsWindowOpen()
 
         pendingSettingsWindowOpen = Task { @MainActor [weak self] in

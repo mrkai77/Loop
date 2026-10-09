@@ -505,37 +505,7 @@ extension LoopManager {
         }
 
         if newAction.direction.willChangeScreen {
-            var newScreen: NSScreen = currentScreen
-
-            if newAction.direction == .nextScreen,
-               let nextScreen = ScreenUtility.nextScreen(from: currentScreen) {
-                newScreen = nextScreen
-            }
-
-            if newAction.direction == .previousScreen,
-               let previousScreen = ScreenUtility.previousScreen(from: currentScreen) {
-                newScreen = previousScreen
-            }
-
-            if newAction.direction == .leftScreen,
-               let leftScreen = ScreenUtility.directionalScreen(from: currentScreen, direction: .left) {
-                newScreen = leftScreen
-            }
-
-            if newAction.direction == .rightScreen,
-               let rightScreen = ScreenUtility.directionalScreen(from: currentScreen, direction: .right) {
-                newScreen = rightScreen
-            }
-
-            if newAction.direction == .topScreen,
-               let topScreen = ScreenUtility.directionalScreen(from: currentScreen, direction: .top) {
-                newScreen = topScreen
-            }
-
-            if newAction.direction == .bottomScreen,
-               let bottomScreen = ScreenUtility.directionalScreen(from: currentScreen, direction: .bottom) {
-                newScreen = bottomScreen
-            }
+            let newScreen = ScreenUtility.targetScreen(for: newAction.direction, from: currentScreen) ?? currentScreen
 
             // If the current action is either `.noAction`/`.noSelection`, or `.smaller`/`.larger` etc,
             // then we will preserve the window's proportional frame relative to the current screen on the new screen.

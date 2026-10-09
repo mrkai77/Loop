@@ -9,14 +9,14 @@ import CoreGraphics
 import Foundation
 
 enum LoopActionKind: String, Codable {
-    case direction
-    case keybind
+    case preset
+    case custom
 }
 
 enum LoopActionListFilter: String, Codable {
     case all
-    case directionsOnly
-    case keybindsOnly
+    case presetOnly
+    case customOnly
 }
 
 enum LoopAutomationResultKind: String, Codable {
@@ -57,13 +57,6 @@ struct LoopWindowSummary: Codable {
     let frame: LoopRect
 }
 
-struct LoopExecutionTargetWindow: Codable {
-    let id: UInt32
-    let bundleID: String
-    let appName: String
-    let title: String
-}
-
 struct LoopScreenSummary: Codable {
     let id: UInt32
     let name: String
@@ -99,13 +92,13 @@ struct LoopScreenListResult: Codable {
 
 struct LoopActionListResult: Codable {
     let filter: LoopActionListFilter
-    let directionCategories: [LoopActionCategory]
-    let keybindActions: [LoopActionDescriptor]
+    let presetCategories: [LoopActionCategory]
+    let customActions: [LoopActionDescriptor]
 }
 
 struct LoopExecutionResult: Codable {
     let action: LoopActionDescriptor
-    let targetWindow: LoopExecutionTargetWindow?
+    let targetWindow: LoopWindowSummary?
 }
 
 enum LoopAutomationResult: Codable {
@@ -116,13 +109,6 @@ enum LoopAutomationResult: Codable {
 
     private enum CodingKeys: String, CodingKey {
         case kind
-        case windows
-        case screens
-        case filter
-        case directionCategories
-        case keybindActions
-        case action
-        case targetWindow
     }
 
     var kind: LoopAutomationResultKind {
@@ -138,38 +124,19 @@ enum LoopAutomationResult: Codable {
         }
     }
 
+    /// Each payload's keys sit next to `kind` in the same object
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        let kind = try container.decode(LoopAutomationResultKind.self, forKey: .kind)
 
-        switch kind {
+        switch try container.decode(LoopAutomationResultKind.self, forKey: .kind) {
         case .windowList:
-            self = try .windowList(
-                LoopWindowListResult(
-                    windows: container.decode([LoopWindowSummary].self, forKey: .windows)
-                )
-            )
+            self = try .windowList(LoopWindowListResult(from: decoder))
         case .screenList:
-            self = try .screenList(
-                LoopScreenListResult(
-                    screens: container.decode([LoopScreenSummary].self, forKey: .screens)
-                )
-            )
+            self = try .screenList(LoopScreenListResult(from: decoder))
         case .actionList:
-            self = try .actionList(
-                LoopActionListResult(
-                    filter: container.decode(LoopActionListFilter.self, forKey: .filter),
-                    directionCategories: container.decode([LoopActionCategory].self, forKey: .directionCategories),
-                    keybindActions: container.decode([LoopActionDescriptor].self, forKey: .keybindActions)
-                )
-            )
+            self = try .actionList(LoopActionListResult(from: decoder))
         case .execution:
-            self = try .execution(
-                LoopExecutionResult(
-                    action: container.decode(LoopActionDescriptor.self, forKey: .action),
-                    targetWindow: container.decodeIfPresent(LoopExecutionTargetWindow.self, forKey: .targetWindow)
-                )
-            )
+            self = try .execution(LoopExecutionResult(from: decoder))
         }
     }
 
@@ -179,21 +146,18 @@ enum LoopAutomationResult: Codable {
 
         switch self {
         case let .windowList(result):
-            try container.encode(result.windows, forKey: .windows)
+            try result.encode(to: encoder)
         case let .screenList(result):
-            try container.encode(result.screens, forKey: .screens)
+            try result.encode(to: encoder)
         case let .actionList(result):
-            try container.encode(result.filter, forKey: .filter)
-            try container.encode(result.directionCategories, forKey: .directionCategories)
-            try container.encode(result.keybindActions, forKey: .keybindActions)
+            try result.encode(to: encoder)
         case let .execution(result):
-            try container.encode(result.action, forKey: .action)
-            try container.encodeIfPresent(result.targetWindow, forKey: .targetWindow)
+            try result.encode(to: encoder)
         }
     }
 }
 
-struct LoopAutomationError: Codable {
+struct LoopAutomationError: Codable, Error {
     let message: String
     let replacementRoute: String?
     let availableRoutes: [String]?
