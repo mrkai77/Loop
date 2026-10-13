@@ -32,7 +32,8 @@ enum WindowEngine {
             await context.refreshResolvedState()
         }
 
-        let willChangeScreens = ScreenUtility.screenContaining(window) != context.screen
+        let sourceScreen = ScreenUtility.screenContaining(window)
+        let willChangeScreens = sourceScreen != context.screen
         let targetFrame = context.getTargetFrame().padded
         log.info("Resizing \(window) to \(targetFrame)")
 
@@ -93,6 +94,7 @@ enum WindowEngine {
                     targetFrame: targetFrame,
                     bounds: context.paddedBounds,
                     willChangeScreens: willChangeScreens,
+                    sourceDisplayBounds: sourceScreen?.displayBounds,
                     animate: shouldAnimate,
                     resolvedProperties: context.resolvedWindowProperties
                 )
@@ -184,6 +186,7 @@ enum WindowEngine {
         targetFrame: CGRect,
         bounds: CGRect,
         willChangeScreens: Bool,
+        sourceDisplayBounds: CGRect?,
         animate: Bool,
         resolvedProperties: Window.ResolvedProperties? = nil
     ) async throws -> CGRect {
@@ -192,15 +195,48 @@ enum WindowEngine {
         if animate {
             try await window.setFrameAnimated(targetFrame, bounds: bounds, resolvedProperties: resolvedProperties)
             actualFrame = window.frame
+        } else if shouldMoveBeforeSizing(
+            willChangeScreens: willChangeScreens,
+            targetSize: targetFrame.size,
+            sourceDisplayBounds: sourceDisplayBounds
+        ) {
+            // Sizing on the source display is clamped, and the second size inside
+            // setFrame runs before display membership updates. Move first, then
+            // wait a frame before each size attempt.
+            window.setPosition(targetFrame.origin)
+
+            var frameAfterResize = window.frame
+            var appliesSoFar = 0
+            while shouldReapplyFrame(
+                actual: frameAfterResize,
+                target: targetFrame,
+                appliesSoFar: appliesSoFar,
+                maxApplies: 20
+            ) {
+                try await Task.sleep(for: .milliseconds(16))
+                try Task.checkCancellation()
+                await window.setFrame(targetFrame, sizeFirst: false, resolvedProperties: resolvedProperties)
+                try Task.checkCancellation()
+                frameAfterResize = window.frame
+                appliesSoFar += 1
+            }
+            actualFrame = frameAfterResize
         } else {
             await window.setFrame(targetFrame, sizeFirst: willChangeScreens, resolvedProperties: resolvedProperties)
             try Task.checkCancellation()
 
             var frameAfterResize = window.frame
-            if !frameAfterResize.approximatelyEqual(to: targetFrame) {
+            var appliesSoFar = 1
+            while shouldReapplyFrame(
+                actual: frameAfterResize,
+                target: targetFrame,
+                appliesSoFar: appliesSoFar,
+                maxApplies: 2
+            ) {
                 await window.setFrame(targetFrame, resolvedProperties: resolvedProperties)
                 try Task.checkCancellation()
                 frameAfterResize = window.frame
+                appliesSoFar += 1
             }
             actualFrame = frameAfterResize
         }
@@ -211,6 +247,39 @@ enum WindowEngine {
             targetFrame: targetFrame,
             bounds: bounds
         )
+    }
+
+    /// Move before sizing when a cross-display target is larger than the source display.
+    ///
+    /// Sizing first lets WindowServer clamp the window to the source display, and the
+    /// immediate second size runs before display membership updates. Either edge
+    /// exceeding the source size by more than 2 points selects the move-first path.
+    /// A nil source display, a same-screen resize, or a target that fits keeps size-first.
+    static func shouldMoveBeforeSizing(
+        willChangeScreens: Bool,
+        targetSize: CGSize,
+        sourceDisplayBounds: CGRect?
+    ) -> Bool {
+        guard willChangeScreens, let sourceDisplayBounds else {
+            return false
+        }
+
+        let clampMargin: CGFloat = 2
+        return targetSize.width > sourceDisplayBounds.width + clampMargin ||
+            targetSize.height > sourceDisplayBounds.height + clampMargin
+    }
+
+    /// Re-apply a frame WindowServer has not accepted yet.
+    ///
+    /// Frames within the 10-point `approximatelyEqual` tolerance count as accepted.
+    /// When `appliesSoFar` has reached `maxApplies`, keep the last read-back.
+    static func shouldReapplyFrame(
+        actual: CGRect,
+        target: CGRect,
+        appliesSoFar: Int,
+        maxApplies: Int
+    ) -> Bool {
+        appliesSoFar < maxApplies && !actual.approximatelyEqual(to: target)
     }
 
     // MARK: - Size Constraints
