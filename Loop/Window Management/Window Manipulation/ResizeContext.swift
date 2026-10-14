@@ -120,7 +120,7 @@ final class ResizeContext {
 
         // Reset the cached base frame to the new window's actual frame. Otherwise a sequence
         // like `focus to another window > grow` would resize the newly-focused window using
-        // the *previous* window's cached frame — grow/shrink/move read `cachedTargetFrame.raw`
+        // the *previous* window's cached frame - grow/shrink/move read `cachedTargetFrame.raw`
         // as their base until a frame has been applied.
         if let frame = target.baseFrame {
             cachedTargetFrame = ComputedFrame(raw: frame, normalized: .zero, padded: frame)

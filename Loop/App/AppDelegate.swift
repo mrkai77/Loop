@@ -13,7 +13,8 @@ import UserNotifications
 
 @Loggable
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let urlCommandHandler = URLCommandHandler()
+    private let loopSocketManager = LoopSocketManager()
+    private var pendingSettingsWindowOpen: Task<(), Never>?
 
     private static let terminateNotificationName = Notification.Name("com.MrKai77.Loop.terminate")
     private var terminateObserver: Any?
@@ -39,7 +40,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Show settings window only if not launched as login item AND startHidden is disabled
         if !launchedAsLoginItem, !Defaults[.startHidden] {
-            SettingsWindowManager.shared.show()
+            scheduleSettingsWindowOpen()
         } else {
             // Closing also hides the dock icon if needed.
             SettingsWindowManager.shared.close()
@@ -75,6 +76,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await Updater.shared.fetchLatestInfo()
             await Updater.shared.showUpdateWindowIfEligible()
         }
+
+        // Start the Unix socket listener for loop-cli
+        loopSocketManager.start()
     }
 
     /// Subscribes to the terminate notification so this instance shuts down when a newer Loop instance launches.
@@ -159,8 +163,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        log.info("Received URL: \(url)")
-        urlCommandHandler.handle(url)
+        processIncomingURL(url)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
@@ -169,8 +172,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
-        SettingsWindowManager.shared.show()
-        return true
+        // Returning false keeps AppKit from opening anything itself, so a URL arriving next can still cancel this
+        scheduleSettingsWindowOpen()
+        return false
     }
 
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
@@ -179,12 +183,44 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LoopManager.shared.shutdown()
         WindowDragManager.shared.shutdown()
         StashManager.shared.shutdown()
+        loopSocketManager.stop()
         return .terminateNow
     }
 
     func application(_: NSApplication, open urls: [URL]) {
         for url in urls {
-            urlCommandHandler.handle(url)
+            processIncomingURL(url)
         }
+    }
+
+    private func processIncomingURL(_ url: URL) {
+        cancelPendingSettingsWindowOpen()
+        log.info("Received URL: \(url)")
+
+        Task { @MainActor in
+            let result = await LoopCommandHandler.shared.handle(url)
+            log.info("Response: \(result.jsonResponse)")
+            result.presentIfNeeded()
+        }
+    }
+
+    /// Deferred so a URL event arriving right after launch or reopen can cancel it
+    private func scheduleSettingsWindowOpen() {
+        cancelPendingSettingsWindowOpen()
+
+        pendingSettingsWindowOpen = Task { @MainActor [weak self] in
+            await Task.yield()
+            guard !Task.isCancelled else {
+                return
+            }
+
+            self?.pendingSettingsWindowOpen = nil
+            SettingsWindowManager.shared.show()
+        }
+    }
+
+    private func cancelPendingSettingsWindowOpen() {
+        pendingSettingsWindowOpen?.cancel()
+        pendingSettingsWindowOpen = nil
     }
 }

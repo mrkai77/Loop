@@ -98,6 +98,26 @@ enum ScreenUtility {
         Defaults[.screenOrder].sorted(NSScreen.screens) { $0.frame }
     }
 
+    /// The screen a screen switching direction moves to, or `nil` for other directions or when there isn't one
+    static func targetScreen(for direction: WindowDirection, from screen: NSScreen) -> NSScreen? {
+        switch direction {
+        case .nextScreen:
+            nextScreen(from: screen)
+        case .previousScreen:
+            previousScreen(from: screen)
+        case .leftScreen:
+            directionalScreen(from: screen, direction: .left)
+        case .rightScreen:
+            directionalScreen(from: screen, direction: .right)
+        case .topScreen:
+            directionalScreen(from: screen, direction: .top)
+        case .bottomScreen:
+            directionalScreen(from: screen, direction: .bottom)
+        default:
+            nil
+        }
+    }
+
     // MARK: Directional Screens
 
     /// Finds a screen to a set edge from the screen of reference.

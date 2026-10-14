@@ -7,5 +7,5 @@
 
 import Foundation
 
-let service = PrivilegedInstallerService(serviceName: PrivilegedInstallerConstants.serviceName)
+let service = PrivilegedHelperService(serviceName: PrivilegedHelperConstants.serviceName)
 service.run()
