@@ -21,6 +21,7 @@ final class KeybindTrigger {
 
     // State-tracking
     private var pressedKeys: Set<CGKeyCode> = []
+    private var fnKeyState = FnKeyState()
     private(set) var effectiveEventFlags: CGEventFlags = []
     private var eventMonitor: ActiveEventMonitor?
 
@@ -92,10 +93,8 @@ final class KeybindTrigger {
         let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
             .baseKey(flags: .init(rawValue: UInt(event.flags.rawValue)))
 
-        var filteredFlags = event.flags
-        if keyCode.isFnSpecialKey, !effectiveEventFlags.contains(.maskSecondaryFn) {
-            filteredFlags.remove(.maskSecondaryFn)
-        }
+        fnKeyState.update(type: event.type, keyCode: keyCode, flags: event.flags)
+        let filteredFlags = fnKeyState.filteredFlags(event.flags, keyCode: keyCode)
 
         let isLoopOpen = checkIfLoopOpen()
         effectiveEventFlags = filteredFlags
@@ -150,6 +149,7 @@ final class KeybindTrigger {
         // Reset states
         pressedKeys = []
         effectiveEventFlags = []
+        fnKeyState.reset()
         canPassthroughNextSpecialEvent = true
     }
 
