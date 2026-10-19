@@ -45,7 +45,11 @@ final class MultitouchTrigger {
     private var isStarted = false
 
     let swipeCycleStepSize: CGFloat = 0.15
+    /// Later pinch repeats are this far apart. The first action fires sooner.
     let magnifyStepSize: CGFloat = 0.2
+    /// Selects the action once the pinch is recognizably a pinch.
+    /// Waiting for `magnifyStepSize` left a gap where the gesture was visible and lifting applied nothing.
+    let magnifyActivationDistance: CGFloat = 0.1
 
     var radialMenuActions = RadialMenuAction.userConfiguredActions
 
@@ -97,14 +101,18 @@ final class MultitouchTrigger {
         radialMenuActionsObservationTask?.cancel()
         radialMenuActionsObservationTask = nil
 
-        systemGestureFilter.stop()
-        gestureMonitor.stop()
+        stopGestureMonitors()
         #if DEBUG
             closeDebugOverlay(force: true)
         #endif
         handleStopResults(recognizerRegistry.stopAll())
-        gestureBlocker.stop()
         targetResolver.reset()
+    }
+
+    private func stopGestureMonitors() {
+        gestureBlocker.stop()
+        systemGestureFilter.stop()
+        gestureMonitor.stop()
     }
 
     func shutdown() {
@@ -121,6 +129,7 @@ final class MultitouchTrigger {
     }
 
     private func rebuildRecognizers() {
+        stopGestureMonitors()
         #if DEBUG
             closeDebugOverlay(force: true)
         #endif
@@ -128,9 +137,6 @@ final class MultitouchTrigger {
         if recognizerRegistry.hasRecognizers {
             gestureMonitor.start()
             gestureBlocker.start()
-        } else {
-            gestureMonitor.stop()
-            gestureBlocker.stop()
         }
         updateSystemGestureFilter()
     }
@@ -336,7 +342,7 @@ final class MultitouchTrigger {
                 recognitionThreshold: threshold,
                 actionCount: actionCount,
                 swipeStep: swipeCycleStepSize,
-                magnifyStep: magnifyStepSize,
+                magnifyStep: magnifyActivationDistance,
                 screenCenter: center
             )
             startDebugContactsIfNeeded()

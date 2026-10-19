@@ -230,6 +230,16 @@ final class MultitouchGestureSession {
         lastCommittedMagnifyStepIndex != nil
     }
 
+    /// Drops a selected magnify action so a later spread or pinch can select one again.
+    @discardableResult
+    func clearMagnifyAction() -> Bool {
+        guard lastCommittedMagnifyStepIndex != nil else { return false }
+        lastCommittedAction = nil
+        lastCommittedMagnifyStepIndex = nil
+        magnifyActionResetActive = true
+        return true
+    }
+
     /// Clears the committed magnify action when the gesture returns inside its
     /// activation ring
     func resetMagnifyActionIfNeeded(

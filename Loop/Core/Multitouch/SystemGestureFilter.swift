@@ -225,6 +225,37 @@ final class SystemGestureFilter {
         }
     }
 
+    /// Pinches reach apps as zoom events before Loop recognizes them.
+    /// Either bound direction holds both, because the first sample can point the wrong way.
+    func magnificationOwner(heldFor elapsed: Duration) -> ScrollOwner {
+        state.withLock { state in
+            guard state.isRunning, state.isTouching else { return .apps }
+
+            if state.owners.values.contains(.loop) {
+                return .loop
+            }
+
+            guard state.owners[state.fingerCount] != .dock,
+                  !state.isMissionControlShowing,
+                  let claims = state.claims[state.fingerCount]
+            else {
+                return .apps
+            }
+
+            let mayBeInTitlebar = switch state.titlebarLookup {
+            case .inside: true
+            case .outside: false
+            case .pending: elapsed < Self.titlebarDeadline
+            }
+
+            let claimedPinches = (mayBeInTitlebar ? claims.anywhere.union(claims.titlebarOnly) : claims.anywhere)
+                .filter { !$0.isSwipe }
+
+            guard !claimedPinches.isEmpty else { return .apps }
+            return .undecided
+        }
+    }
+
     // MARK: Lifecycle
 
     @discardableResult
@@ -554,8 +585,9 @@ extension SystemGestureFilter {
         case .swipeRight: [.swipeRight]
         case .swipeUp: [.swipeUp]
         case .swipeDown: [.swipeDown]
-        case .magnifyOut: [.pinch]
-        case .magnifyIn: [.spread]
+        // Either magnify direction holds the whole pinch. The first sample can
+        // point the wrong way, and claiming only one side lets Show Desktop start.
+        case .magnifyOut, .magnifyIn: [.pinch, .spread]
         }
     }
 }

@@ -25,7 +25,7 @@ struct SystemGestureFilterTests {
         #expect(claims[3]?.titlebarOnly == [.swipeLeft])
         #expect(claims[4]?.anywhere == Set(SystemGestureFilter.DockGesture.allCases))
         #expect(claims[2]?.anywhere == [])
-        #expect(claims[2]?.titlebarOnly == [.pinch])
+        #expect(claims[2]?.titlebarOnly == [.pinch, .spread])
     }
 
     private func gesture(
