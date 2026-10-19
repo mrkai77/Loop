@@ -2,13 +2,11 @@
 
 Use this on the `fix/trackpad-gesture-event-leak` branch. The change holds trackpad scrolls, page-swipes, and pinches until Loop either takes the stroke or lets it go. A few cases are still supposed to look a little odd. Those are called out below so a real bug is easier to separate from them.
 
-Quit `/Applications/Loop.app` first. It uses the same bundle ID, so macOS will keep that copy if it is still running. Then launch the local Debug build:
+Quit any other copy of Loop first. Two copies share a bundle ID, so macOS will keep the one that is already running. Build and run the **Loop** scheme as **Debug**, with this environment variable set on the scheme:
 
-```sh
-open --env LOOP_GESTURE_DEBUG_OVERLAY=1 /Users/jvanderen/Projects/Loop/dist/Loop.app
-```
+`LOOP_GESTURE_DEBUG_OVERLAY` = `1`
 
-That environment variable draws the gesture overlay. The teal ring meeting the green ring is the first pinch threshold.
+That draws the gesture overlay. The teal ring meeting the green ring is the first pinch threshold.
 
 Before starting, write down System Settings → Trackpad for:
 
