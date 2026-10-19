@@ -328,6 +328,39 @@ struct MultitouchGestureActivationTests {
         #expect(directions == [false, false, true, false])
     }
 
+    @Test func oneShotMagnifyClearsOnRetractAndSelectsAgain() {
+        let session = MultitouchGestureSession()
+        var fires = 0
+        let action = gesture(kind: .magnifyIn, activationZone: .anywhere)
+
+        session.commitMagnify(
+            gesture: action,
+            distance: 0.7,
+            originDistance: 0.5,
+            step: 0.2,
+            allowsRapidRepeat: false
+        ) { _ in
+            fires += 1
+        }
+
+        #expect(session.clearMagnifyAction())
+        #expect(!session.hasCommittedMagnifyAction)
+        #expect(!session.clearMagnifyAction())
+
+        session.commitMagnify(
+            gesture: action,
+            distance: 0.7,
+            originDistance: 0.5,
+            step: 0.2,
+            allowsRapidRepeat: false
+        ) { _ in
+            fires += 1
+        }
+
+        #expect(fires == 2)
+        #expect(session.hasCommittedMagnifyAction)
+    }
+
     @Test func radialMagnifyFiresOnceForEveryCrossedStepInEitherDirection() {
         let session = MultitouchGestureSession()
         var directions: [Bool] = []
