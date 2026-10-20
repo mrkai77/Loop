@@ -13,6 +13,7 @@ struct LoopApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @ObservedObject private var updater = Updater.shared
     @Default(.hideMenuBarIcon) var hideMenuBarIcon
+    @Default(.workspaces) var workspaces
 
     var body: some Scene {
         MenuBarExtra(Bundle.main.appName, image: "menubarIcon", isInserted: Binding.constant(!hideMenuBarIcon)) {
@@ -22,6 +23,28 @@ struct LoopApp: App {
                 }
             } label: {
                 Label("Donate", systemImage: "heart")
+            }
+
+            Divider()
+
+            Menu("Workspaces") {
+                ForEach(workspaces) { workspace in
+                    Button(workspace.name) {
+                        WorkspaceManager.shared.apply(workspace)
+                    }
+                }
+
+                if !workspaces.isEmpty {
+                    Divider()
+                }
+
+                Button("Save Current Layout…") {
+                    WorkspaceManager.shared.promptToSaveCurrentLayout()
+                }
+
+                Button("Restore Layout for These Displays") {
+                    Task { await DisplayMemoryManager.shared.restoreLayout() }
+                }
             }
 
             Divider()

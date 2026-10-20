@@ -84,6 +84,11 @@ extension Defaults.Keys {
     static let sizeIncrement = Key<CGFloat>("sizeIncrement", default: 20)
     static let screenOrder = Key<ScreenOrder>("screenOrder", default: .zShaped)
 
+    // Workspaces
+    static let displayMemoryEnabled = Key<Bool>("displayMemoryEnabled", default: true)
+    static let workspaceHotKeysEnabled = Key<Bool>("workspaceHotKeysEnabled", default: true)
+    static let workspaces = Key<[Workspace]>("workspaces", default: [])
+
     /// Excluded apps
     static let excludedApps = Key<[URL]>("excludedApps", default: [])
 
@@ -187,6 +192,10 @@ extension Defaults.Keys {
     // StashManager
 
     static let stashManagerStashedWindows = Key<[CGWindowID: WindowAction]>("stashManagerStashed", default: [:])
+
+    // DisplayMemoryManager, keyed by `NSScreen.configurationKey`. Not synced, as displays are specific to each Mac.
+
+    static let displayLayouts = Key<[String: DisplayLayout]>("displayLayouts", default: [:])
 
     // AccentColorController
 

@@ -68,6 +68,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             LoopManager.shared.start()
             WindowDragManager.shared.addObservers()
             StashManager.shared.start()
+            DisplayMemoryManager.shared.start()
+            WorkspaceManager.shared.start()
             AccessibilityManager.requestAccess()
 
             // Wait for the app to settle before showing the update window
@@ -179,6 +181,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LoopManager.shared.shutdown()
         WindowDragManager.shared.shutdown()
         StashManager.shared.shutdown()
+        DisplayMemoryManager.shared.shutdown()
+        WorkspaceManager.shared.shutdown()
         return .terminateNow
     }
 

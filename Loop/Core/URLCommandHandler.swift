@@ -44,7 +44,13 @@
     - loop://keybind/myCustomLayout
     Note: See 'loop://list/keybinds' for available keybinds
 
- 5. List Commands:
+ 5. Workspace Commands:
+    Format: loop://workspace/<name>
+    Examples:
+    - loop://workspace/Coding     (Apply the workspace named "Coding")
+    - loop://workspace/restore    (Restore the remembered layout for the connected displays)
+
+ 6. List Commands:
     Format: loop://list/<type>
     Types:
     - actions    (List all window actions)
@@ -101,6 +107,8 @@ final class URLCommandHandler {
         case action
         /// Custom keybind actions
         case keybind
+        /// Saved workspaces and display layouts
+        case workspace
         /// List available commands and options
         case list
 
@@ -111,6 +119,7 @@ final class URLCommandHandler {
             case .screen: "Screen management"
             case .action: "Execute predefined window action"
             case .keybind: "Execute custom keybind action"
+            case .workspace: "Apply a saved workspace"
             case .list: "List available commands"
             }
         }
@@ -263,6 +272,7 @@ final class URLCommandHandler {
         case .screen: handleScreenCommand(parameters)
         case .action: handleActionCommand(parameters)
         case .keybind: handleKeybindCommand(parameters)
+        case .workspace: handleWorkspaceCommand(parameters)
         case .list: handleListCommand(parameters)
         }
 
@@ -313,6 +323,25 @@ final class URLCommandHandler {
             writeToOutput("Available directions:")
             writeToOutput("  Basic: left, right, top, bottom")
             writeToOutput("  Full names: \(WindowDirection.allCases.map { $0.rawValue.lowercased() }.joined(separator: ", "))")
+        }
+    }
+
+    /// Handles workspace commands
+    /// - Parameter parameters: The workspace name, or `restore` for the display layout
+    private func handleWorkspaceCommand(_ parameters: [String]) {
+        guard let name = parameters.first else {
+            writeToOutput("No workspace specified")
+            writeToOutput("Available workspaces: \(Defaults[.workspaces].map(\.name).joined(separator: ", "))")
+            return
+        }
+
+        Task { @MainActor in
+            if name.lowercased() == "restore" {
+                await DisplayMemoryManager.shared.restoreLayout()
+            } else if !WorkspaceManager.shared.apply(named: name) {
+                writeToOutput("Workspace not found: \(name)")
+                writeToOutput("Available workspaces: \(Defaults[.workspaces].map(\.name).joined(separator: ", "))")
+            }
         }
     }
 
