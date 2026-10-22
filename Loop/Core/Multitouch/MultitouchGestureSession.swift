@@ -347,6 +347,13 @@ final class MultitouchGestureSession {
             activationContext?.allows(gesture) == true
     }
 
+    /// Hands a radial menu stroke to a binding that overrides one of its directions
+    func overrideRadialMenuGesture(with gesture: GestureBinding) -> Bool {
+        guard resolvedGesture?.kind == .radialMenu, canActivate(gesture) else { return false }
+        resolvedGesture = gesture
+        return true
+    }
+
     func switchSwipeGesture(to gesture: GestureBinding, distance: CGFloat) -> Bool {
         guard canActivate(gesture) else { return false }
         resolvedGesture = gesture
@@ -429,10 +436,10 @@ final class MultitouchGestureSession {
     private func directionalMagnifyStepIndex(
         for distance: CGFloat,
         originDistance: CGFloat,
-        kind: GestureBinding.Kind,
+        kind: GestureBinding.Kind?,
         step: CGFloat
     ) -> Int {
-        guard step > 0, let direction = kind.magnificationDirection else { return 0 }
+        guard step > 0, let direction = kind?.magnificationDirection else { return 0 }
         let normalizedDistance = (distance - originDistance) * direction / step
         return max(Int(floor(normalizedDistance + 0.000_001)), 0)
     }

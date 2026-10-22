@@ -150,7 +150,7 @@ final class WindowActionEngine {
 
         if let newTargetWindow {
             Task { @MainActor in
-                log.info("Focusing window: \(newTargetWindow.description)")
+                log.info("Focusing window: \(newTargetWindow)")
                 newTargetWindow.focus()
             }
         }
@@ -207,7 +207,7 @@ final class WindowActionEngine {
 
     // MARK: - Cross-Space Window Throw
 
-    enum SpaceDestination {
+    enum SpaceDestination: CustomStringConvertible {
         case previousSpace
         case nextSpace
         case desktop(UInt)
@@ -244,7 +244,7 @@ final class WindowActionEngine {
         }
 
         guard let targetSpace else {
-            log.error("Could not resolve target \(space.description) for window \(window.cgWindowID)")
+            log.error("Could not resolve target \(space) for window \(window.cgWindowID)")
             return
         }
 

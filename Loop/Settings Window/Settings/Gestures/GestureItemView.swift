@@ -11,22 +11,25 @@ import SwiftUI
 
 struct GestureItemView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
+    @Environment(\.luminareSectionHorizontalPadding) private var horizontalPadding
 
     @Default(.keybinds) private var keybinds
 
     @State private var gesture: GestureBinding
     @Binding private var externalGesture: GestureBinding
     private let hasConflict: Bool
+    private let overridesRadialMenu: Bool
 
     @State private var isActionPickerPresented = false
     @State private var isGestureConfigPresented = false
     @State private var isConfiguringCustom = false
     @State private var isConfiguringCycle = false
 
-    init(_ gesture: Binding<GestureBinding>, hasConflict: Bool) {
+    init(_ gesture: Binding<GestureBinding>, hasConflict: Bool, overridesRadialMenu: Bool) {
         self.gesture = gesture.wrappedValue
         self._externalGesture = gesture
         self.hasConflict = hasConflict
+        self.overridesRadialMenu = overridesRadialMenu
     }
 
     private var resolvedAction: WindowAction? {
@@ -92,9 +95,13 @@ struct GestureItemView: View {
                 }
 
                 gestureConfiguration
-                    .luminareToolTip(attachedTo: .topTrailing, hidden: !hasConflict) {
-                        Text(String(localized: "Another gesture is set up the same way.", comment: "Tooltip shown on a conflicting gesture in settings"))
-                            .padding(6)
+                    .luminareToolTip(attachedTo: .topTrailing, hidden: !hasConflict && !overridesRadialMenu) {
+                        Text(
+                            hasConflict
+                                ? String(localized: "Another gesture is set up the same way.", comment: "Tooltip shown on a conflicting gesture in settings")
+                                : String(localized: "Takes priority over the radial menu for this gesture.", comment: "Tooltip shown on a gesture in settings that overrides one direction of a radial menu gesture using the same finger count")
+                        )
+                        .padding(6)
                     }
             }
             .frame(maxWidth: .infinity, alignment: .trailing)
@@ -131,30 +138,42 @@ struct GestureItemView: View {
     }
 
     private var gestureConfiguration: some View {
-        Button {
-            isGestureConfigPresented = true
-        } label: {
-            VStack(alignment: .trailing, spacing: 2) {
-                Text(gesture.displayName)
-                    .fontWeight(.regular)
-                    .lineLimit(1)
+        Group {
+            if let displayName = gesture.displayName {
+                Button {
+                    isGestureConfigPresented = true
+                } label: {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text(displayName)
+                            .lineLimit(1)
 
-                if gesture.activationZone == .titlebar {
-                    Text(gesture.activationZone.displayName)
-                        .font(.caption)
-                        .foregroundStyle(.secondary)
+                        if gesture.activationZone == .titlebar {
+                            Text(gesture.activationZone.displayName)
+                                .font(.caption)
+                                .foregroundStyle(.secondary)
+                        }
+                    }
+                    .fontWeight(.regular)
+                    .padding(.horizontal, 4)
+                    .contentShape(.rect)
+                    .animation(luminareAnimation, value: gesture.activationZone)
+                }
+                .luminareFilledStates([.hovering, .pressed])
+                .luminareBorderedStates(.hovering)
+                .opacity(hasConflict ? 0.5 : 1)
+            } else {
+                Button {
+                    isGestureConfigPresented = true
+                } label: {
+                    Text(String(localized: "Set Gesture…", comment: "Button title on a gesture that has no trigger set yet. Opens the gesture configuration."))
+                        .lineLimit(1)
+                        .padding(.horizontal, horizontalPadding)
                 }
             }
-            .padding(.horizontal, 4)
-            .contentShape(.rect)
-            .animation(luminareAnimation, value: gesture.activationZone)
         }
         .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
         .luminareRoundingBehavior(top: true, bottom: true)
-        .luminareFilledStates([.hovering, .pressed])
-        .luminareBorderedStates(.hovering)
         .luminareMinHeight(24)
-        .opacity(hasConflict ? 0.5 : 1)
         .help(String(localized: "Customize this gesture.", comment: "Help text shown when hovering a gesture configuration button"))
         .padding(.leading, -4)
         .luminareModal(isPresented: $isGestureConfigPresented) {
@@ -181,12 +200,10 @@ struct GestureItemView: View {
                     if opensRadialMenu {
                         Image(.loop)
                             .frame(width: 18)
-                            .foregroundStyle(.secondary)
 
                         Text(String(localized: "Radial Menu", comment: "Label shown for a gesture configured to open the radial menu"))
                             .fontWeight(.regular)
                             .lineLimit(1)
-                            .foregroundStyle(.secondary)
                     } else if let action = resolvedAction {
                         IconView(action: action)
 

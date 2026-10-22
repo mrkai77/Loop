@@ -236,11 +236,11 @@ struct CycleProgressStoreTests {
         )
         _ = try commitNext(in: &store, target: targetA, cycle: cycle)
         _ = try commitNext(in: &store, target: targetA, cycle: cycle)
-        let currentSelection = store.proposeCurrentSelection(
+        let currentSelection = store.proposeSelection(
             for: targetA,
             in: cycle,
-            seededBy: repeated,
-            resumingProgress: false
+            from: .sessionProgress(fallback: repeated),
+            moving: nil
         )
         let selected = try #require(currentSelection)
         _ = store.commit(selected, for: targetA, in: cycle)
@@ -262,9 +262,8 @@ struct CycleProgressStoreTests {
         let selection = store.proposeSelection(
             for: target,
             in: cycle,
-            seededBy: seedAction,
-            restartAtBeginning: restartAtBeginning,
-            direction: direction
+            from: restartAtBeginning ? .action(nil) : .sessionProgress(fallback: seedAction),
+            moving: direction
         )
         return try #require(selection)
     }

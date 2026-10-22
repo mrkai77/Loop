@@ -29,7 +29,9 @@ extension MultitouchTrigger {
         if let radialMenuGesture = entry.radialMenuGesture {
             await handleRadialMenuSwipe(swipe, fingerCount: fingerCount, gesture: radialMenuGesture)
         } else {
-            let direction = directionalSwipeKind(angle: swipe.angle)
+            let direction = directionalSwipeKind(
+                normalizedAngle: RadialGestureGeometry.normalizedAngle(fromSubsurfaceAngle: swipe.angle)
+            )
             let directionalGesture = entry.directionalGestures.first { $0.kind == direction }
             let isTerminal = switch swipe.phase {
             case .ended(_), .cancelled:
@@ -69,7 +71,13 @@ extension MultitouchTrigger {
 
             let normalizedAngle = RadialGestureGeometry.normalizedAngle(fromSubsurfaceAngle: swipe.angle)
             let actions = radialMenuActions.dropLast()
-            guard actions.count > 1 else { return }
+            let overrideGesture = radialMenuOverride(
+                angle: normalizedAngle,
+                actionCount: actions.count,
+                fingerCount: fingerCount,
+                session: session
+            )
+            guard overrideGesture != nil || actions.count > 1 else { return }
 
             let newIndex = RadialGestureGeometry.slotIndex(
                 angle: normalizedAngle,
@@ -85,18 +93,26 @@ extension MultitouchTrigger {
             #endif
             session.commitSwipe(
                 distance: swipe.distance,
-                newKey: .radialSlot(newIndex),
+                newKey: overrideGesture.map { .gesture($0.id) } ?? .radialSlot(newIndex),
                 step: swipeCycleStepSize
             ) { reverse in
                 #if DEBUG
                     didCommit = true
                 #endif
-                triggerRadialMenuAction(
-                    at: newIndex,
-                    from: actions,
-                    reverse: reverse,
-                    canAdvanceCycle: !session.isRevisitingAction
-                )
+                if let overrideGesture {
+                    triggerSingleAction(
+                        from: overrideGesture,
+                        reverse: reverse,
+                        canAdvanceCycle: !session.isRevisitingAction
+                    )
+                } else {
+                    triggerRadialMenuAction(
+                        at: newIndex,
+                        from: actions,
+                        reverse: reverse,
+                        canAdvanceCycle: !session.isRevisitingAction
+                    )
+                }
             }
 
             #if DEBUG
@@ -114,6 +130,40 @@ extension MultitouchTrigger {
         default:
             break
         }
+    }
+
+    /// A directional binding sharing the radial menu's finger count takes over the slot
+    /// its direction points into, leaving every other slot, diagonals included, to the menu
+    private func radialMenuOverride(
+        angle normalizedAngle: CGFloat,
+        actionCount: Int,
+        fingerCount: Int,
+        session: MultitouchGestureSession
+    ) -> GestureBinding? {
+        let overrides = recognizerRegistry.entry(for: fingerCount)?.directionalGestures
+            .filter { session.canActivate($0) } ?? []
+        guard !overrides.isEmpty else { return nil }
+
+        // Without slots to share, each direction covers its whole quadrant
+        guard actionCount > 1 else {
+            let direction = directionalSwipeKind(normalizedAngle: normalizedAngle)
+            return overrides.first { $0.kind == direction }
+        }
+
+        let selectedSlot = RadialGestureGeometry.slotIndex(angle: normalizedAngle, actionCount: actionCount)
+        // Menus with fewer than four slots can fit two directions into one, so the nearer one wins
+        return overrides
+            .compactMap { gesture -> (gesture: GestureBinding, offset: CGFloat)? in
+                guard let directionAngle = gesture.kind?.normalizedSwipeAngle,
+                      RadialGestureGeometry.slotIndex(angle: directionAngle, actionCount: actionCount) == selectedSlot
+                else {
+                    return nil
+                }
+                let offset = abs(normalizedAngle - directionAngle)
+                return (gesture, min(offset, 2 * .pi - offset))
+            }
+            .min { $0.offset < $1.offset }?
+            .gesture
     }
 
     private func handleDirectionalSwipe(
@@ -218,7 +268,7 @@ extension MultitouchTrigger {
         }
     }
 
-    private func oppositeDirectionalSwipeKind(of kind: GestureBinding.Kind) -> GestureBinding.Kind? {
+    private func oppositeDirectionalSwipeKind(of kind: GestureBinding.Kind?) -> GestureBinding.Kind? {
         switch kind {
         case .swipeUp:
             .swipeDown
@@ -307,17 +357,15 @@ extension MultitouchTrigger {
         clearActionSelection()
     }
 
-    private func directionalSwipeKind(angle: CGFloat) -> GestureBinding.Kind {
-        let normalizedAngle = RadialGestureGeometry.normalizedAngle(fromSubsurfaceAngle: angle)
-
+    private func directionalSwipeKind(normalizedAngle: CGFloat) -> GestureBinding.Kind {
         if normalizedAngle >= 7 * .pi / 4 || normalizedAngle < .pi / 4 {
-            return .swipeUp
+            .swipeUp
         } else if normalizedAngle >= .pi / 4, normalizedAngle < 3 * .pi / 4 {
-            return .swipeRight
+            .swipeRight
         } else if normalizedAngle >= 3 * .pi / 4, normalizedAngle < 5 * .pi / 4 {
-            return .swipeDown
+            .swipeDown
         } else {
-            return .swipeLeft
+            .swipeLeft
         }
     }
 
@@ -325,5 +373,18 @@ extension MultitouchTrigger {
         let radialVelocity = swipe.translation.x * swipe.velocity.x +
             swipe.translation.y * swipe.velocity.y
         return radialVelocity >= 0
+    }
+}
+
+private extension GestureBinding.Kind {
+    /// The direction's angle in Loop's normalized coordinate system, where up is zero and angles grow clockwise
+    var normalizedSwipeAngle: CGFloat? {
+        switch self {
+        case .swipeUp: 0
+        case .swipeRight: .pi / 2
+        case .swipeDown: .pi
+        case .swipeLeft: 3 * .pi / 2
+        default: nil
+        }
     }
 }

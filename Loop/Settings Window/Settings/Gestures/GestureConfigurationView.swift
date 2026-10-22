@@ -21,9 +21,14 @@ struct GestureConfigurationView: View {
         self._isPresented = isPresented
     }
 
+    /// `nil` while the gesture has no trigger, so no category is selected
+    private var category: GestureCategory? {
+        gesture.kind.map(GestureCategory.init)
+    }
+
     private var kindBinding: Binding<GestureBinding.Kind> {
         Binding(
-            get: { gesture.kind },
+            get: { gesture.kind ?? .radialMenu },
             set: { newKind in
                 let oldKind = gesture.kind
                 gesture.kind = newKind
@@ -37,15 +42,17 @@ struct GestureConfigurationView: View {
         )
     }
 
-    private var categoryBinding: Binding<GestureCategory> {
+    private var categoryBinding: Binding<GestureCategory?> {
         Binding(
-            get: { GestureCategory(kind: gesture.kind) },
+            get: { category },
             set: { category in
                 switch category {
+                case nil:
+                    break
                 case .all:
                     kindBinding.wrappedValue = .radialMenu
                 case .swipe:
-                    if !gesture.kind.isDirectionalSwipe {
+                    if gesture.kind?.isDirectionalSwipe != true {
                         kindBinding.wrappedValue = .swipeRight
                     }
                 case .magnify:
@@ -57,14 +64,14 @@ struct GestureConfigurationView: View {
 
     private var swipeDirectionBinding: Binding<SwipeDirection> {
         Binding(
-            get: { SwipeDirection(kind: gesture.kind) ?? .right },
+            get: { gesture.kind.flatMap(SwipeDirection.init) ?? .right },
             set: { kindBinding.wrappedValue = $0.kind }
         )
     }
 
     private var magnifyGestureBinding: Binding<MagnifyGesture> {
         Binding(
-            get: { MagnifyGesture(kind: gesture.kind) ?? .magnifyOut },
+            get: { gesture.kind.flatMap(MagnifyGesture.init) ?? .magnifyOut },
             set: { kindBinding.wrappedValue = $0.kind }
         )
     }
@@ -88,35 +95,25 @@ struct GestureConfigurationView: View {
 
     var body: some View {
         LuminareForm {
-            LuminareSection(outerPadding: 0) {
-                LuminareTextField(
-                    gesture.defaultName,
-                    text: Binding(
-                        get: { gesture.name ?? "" },
-                        set: { gesture.name = $0 }
-                    )
-                )
-                .luminareFilledStates(.none)
-                .luminareBorderedStates(.none)
-            }
-
             LuminareSection {
                 LuminarePicker(
-                    compactElements: GestureCategory.allCases,
+                    compactElements: GestureCategory.allCases.map(Optional.some),
                     selection: categoryBinding
                 ) { category in
-                    HStack(spacing: 6) {
-                        category.image
-                            .frame(width: 12)
+                    if let category {
+                        HStack(spacing: 6) {
+                            category.image
+                                .frame(width: 12)
 
-                        Text(category.displayName)
+                            Text(category.displayName)
+                        }
+                        .fixedSize()
                     }
-                    .fixedSize()
                 }
                 .luminareContentSize(hasFixedHeight: true)
-                .luminareRoundingBehavior(top: true, bottom: gesture.kind == .radialMenu)
+                .luminareRoundingBehavior(top: true, bottom: category == nil || category == .all)
 
-                if GestureCategory(kind: gesture.kind) == .swipe {
+                if category == .swipe {
                     LuminarePickerMenu(
                         "Direction",
                         selection: swipeDirectionBinding,
@@ -126,7 +123,7 @@ struct GestureConfigurationView: View {
                     }
                 }
 
-                if GestureCategory(kind: gesture.kind) == .magnify {
+                if category == .magnify {
                     LuminarePickerMenu(
                         "Gesture",
                         selection: magnifyGestureBinding,

@@ -29,7 +29,8 @@ extension MultitouchTrigger {
             }
         #endif
 
-        if let radialMenuGesture = entry.radialMenuGesture {
+        if let radialMenuGesture = entry.radialMenuGesture,
+           !handsRadialMenuMagnifyToOverride(magnify, fingerCount: fingerCount) {
             await handleRadialMenuMagnify(magnify, fingerCount: fingerCount, gesture: radialMenuGesture)
             return
         }
@@ -128,6 +129,41 @@ extension MultitouchTrigger {
         default:
             break
         }
+    }
+
+    /// A pinch or spread binding sharing the radial menu's finger count takes over the stroke
+    /// once it crosses the activation threshold in that direction, in place of the center action
+    private func handsRadialMenuMagnifyToOverride(
+        _ magnify: SubsurfaceGestureEvent.MagnifyEvent,
+        fingerCount: Int
+    ) -> Bool {
+        guard let entry = recognizerRegistry.entry(for: fingerCount),
+              let session = recognizerRegistry.session(for: fingerCount),
+              session.hasGestureBegun, !session.isGestureRejected
+        else {
+            return false
+        }
+
+        // The stroke always begins as the radial menu, so anything else means an override took it
+        if session.resolvedGesture?.kind != .radialMenu {
+            return true
+        }
+
+        guard magnify.phase == .began || magnify.phase == .changed,
+              !session.hasCommittedMagnifyAction,
+              hasCrossedActivationThreshold(magnify),
+              let overrideGesture = magnify.distance >= magnify.originDistance ? entry.magnifyInGesture : entry.magnifyOutGesture
+        else {
+            return false
+        }
+
+        guard session.overrideRadialMenuGesture(with: overrideGesture) else { return false }
+
+        if let window = session.pendingTargetWindow,
+           resolvedWindowAction(from: overrideGesture)?.allowsRapidRepeat == true {
+            targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
+        }
+        return true
     }
 
     /// Magnify within a radial menu gesture triggers the center (last) radial menu action.

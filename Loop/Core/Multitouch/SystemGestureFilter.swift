@@ -537,7 +537,8 @@ extension SystemGestureFilter {
     static func claims(for gestures: [GestureBinding]) -> [Int: Claims] {
         GestureBinding.activeGestures(in: gestures)
             .reduce(into: [:]) { result, gesture in
-                let dockGestures = dockGestures(for: gesture.kind)
+                guard let kind = gesture.kind else { return }
+                let dockGestures = dockGestures(for: kind)
                 switch gesture.effectiveActivationZone {
                 case .anywhere:
                     result[gesture.fingerCount, default: Claims()].anywhere.formUnion(dockGestures)

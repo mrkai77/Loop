@@ -56,7 +56,7 @@ extension WindowUtility {
                 direction: direction,
                 canWrap: true
             ) {
-                log.info("Found window to focus in direction \(direction): \(nextWindow.description)")
+                log.info("Found window to focus in direction \(direction): \(nextWindow)")
                 return nextWindow
             } else {
                 log.info("No window found in direction \(direction)")
@@ -77,7 +77,7 @@ extension WindowUtility {
                 .min { screenCenter.distance(to: $0.frame.center) < screenCenter.distance(to: $1.frame.center) }
 
             if let nextWindow {
-                log.info("Found window to focus in direction \(direction): \(nextWindow.description)")
+                log.info("Found window to focus in direction \(direction): \(nextWindow)")
             } else {
                 log.info("No window found in direction \(direction) from screen center")
             }
@@ -111,7 +111,7 @@ extension WindowUtility {
             // If no current window, return the last available window
             let targetWindow = availableWindows.last
             if let targetWindow {
-                log.info("No current window, selecting last window: \(targetWindow.description)")
+                log.info("No current window, selecting last window: \(targetWindow)")
             }
             return targetWindow
         }
@@ -130,7 +130,7 @@ extension WindowUtility {
             from: currentWindow,
             others: otherWindows
         ) {
-            log.info("Found window to focus in stack: \(nextWindow.description)")
+            log.info("Found window to focus in stack: \(nextWindow)")
             return nextWindow
         } else {
             log.info("No window found in stack")

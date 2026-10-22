@@ -306,7 +306,7 @@ extension LoopManager {
             shouldCancelOpening = false
         }
 
-        log.info("Opening Loop with starting action: \(startingAction.description) and target window: \(window?.description ?? "(none)")")
+        log.info("Opening Loop with starting action: \(startingAction) and target window: \(window?.description ?? "(none)")")
 
         // Refresh accent colors in case user has enabled the wallpaper processor
         Task {
@@ -635,7 +635,7 @@ extension LoopManager {
                         }
 
                         originatingContext.commitWindowTarget(preparedTarget)
-                        log.info("Focusing window: \(newTargetWindow.description)")
+                        log.info("Focusing window: \(newTargetWindow)")
                         newTargetWindow.focus()
                     }
                 } else if !Defaults[.previewVisibility] {
@@ -643,7 +643,7 @@ extension LoopManager {
                 }
             }
 
-            log.info("Window action changed: \(newAction.description)")
+            log.info("Window action changed: \(newAction)")
         }
     }
 

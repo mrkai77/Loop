@@ -10,22 +10,20 @@ import SwiftUI
 
 struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
     let id: UUID
-    var name: String?
     var fingerCount: Int
-    var kind: Kind
+    /// `nil` until the user picks a gesture, like a keybind with no keys
+    var kind: Kind?
     var action: Action
     var activationZone: ActivationZone
 
     init(
         id: UUID = .init(),
-        name: String? = nil,
         fingerCount: Int = 2,
-        kind: Kind = .radialMenu,
-        action: Action = .radialMenuActions,
+        kind: Kind? = nil,
+        action: Action = .singleAction(.custom(.init(.noAction))),
         activationZone: ActivationZone = .titlebar
     ) {
         self.id = id
-        self.name = name
         self.fingerCount = fingerCount
         self.kind = kind
         self.action = action
@@ -120,39 +118,21 @@ extension GestureBinding {
         fingerCount <= 2 ? .titlebar : activationZone
     }
 
-    var defaultName: String {
+    /// `nil` while the gesture has no trigger
+    var displayName: String? {
         switch kind {
+        case nil:
+            nil
         case .radialMenu:
             String(
                 localized: "\(fingerCount)-finger Swipe or Magnify",
                 comment: "Default title describing how to activate a radial menu gesture. Argument is the finger count."
             )
-        default:
+        case let .some(kind):
             String(
                 localized: "\(fingerCount)-finger \(kind.displayName)",
                 comment: "Default title describing a gesture. First argument is the finger count, second is the gesture kind name (e.g. '2-finger Pinch' or '3-finger Swipe Right')."
             )
-        }
-    }
-
-    var displayName: String {
-        if let name, !name.isEmpty {
-            return name
-        }
-
-        return defaultName
-    }
-}
-
-// MARK: - No Action
-
-extension GestureBinding {
-    var resolvesToNoAction: Bool {
-        switch action {
-        case .radialMenuActions:
-            false
-        case let .singleAction(actionType):
-            (actionType.resolvedAction?.direction ?? .noAction) == .noAction
         }
     }
 }
@@ -160,33 +140,31 @@ extension GestureBinding {
 // MARK: - Conflict Detection
 
 extension GestureBinding {
-    /// Returns IDs for actionable gestures that conflict with at least one other actionable gesture.
-    static func conflictingActionableIDs(in gestures: [GestureBinding]) -> Set<UUID> {
-        conflictingIDs(in: gestures.filter { !$0.resolvesToNoAction })
-    }
-
-    /// Returns gestures that don't conflict with another actionable gesture.
+    /// Returns gestures that have a trigger set and don't conflict with another gesture.
     static func activeGestures(in gestures: [GestureBinding]) -> [GestureBinding] {
-        let conflictingIDs = conflictingActionableIDs(in: gestures)
-        return gestures.filter { !conflictingIDs.contains($0.id) }
+        let conflictingIDs = conflictingIDs(in: gestures)
+        return gestures.filter { $0.kind != nil && !conflictingIDs.contains($0.id) }
     }
 
-    /// Two gestures conflict when they have the same finger count and their kinds overlap.
-    /// Radial menu consumes both swipe and magnify, so it conflicts with ANY other gesture at the same finger count.
+    /// Two gestures conflict when they have the same finger count and kind.
+    /// A swipe or magnify sharing a radial menu's finger count overrides that direction instead.
     func conflicts(with other: GestureBinding) -> Bool {
-        guard id != other.id, fingerCount == other.fingerCount else {
+        guard id != other.id, kind != nil, fingerCount == other.fingerCount else {
             return false
         }
 
-        if kind == .radialMenu || other.kind == .radialMenu {
-            return true
-        }
+        return kind == other.kind
+    }
 
-        if kind == other.kind {
-            return true
-        }
-
-        return false
+    /// Returns IDs for gestures that take over a direction of an active radial menu gesture.
+    static func radialMenuOverrideIDs(in gestures: [GestureBinding]) -> Set<UUID> {
+        let active = activeGestures(in: gestures)
+        let radialFingerCounts = Set(active.filter { $0.kind == .radialMenu }.map(\.fingerCount))
+        return Set(
+            active
+                .filter { $0.kind != .radialMenu && radialFingerCounts.contains($0.fingerCount) }
+                .map(\.id)
+        )
     }
 
     /// Returns the IDs of all gestures that conflict with at least one other gesture in the array.
@@ -215,4 +193,10 @@ extension GestureBinding {
             activationZone: .titlebar
         )
     ]
+}
+
+extension GestureBinding: CustomStringConvertible {
+    var description: String {
+        "GestureBinding(fingerCount: \(fingerCount), kind: \(kind.map { "\($0)" } ?? "unset"))"
+    }
 }

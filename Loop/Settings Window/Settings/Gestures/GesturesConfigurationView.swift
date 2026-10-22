@@ -22,7 +22,11 @@ struct GesturesConfigurationView: View {
     @Default(.gestures) private var gestures
 
     private var conflictingGestureIDs: Set<UUID> {
-        GestureBinding.conflictingActionableIDs(in: gestures)
+        GestureBinding.conflictingIDs(in: gestures)
+    }
+
+    private var radialMenuOverrideIDs: Set<UUID> {
+        GestureBinding.radialMenuOverrideIDs(in: gestures)
     }
 
     var body: some View {
@@ -68,7 +72,8 @@ struct GesturesConfigurationView: View {
             ) { gesture in
                 GestureItemView(
                     gesture,
-                    hasConflict: conflictingGestureIDs.contains(gesture.wrappedValue.id)
+                    hasConflict: conflictingGestureIDs.contains(gesture.wrappedValue.id),
+                    overridesRadialMenu: radialMenuOverrideIDs.contains(gesture.wrappedValue.id)
                 )
             } emptyView: {
                 VStack {
