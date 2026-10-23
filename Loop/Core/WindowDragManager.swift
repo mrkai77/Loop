@@ -236,9 +236,13 @@ final class WindowDragManager {
 
         if let screen = NSScreen.screenWithMouse {
             var newWindowFrame = window.frame
+            let currentSize = newWindowFrame.size
             newWindowFrame.size = initialFrame.size
             newWindowFrame = newWindowFrame.pushInside(screen.displayBounds)
-            await window.setFrame(newWindowFrame)
+            await window.setFrame(
+                newWindowFrame,
+                sizeFirst: WindowEngine.shouldSizeFirst(to: newWindowFrame.size, from: currentSize)
+            )
         } else {
             window.setSize(initialFrame.size)
         }

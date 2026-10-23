@@ -193,12 +193,31 @@ enum WindowEngine {
             try await window.setFrameAnimated(targetFrame, bounds: bounds, resolvedProperties: resolvedProperties)
             actualFrame = window.frame
         } else {
-            await window.setFrame(targetFrame, sizeFirst: willChangeScreens, resolvedProperties: resolvedProperties)
+            // Size before moving when the target is narrower or shorter, and on a screen change.
+            // The retry checks the size the window actually has: moving first at the old size
+            // leaves the window past the display, and some apps then latch that frame as their minimum size.
+            await window.setFrame(
+                targetFrame,
+                sizeFirst: shouldSizeFirst(
+                    to: targetFrame.size,
+                    from: window.size,
+                    willChangeScreens: willChangeScreens
+                ),
+                resolvedProperties: resolvedProperties
+            )
             try Task.checkCancellation()
 
             var frameAfterResize = window.frame
             if !frameAfterResize.approximatelyEqual(to: targetFrame) {
-                await window.setFrame(targetFrame, resolvedProperties: resolvedProperties)
+                await window.setFrame(
+                    targetFrame,
+                    sizeFirst: shouldSizeFirst(
+                        to: targetFrame.size,
+                        from: frameAfterResize.size,
+                        willChangeScreens: willChangeScreens
+                    ),
+                    resolvedProperties: resolvedProperties
+                )
                 try Task.checkCancellation()
                 frameAfterResize = window.frame
             }
@@ -246,6 +265,19 @@ enum WindowEngine {
 
         window.setPosition(correctedFrame.origin)
         return correctedFrame
+    }
+
+    /// Size before moving when `targetSize` is narrower or shorter than `currentSize`.
+    /// Growing on the same screen stays position-first so the window expands from the aimed-at edge.
+    /// A screen change always sizes first.
+    static func shouldSizeFirst(
+        to targetSize: CGSize,
+        from currentSize: CGSize,
+        willChangeScreens: Bool = false
+    ) -> Bool {
+        willChangeScreens ||
+            targetSize.width < currentSize.width ||
+            targetSize.height < currentSize.height
     }
 
     static func anchoredFrame(
