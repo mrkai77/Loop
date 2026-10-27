@@ -103,7 +103,7 @@ struct DirectionPickerView: View {
 
         let matches = sectionItems
             .compactMap { item -> (WindowDirection, Int)? in
-                if let score = fuzzyScore(item.name, key) {
+                if let score = Self.fuzzyScore(item.name, key) {
                     return (item, score)
                 }
                 return nil
@@ -114,7 +114,13 @@ struct DirectionPickerView: View {
         searchResults = matches + moreSection.items
     }
 
-    private func fuzzyScore(_ text: String, _ pattern: String) -> Int? {
+    /// Scores how well a search pattern matches an action name. Lower scores rank higher.
+    /// - Parameters:
+    ///   - text: The action name to match against.
+    ///   - pattern: The search text entered by the user.
+    /// - Returns: `0` for a prefix match, `1` for a substring match, `2` if the pattern's
+    ///   characters appear in order within the text, or `nil` if there is no match.
+    static func fuzzyScore(_ text: String, _ pattern: String) -> Int? {
         let text = text.lowercased()
         let pattern = pattern.lowercased()
 
@@ -129,7 +135,7 @@ struct DirectionPickerView: View {
         var pIndex = pattern.startIndex
         while tIndex < text.endIndex, pIndex < pattern.endIndex {
             if text[tIndex] == pattern[pIndex] {
-                pIndex = text.index(after: pIndex)
+                pIndex = pattern.index(after: pIndex)
             }
             tIndex = text.index(after: tIndex)
         }
