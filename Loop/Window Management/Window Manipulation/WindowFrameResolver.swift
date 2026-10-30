@@ -266,22 +266,28 @@ extension WindowFrameResolver {
     ///   - windowProperties: pre-resolved window properties (frame, isResizable).
     /// - Returns: the calculated custom frame based on the specified parameters.
     private static func calculateCustomFrame(for action: WindowAction, bounds: CGRect, record: WindowRecords.ResolvedRecord?, windowProperties: Window.ResolvedProperties?) -> CGRect {
+        customFrame(for: action, bounds: bounds, currentSize: windowProperties?.frame.size, initialSize: record?.initialFrame?.size)
+    }
+
+    /// Shared custom geometry. A nil current size denotes a scaled settings preview;
+    /// a supplied size uses screen coordinates, including literal pixel dimensions.
+    static func customFrame(for action: WindowAction, bounds: CGRect, currentSize: CGSize?, initialSize: CGSize? = nil) -> CGRect {
         var result = CGRect(origin: bounds.origin, size: .zero)
 
         // Size Calculation
 
-        if let sizeMode = action.sizeMode, sizeMode == .preserveSize, let windowProperties {
-            result.size = windowProperties.frame.size
+        if let sizeMode = action.sizeMode, sizeMode == .preserveSize, let currentSize {
+            result.size = currentSize
 
-        } else if let sizeMode = action.sizeMode, sizeMode == .initialSize, windowProperties != nil {
-            if let initialFrame = record?.initialFrame {
-                result.size = initialFrame.size
+        } else if let sizeMode = action.sizeMode, sizeMode == .initialSize, currentSize != nil {
+            if let initialSize {
+                result.size = initialSize
             }
 
         } else { // sizeMode would be custom
             switch action.unit {
             case .pixels:
-                if windowProperties == nil {
+                if currentSize == nil {
                     let mainScreen = NSScreen.main ?? NSScreen.screens[0]
                     result.size.width = (CGFloat(action.width ?? .zero) / mainScreen.frame.width) * bounds.width
                     result.size.height = (CGFloat(action.height ?? .zero) / mainScreen.frame.height) * bounds.height
@@ -305,7 +311,7 @@ extension WindowFrameResolver {
         if let positionMode = action.positionMode, positionMode == .coordinates {
             switch action.unit {
             case .pixels:
-                if windowProperties == nil {
+                if currentSize == nil {
                     let mainScreen = NSScreen.main ?? NSScreen.screens[0]
                     result.origin.x = (CGFloat(action.xPoint ?? .zero) / mainScreen.frame.width) * bounds.width
                     result.origin.y = (CGFloat(action.yPoint ?? .zero) / mainScreen.frame.height) * bounds.height
@@ -507,9 +513,9 @@ extension WindowFrameResolver {
             .filter { !$0.intersects(currentFrame) } // Ensure it doesn't intersect with the current window
             .map { $0.intersection(screenFrame) } // Crop it to the screen frame
 
-        /// Computes the closest window obstacle in each of the four cardinal directions
-        /// (left, right, top, bottom) relative to the current window, and returns the boundaries
-        /// formed by these obstacles, constrained to the screen frame.
+        // Computes the closest window obstacle in each of the four cardinal directions
+        // (left, right, top, bottom) relative to the current window, and returns the boundaries
+        // formed by these obstacles, constrained to the screen frame.
         func computeBoundaries() -> (minX: CGFloat, minY: CGFloat, maxX: CGFloat, maxY: CGFloat) {
             var minX = screenFrame.minX
             var minY = screenFrame.minY

@@ -145,6 +145,12 @@ open "loop://list/actions"       # List window actions
 open "loop://list/keybinds"      # List custom keybinds
 ```
 
+### Initial window frames
+
+In **Settings → Behavior → Window → Initial window frames**, enable automatic placement and add an app. Configure its initial size and position using the custom-frame editor. Settings apply only to newly created standard, resizable windows, including windows opened when the app launches. Existing windows, excluded apps, minimized windows and fullscreen windows are left alone.
+
+Placement uses the window's current display and does not activate the app or change Loop's action history. Apps may enforce their own minimum sizes or reposition windows after creation. If a window changes frame while Loop is waiting for it to become resizable, Loop leaves it alone.
+
 ### Keyboard Shortcuts
 
 <table>

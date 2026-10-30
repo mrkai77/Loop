@@ -29,6 +29,7 @@ struct BehaviorConfigurationView: View {
     @Default(.shiftFocusWhenStashed) var shiftFocusWhenStashed
 
     @State private var isPaddingConfigurationViewPresented = false
+    @State private var isInitialWindowFramesPresented = false
 
     var body: some View {
         LuminareForm {
@@ -79,6 +80,15 @@ struct BehaviorConfigurationView: View {
             }
 
             LuminareToggle("Move to cursor’s screen", isOn: $useScreenWithCursor)
+
+            LuminareButton("Initial window frames", "Configure…") {
+                isInitialWindowFramesPresented = true
+            }
+            .luminareModal(isPresented: $isInitialWindowFramesPresented) {
+                InitialWindowFramesConfigurationView(isPresented: $isInitialWindowFramesPresented)
+                    .frame(width: 400)
+            }
+            .luminareModalCornerRadius(24)
 
             // Enabling the system window manager will override this option.
             if !useSystemWindowManagerWhenAvailable {

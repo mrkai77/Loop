@@ -32,6 +32,8 @@ struct CustomActionConfigurationView: View {
         }
     }
 
+    private let sizeModes: [CustomWindowActionSizeMode]
+
     private let anchors: [CustomWindowActionAnchor] = [
         .topLeft, .top, .topRight, .left, .center, .right, .bottomLeft, .bottom, .bottomRight
     ]
@@ -47,7 +49,8 @@ struct CustomActionConfigurationView: View {
     private let previewController = PreviewController()
     private let screenSize: CGSize = NSScreen.main?.frame.size ?? NSScreen.screens[0].frame.size
 
-    init(action: Binding<WindowAction>, isPresented: Binding<Bool>) {
+    init(action: Binding<WindowAction>, isPresented: Binding<Bool>, sizeModes: [CustomWindowActionSizeMode] = CustomWindowActionSizeMode.allCases) {
+        self.sizeModes = sizeModes
         _windowAction = action
         _isPresented = isPresented
         _action = State(initialValue: action.wrappedValue)
@@ -288,7 +291,7 @@ struct CustomActionConfigurationView: View {
     @ViewBuilder
     private func sizeConfiguration() -> some View {
         LuminarePicker(
-            elements: CustomWindowActionSizeMode.allCases,
+            elements: sizeModes,
             selection: Binding(
                 get: {
                     action.sizeMode ?? .custom
@@ -299,7 +302,7 @@ struct CustomActionConfigurationView: View {
                     }
                 }
             ),
-            columns: 3
+            columns: sizeModes.count
         ) { mode in
             VStack(spacing: 4) {
                 mode.image

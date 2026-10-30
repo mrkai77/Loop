@@ -87,6 +87,10 @@ extension Defaults.Keys {
     /// Excluded apps
     static let excludedApps = Key<[URL]>("excludedApps", default: [])
 
+    // Initial frames are local to this Mac, independently of interactive window actions.
+    static let initialWindowFramesEnabled = Key<Bool>("initialWindowFramesEnabled", default: false)
+    static let initialWindowFrames = Key<[String: WindowAction]>("initialWindowFrames", default: [:])
+
     // About
     #if RELEASE
         static let includeDevelopmentVersions = Key<Bool>("includeDevelopmentVersions", default: false)
