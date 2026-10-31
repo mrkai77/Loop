@@ -558,8 +558,10 @@ final class Window {
         }
     }
 
+    /// - Parameter placement: When `nil`, the window is moved, then resized.
     func setFrameSynchronously(
         _ rect: CGRect,
+        placement: FramePlacement? = nil,
         resolvedProperties: ResolvedProperties? = nil
     ) {
         guard !applyOwnWindowFrameSynchronously(rect) else {
@@ -569,7 +571,7 @@ final class Window {
         let shouldSetSize = resolvedProperties?.isResizable ?? true
 
         performFrameAdjustment(resolvedProperties: resolvedProperties) {
-            writeChangedFrame(rect, with: $0, placement: nil, shouldSetSize: shouldSetSize)
+            writeChangedFrame(rect, with: $0, placement: placement, shouldSetSize: shouldSetSize)
         }
     }
 

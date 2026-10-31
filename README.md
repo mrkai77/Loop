@@ -48,6 +48,12 @@ The preview window enables you to see the resize action *before* committing to i
 
 <div><video controls src="https://github.com/user-attachments/assets/2afdecea-39e8-4f25-8c12-9cfc8aacbe2e" muted="false"></video></div>
 
+### Initial window frames (local development)
+
+Entries in `Defaults[.initialWindowFrames]` map app bundle IDs to custom `WindowAction` values with `sizeMode: .custom`. Each entry opts that app into automatic initial placement; removing it stops observation. No settings UI is included yet.
+
+Only new standard, resizable windows are placed on their current display. Existing, excluded, minimized and fullscreen windows are left alone. Placement does not activate the app or change Undo history. Registration retries are bounded; window readiness is checked immediately, then after cumulative waits of 25, 100 and 350 ms, provided the frame has not changed.
+
 ### Keyboard Shortcuts
 
 Loop allows you to assign any key in tandem with the trigger key to initiate a window manipulation action.
