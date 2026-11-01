@@ -34,6 +34,20 @@ enum InitialWindowFrames {
 
     enum Readiness { case wait, skip, ready }
 
+    /// Check direct window children only; do not search through app content.
+    static func hasMultipleWindowTabs(_ window: AXUIElement) throws -> Bool {
+        let children: [AXUIElement] = try window.getValue(.children) ?? []
+        for child in children {
+            let error = AXUIElementSetMessagingTimeout(child, 0.1)
+            guard error == .success else { throw error }
+            let role: String? = try child.getValue(.role)
+            guard role == NSAccessibility.Role.tabGroup.rawValue else { continue }
+            let tabs: [AXUIElement] = try child.getValue(.tabs) ?? []
+            if tabs.count > 1 { return true }
+        }
+        return false
+    }
+
     /// Wait briefly for accessibility readiness; cancellation ends the wait.
     @MainActor
     static func waitUntilReady(_ check: () -> Readiness) async -> Bool {

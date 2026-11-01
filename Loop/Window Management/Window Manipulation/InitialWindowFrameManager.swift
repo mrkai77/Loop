@@ -151,6 +151,9 @@ final class InitialWindowFrameManager {
                           let minimized: Bool = try element.getValue(.minimized) else { return .wait }
                     let fullscreen: Bool = try element.getValue(.fullScreen) ?? false
                     guard role == NSAccessibility.Subrole.standardWindow.rawValue, !minimized, !fullscreen else { return .skip }
+                    // Native tabs can publish a new AX window even though the user
+                    // is still in the same window. Do not reposition the tab group.
+                    guard try !InitialWindowFrames.hasMultipleWindowTabs(element) else { return .skip }
                     // Window.isResizable returns true on AX errors; automatic placement must wait instead.
                     guard try element.canSetValue(.size), let candidate = try? Window(element: element, pid: pid) else { return .wait }
                     guard readableFrame(element) == frame else { return .skip }

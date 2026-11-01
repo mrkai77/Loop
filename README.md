@@ -54,6 +54,8 @@ Entries in `Defaults[.initialWindowFrames]` map app bundle IDs to custom `Window
 
 Only new standard, resizable windows are placed on their current display. Existing, excluded, minimized and fullscreen windows are left alone. Placement does not activate the app or change Undo history. Registration retries are bounded; window readiness is checked immediately, then after cumulative waits of 25, 100 and 350 ms, provided the frame has not changed.
 
+Windows exposing a top-level multi-tab bar are also left alone: opening a native tab can report a new accessibility window without creating a separate visible window. This conservatively skips newly opened or restored multi-tab windows too.
+
 ### Keyboard Shortcuts
 
 Loop allows you to assign any key in tandem with the trigger key to initiate a window manipulation action.
