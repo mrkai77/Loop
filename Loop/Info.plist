@@ -17,5 +17,67 @@
 	<true/>
 	<key>NSDockTilePlugIn</key>
 	<string>LoopDockTile.plugin</string>
+	<key>OSLogPreferences</key>
+	<dict>
+		<key>com.MrKai77.Loop</key>
+		<dict>
+			<key>AppDelegate</key>
+			<dict>
+				<key>Level</key>
+				<dict>
+					<key>Persist</key>
+					<string>Info</string>
+				</dict>
+			</dict>
+			<key>BackupManager</key>
+			<dict>
+				<key>Level</key>
+				<dict>
+					<key>Persist</key>
+					<string>Info</string>
+				</dict>
+			</dict>
+			<key>UpdateChecker</key>
+			<dict>
+				<key>Level</key>
+				<dict>
+					<key>Persist</key>
+					<string>Info</string>
+				</dict>
+			</dict>
+			<key>UpdateDownloader</key>
+			<dict>
+				<key>Level</key>
+				<dict>
+					<key>Persist</key>
+					<string>Info</string>
+				</dict>
+			</dict>
+			<key>UpdateInstaller</key>
+			<dict>
+				<key>Level</key>
+				<dict>
+					<key>Persist</key>
+					<string>Info</string>
+				</dict>
+			</dict>
+			<key>Updater</key>
+			<dict>
+				<key>Level</key>
+				<dict>
+					<key>Persist</key>
+					<string>Info</string>
+				</dict>
+			</dict>
+			<key>UpdaterAuthorizationCoordinator</key>
+			<dict>
+				<key>Level</key>
+				<dict>
+					<key>Persist</key>
+					<string>Info</string>
+				</dict>
+			</dict>
+		</dict>
+	</dict>
 </dict>
 </plist>
