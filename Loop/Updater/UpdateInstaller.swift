@@ -97,13 +97,31 @@ actor UpdateInstaller {
             return
         }
 
-        log.notice("Application will now restart. New instance will launch in 0.5 seconds.")
+        let currentPID = ProcessInfo.processInfo.processIdentifier
+        log.notice("Application will now restart. New instance will launch once pid \(currentPID) exits.")
 
-        let appURL = installedAppURL
+        // `open -n` so a still-running old instance can't be reactivated in place of the new binary;
+        // the new instance's terminate broadcast cleans up any straggler after the 10s cap.
         let process = Process()
-        process.launchPath = "/bin/sh"
-        process.arguments = ["-c", "sleep 0.5; open \"\(appURL.path)\""]
-        process.launch()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = [
+            "-c",
+            """
+            i=0
+            while /bin/kill -0 "$1" 2>/dev/null && [ "$i" -lt 100 ]; do /bin/sleep 0.1; i=$((i + 1)); done
+            exec /usr/bin/open -n "$2"
+            """,
+            "sh",
+            String(currentPID),
+            installedAppURL.path
+        ]
+
+        do {
+            try process.run()
+        } catch {
+            log.error("Failed to schedule relaunch: \(error.localizedDescription)")
+            return
+        }
 
         await MainActor.run {
             NSApp.terminate(nil)
