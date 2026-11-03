@@ -69,7 +69,19 @@ final class Updater: ObservableObject {
         updatesEnabledObserver = makeUpdatesEnabledObserver()
     }
 
+    /// Determines whether automatic update checks should run.
+    ///
+    /// Debug builds skip them unless `LOOP_ENABLE_UPDATE_CHECK` is set, since they usually run from DerivedData
+    /// and an update would install over, or relocate away from, the build Xcode just produced.
+    /// Manual checks from the About tab bypass this and still work.
+    /// - Returns: `true` if automatic update checks are enabled.
     private static func checkIfUpdatesEnabled() -> Bool {
+        #if DEBUG
+            guard ProcessInfo.processInfo.isEnvironmentFlagEnabled("LOOP_ENABLE_UPDATE_CHECK") else {
+                return false
+            }
+        #endif
+
         if ProcessInfo.processInfo.isEnvironmentFlagEnabled("LOOP_SKIP_UPDATE_CHECK") {
             return false
         }
