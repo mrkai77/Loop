@@ -102,6 +102,22 @@ enum BundleUtilities {
         try verifyVersionMatches(versionInfo: versionInfo, manifest: manifest)
     }
 
+    /// Returns whether a bundle on disk already contains the manifest's version.
+    ///
+    /// Unlike `verifyVersionMatches(bundleURL:manifest:)`, a mismatch is an expected outcome here and is not logged as an error.
+    /// - Parameters:
+    ///   - manifest: The update manifest to compare against
+    ///   - bundleURL: URL to the app bundle to inspect
+    /// - Returns: `true` if the bundle's version (and build number, for non-stable channels) matches the manifest
+    static func bundleContains(_ manifest: UpdateManifest, at bundleURL: URL) -> Bool {
+        guard let versionInfo = readVersionInfo(from: bundleURL),
+              versionInfo.normalizedVersion == manifest.version else {
+            return false
+        }
+
+        return manifest.channel == .stable || versionInfo.build == manifest.buildNumber
+    }
+
     /// Reads version information from a bundle's Info.plist
     /// - Parameter bundleURL: URL to the app bundle
     /// - Returns: VersionInfo if successfully read, nil otherwise

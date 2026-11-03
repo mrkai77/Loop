@@ -88,7 +88,9 @@ final class Updater: ObservableObject {
                     log.info("Automatic updates enabled, installing update...")
                     Task {
                         do {
-                            try await downloadAndInstallUpdate()
+                            if installState != .readyToRestart {
+                                try await downloadAndInstallUpdate()
+                            }
                             await relaunchAfterUpdate()
                         } catch {
                             // downloadAndInstallUpdate already logs the failure and updates installState
@@ -226,6 +228,15 @@ final class Updater: ObservableObject {
                     }
 
                     updateManifest = manifest
+
+                    // A previous install may have already replaced the bundle on disk without Loop relaunching.
+                    // Set this before `updateState` so the automatic-update path relaunches instead of reinstalling.
+                    if BundleUtilities.bundleContains(manifest, at: Bundle.main.bundleURL) {
+                        log.notice("Update \(manifest.version) build \(manifest.buildNumber) is already installed, waiting for relaunch")
+                        progressBar = 1.0
+                        installState = .readyToRestart
+                    }
+
                     updateState = .available
 
                     log.notice("Update available: \(manifest.version) build \(manifest.buildNumber)")
