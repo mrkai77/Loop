@@ -102,15 +102,16 @@ actor UpdateInstaller {
 
         // The waiter has to outlive this process, so it can't run in-process.
         // $0 is the current pid and $1 is the app path, passed as arguments rather than interpolated.
-        // `open -n` so a still-running old instance can't be reactivated in place of the new binary;
-        // the new instance's terminate broadcast cleans up any straggler after the 10s cap.
+        // Nothing on macOS blocks until an unrelated process exits, so poll every 0.1s.
+        // Stop after 10s if this process is stuck quitting; `open -n` still starts a new instance,
+        // and that instance's terminate broadcast force-kills whatever is left.
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/bin/sh")
         process.arguments = [
             "-c",
             """
-            for _ in $(/usr/bin/seq 100); do
-                /bin/kill -0 "$0" 2>/dev/null || break
+            deadline=$(($(/bin/date +%s) + 10))
+            while /bin/kill -0 "$0" 2>/dev/null && [ "$(/bin/date +%s)" -lt "$deadline" ]; do
                 /bin/sleep 0.1
             done
             exec /usr/bin/open -n "$1"
