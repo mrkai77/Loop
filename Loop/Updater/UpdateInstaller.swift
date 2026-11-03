@@ -100,6 +100,8 @@ actor UpdateInstaller {
         let currentPID = ProcessInfo.processInfo.processIdentifier
         log.notice("Application will now restart. New instance will launch once pid \(currentPID) exits.")
 
+        // The waiter has to outlive this process, so it can't run in-process.
+        // $0 is the current pid and $1 is the app path, passed as arguments rather than interpolated.
         // `open -n` so a still-running old instance can't be reactivated in place of the new binary;
         // the new instance's terminate broadcast cleans up any straggler after the 10s cap.
         let process = Process()
@@ -107,11 +109,12 @@ actor UpdateInstaller {
         process.arguments = [
             "-c",
             """
-            i=0
-            while /bin/kill -0 "$1" 2>/dev/null && [ "$i" -lt 100 ]; do /bin/sleep 0.1; i=$((i + 1)); done
-            exec /usr/bin/open -n "$2"
+            for _ in $(/usr/bin/seq 100); do
+                /bin/kill -0 "$0" 2>/dev/null || break
+                /bin/sleep 0.1
+            done
+            exec /usr/bin/open -n "$1"
             """,
-            "sh",
             String(currentPID),
             installedAppURL.path
         ]
