@@ -552,20 +552,30 @@ actor UpdateInstaller {
         let userAppsURL = LoopSupportPaths.canonical(
             fileManager.homeDirectoryForCurrentUser.appendingPathComponent("Applications", isDirectory: true)
         )
-        let destinationURL = LoopSupportPaths.canonical(
+        let userDestinationURL = LoopSupportPaths.canonical(
             userAppsURL.appendingPathComponent("Loop.app", isDirectory: true)
         )
-
-        // Create ~/Applications if needed
-        try fileManager.createDirectory(at: userAppsURL, withIntermediateDirectories: true)
-
-        // Reuse the same staging + swap path used for regular updates so only swap
-        // operations touch locations outside Loop's support directory.
-        try await performAtomicInstallationNonPrivileged(
-            from: appBundle,
-            to: destinationURL,
-            manifest: manifest
+        let systemDestinationURL = LoopSupportPaths.canonical(
+            URL(fileURLWithPath: "/Applications/Loop.app", isDirectory: true)
         )
+
+        let destinationURL: URL
+
+        if try await installOverExistingCopyIfPossible(from: appBundle, at: systemDestinationURL, manifest: manifest) {
+            destinationURL = systemDestinationURL
+        } else {
+            // Create ~/Applications if needed
+            try fileManager.createDirectory(at: userAppsURL, withIntermediateDirectories: true)
+
+            // Reuse the same staging + swap path used for regular updates so only swap
+            // operations touch locations outside Loop's support directory.
+            try await performAtomicInstallationNonPrivileged(
+                from: appBundle,
+                to: userDestinationURL,
+                manifest: manifest
+            )
+            destinationURL = userDestinationURL
+        }
 
         // Verify the installation
         try BundleUtilities.verifyBundleStructure(destinationURL)
@@ -581,6 +591,56 @@ actor UpdateInstaller {
         )
 
         log.success("Successfully installed to Applications folder")
+    }
+
+    /// Installs the update over an existing Loop copy, such as `/Applications/Loop.app`, when that can be done without elevation.
+    ///
+    /// Replacing an existing copy avoids leaving a second, stale one that the login item, Dock, or Spotlight would keep launching.
+    /// - Parameters:
+    ///   - appBundle: The extracted update bundle.
+    ///   - existingURL: The existing Loop copy to replace.
+    ///   - manifest: The update manifest used to verify the staged bundle.
+    /// - Returns: `true` if the existing copy was replaced, or `false` if it is absent, not Loop, or not writable.
+    /// - Throws: Any installation error other than a permission failure, which is treated as "not replaceable".
+    private func installOverExistingCopyIfPossible(
+        from appBundle: URL,
+        at existingURL: URL,
+        manifest: UpdateManifest
+    ) async throws -> Bool {
+        guard isReplaceableLoopInstall(at: existingURL) else {
+            return false
+        }
+
+        do {
+            try await performAtomicInstallationNonPrivileged(
+                from: appBundle,
+                to: existingURL,
+                manifest: manifest
+            )
+            return true
+        } catch let error where isExplicitPermissionError(error) {
+            // App Management can still refuse the swap, e.g. when the existing copy is signed by a different team.
+            log.warn("Could not replace \(existingURL.path), falling back to ~/Applications: \(error.localizedDescription)")
+            return false
+        }
+    }
+
+    /// Returns whether `bundleURL` is a Loop install this process can swap without administrator rights.
+    ///
+    /// Moving a directory to a new parent needs write access to the directory itself as well as its parent,
+    /// so root-owned copies installed through the privileged helper are not replaceable here.
+    /// - Parameter bundleURL: The candidate app bundle.
+    /// - Returns: `true` if the bundle has Loop's bundle identifier and both it and its parent are writable.
+    private func isReplaceableLoopInstall(at bundleURL: URL) -> Bool {
+        let infoPlistURL = bundleURL.appendingPathComponent("Contents/Info.plist")
+        guard let plist = NSDictionary(contentsOf: infoPlistURL),
+              let bundleIdentifier = plist["CFBundleIdentifier"] as? String,
+              bundleIdentifier == Bundle.main.bundleIdentifier else {
+            return false
+        }
+
+        return fileManager.isWritableFile(atPath: bundleURL.path)
+            && fileManager.isWritableFile(atPath: bundleURL.deletingLastPathComponent().path)
     }
 
     private func cleanupOldRelocatedCopyIfNeeded(
