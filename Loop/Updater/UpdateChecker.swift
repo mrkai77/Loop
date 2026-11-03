@@ -40,7 +40,7 @@ actor UpdateChecker {
         case .development:
             // Multiple releases for dev channel
             let releases = try decoder.decode([GitHubRelease].self, from: manifestData)
-            candidateRelease = releases.first(where: { $0.prerelease })
+            candidateRelease = developmentCandidate(in: releases)
         }
 
         if let candidateRelease {
@@ -53,6 +53,32 @@ actor UpdateChecker {
 
         log.info("No update available")
         return nil
+    }
+
+    /// Picks the release to offer on the development channel.
+    ///
+    /// Development users should still receive a stable release that ships after the last prerelease,
+    /// rather than staying on that older prerelease until the next one is published.
+    /// - Parameter releases: Releases from the GitHub API, newest first.
+    /// - Returns: The latest prerelease, unless the latest stable release has a strictly higher version.
+    func developmentCandidate(in releases: [GitHubRelease]) -> GitHubRelease? {
+        let latestPrerelease = releases.first(where: \.prerelease)
+        let latestStable = releases.first(where: { !$0.prerelease })
+
+        guard let latestPrerelease else { return latestStable }
+        guard let latestStable else { return latestPrerelease }
+
+        let prereleaseVersion = extractVersionInfo(from: latestPrerelease).version
+        let stableVersion = extractVersionInfo(from: latestStable).version
+
+        // A stable release of the same version as the prerelease carries no build number to compare,
+        // so only a strictly higher version takes precedence.
+        guard stableVersion.compare(prereleaseVersion, options: .numeric) == .orderedDescending else {
+            return latestPrerelease
+        }
+
+        log.info("Stable release \(stableVersion) is newer than prerelease \(prereleaseVersion)")
+        return latestStable
     }
 
     private func processRelease(
