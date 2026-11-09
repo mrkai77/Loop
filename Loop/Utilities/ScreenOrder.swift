@@ -191,12 +191,12 @@ private extension ScreenOrder {
             (0 ..< columns).contains(column) && (0 ..< rows).contains(row) && isSolid[column][row]
         }
 
-        /// The screen the outline runs along, looking inwards through any bridged gap.
-        ///
-        /// A gap less than half as deep as the screen at the bottom of it is tall (or wide, for a
-        /// gap in the side of the arrangement) is only screens being slightly out of line, like a
-        /// row with one screen a point lower, so the outline belongs to that screen. Anything
-        /// deeper is a real gap, and the outline across it belongs to no screen.
+        // The screen the outline runs along, looking inwards through any bridged gap.
+        //
+        // A gap less than half as deep as the screen at the bottom of it is tall (or wide, for a
+        // gap in the side of the arrangement) is only screens being slightly out of line, like a
+        // row with one screen a point lower, so the outline belongs to that screen. Anything
+        // deeper is a real gap, and the outline across it belongs to no screen.
         func screen(behind direction: Direction, of column: Int, _ row: Int) -> Int? {
             var column = column
             var row = row

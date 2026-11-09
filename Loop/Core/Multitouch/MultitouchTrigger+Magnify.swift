@@ -30,7 +30,7 @@ extension MultitouchTrigger {
         #endif
 
         if let radialMenuGesture = entry.radialMenuGesture,
-           !handsRadialMenuMagnifyToOverride(magnify, fingerCount: fingerCount) {
+           !routesMagnifyToOverride(magnify, fingerCount: fingerCount) {
             await handleRadialMenuMagnify(magnify, fingerCount: fingerCount, gesture: radialMenuGesture)
             return
         }
@@ -133,7 +133,7 @@ extension MultitouchTrigger {
 
     /// A pinch or spread binding sharing the radial menu's finger count takes over the stroke
     /// once it crosses the activation threshold in that direction, in place of the center action
-    private func handsRadialMenuMagnifyToOverride(
+    private func routesMagnifyToOverride(
         _ magnify: SubsurfaceGestureEvent.MagnifyEvent,
         fingerCount: Int
     ) -> Bool {
@@ -144,15 +144,21 @@ extension MultitouchTrigger {
             return false
         }
 
+        let directionGesture = magnify.distance >= magnify.originDistance ? entry.magnifyInGesture : entry.magnifyOutGesture
+
         // The stroke always begins as the radial menu, so anything else means an override took it
         if session.resolvedGesture?.kind != .radialMenu {
+            // Reversing into a direction no override can take hands the stroke back to the menu
+            guard let directionGesture, session.canActivate(directionGesture) else {
+                return !session.restoreRadialMenuGesture()
+            }
             return true
         }
 
         guard magnify.phase == .began || magnify.phase == .changed,
               !session.hasCommittedMagnifyAction,
               hasCrossedActivationThreshold(magnify),
-              let overrideGesture = magnify.distance >= magnify.originDistance ? entry.magnifyInGesture : entry.magnifyOutGesture
+              let overrideGesture = directionGesture
         else {
             return false
         }

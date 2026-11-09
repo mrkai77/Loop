@@ -507,9 +507,9 @@ extension WindowFrameResolver {
             .filter { !$0.intersects(currentFrame) } // Ensure it doesn't intersect with the current window
             .map { $0.intersection(screenFrame) } // Crop it to the screen frame
 
-        /// Computes the closest window obstacle in each of the four cardinal directions
-        /// (left, right, top, bottom) relative to the current window, and returns the boundaries
-        /// formed by these obstacles, constrained to the screen frame.
+        // Computes the closest window obstacle in each of the four cardinal directions
+        // (left, right, top, bottom) relative to the current window, and returns the boundaries
+        // formed by these obstacles, constrained to the screen frame.
         func computeBoundaries() -> (minX: CGFloat, minY: CGFloat, maxX: CGFloat, maxY: CGFloat) {
             var minX = screenFrame.minX
             var minY = screenFrame.minY

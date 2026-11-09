@@ -57,7 +57,21 @@ struct RadialMenuGestureOverrideTests {
         #expect(session.resolvedGesture?.id == pinch.id)
     }
 
-    @Test func nonRadialStrokeCannotBeOverridden() {
+    @Test func overriddenStrokeCanReturnToRadialMenu() {
+        let session = MultitouchGestureSession()
+        let radial = gesture(kind: .radialMenu)
+        let pinch = gesture(kind: .magnifyOut)
+        let spread = gesture(kind: .magnifyIn)
+        let context = MultitouchGestureActivationContext(targetWindow: nil, startedInTitlebar: false)
+
+        #expect(session.begin(activationContext: context, gesture: radial, loopWasAlreadyOpen: true))
+        #expect(session.overrideRadialMenuGesture(with: pinch))
+        #expect(session.restoreRadialMenuGesture())
+        #expect(session.resolvedGesture?.id == radial.id)
+        #expect(session.overrideRadialMenuGesture(with: spread))
+    }
+
+    @Test func nonRadialStrokeCannotBeOverriddenOrRestored() {
         let session = MultitouchGestureSession()
         let swipeUp = gesture(kind: .swipeUp, activationZone: .anywhere)
         let pinch = gesture(kind: .magnifyOut, activationZone: .anywhere)
@@ -65,6 +79,7 @@ struct RadialMenuGestureOverrideTests {
 
         #expect(session.begin(activationContext: context, gesture: swipeUp, loopWasAlreadyOpen: true))
         #expect(!session.overrideRadialMenuGesture(with: pinch))
+        #expect(!session.restoreRadialMenuGesture())
         #expect(session.resolvedGesture?.id == swipeUp.id)
     }
 

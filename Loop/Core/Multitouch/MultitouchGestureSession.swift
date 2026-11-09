@@ -22,6 +22,8 @@ final class MultitouchGestureSession {
     private(set) var ownsGestureBlocker = false
     /// The gesture currently driving this stroke. Swapped on direction reversal
     private(set) var resolvedGesture: GestureBinding?
+    /// Kept so an override can hand the stroke back to the radial menu it began as
+    private var radialMenuGesture: GestureBinding?
     private(set) var pendingTargetWindow: Window?
     private var activationContext: MultitouchGestureActivationContext?
     /// Set once Loop rejects or abandons the stroke, as the Dock may already be acting on it
@@ -52,6 +54,7 @@ final class MultitouchGestureSession {
         hasGestureBegun = false
         ownsGestureBlocker = false
         resolvedGesture = nil
+        radialMenuGesture = nil
         pendingTargetWindow = nil
         activationContext = nil
         if endsStroke {
@@ -97,6 +100,7 @@ final class MultitouchGestureSession {
 
         pendingTargetWindow = activationContext.targetWindow
         resolvedGesture = gesture
+        radialMenuGesture = gesture.kind == .radialMenu ? gesture : nil
         hasGestureBegun = true
         // Loop is already on screen, so no activation threshold to cross.
         hasActivated = loopWasAlreadyOpen
@@ -351,6 +355,13 @@ final class MultitouchGestureSession {
     func overrideRadialMenuGesture(with gesture: GestureBinding) -> Bool {
         guard resolvedGesture?.kind == .radialMenu, canActivate(gesture) else { return false }
         resolvedGesture = gesture
+        return true
+    }
+
+    /// Hands an overridden stroke back to the radial menu it began as
+    func restoreRadialMenuGesture() -> Bool {
+        guard let radialMenuGesture else { return false }
+        resolvedGesture = radialMenuGesture
         return true
     }
 
