@@ -215,9 +215,9 @@ actor UpdateChecker {
 
         if let minimumOS = manifest.compatibility.minimumOS {
             guard ProcessInfo.processInfo.isOperatingSystemAtLeast(minimumOS) else {
-                throw UpdateError.incompatibleSystem("Update requires macOS \(minimumOS.description) or later")
+                throw UpdateError.incompatibleSystem("Update requires macOS \(minimumOS) or later")
             }
-            log.debug("Minimum OS requirement check passed for version: \(minimumOS.description)")
+            log.debug("Minimum OS requirement check passed for version: \(minimumOS)")
         }
 
         if let maximumOS = manifest.compatibility.maximumOS {
@@ -230,10 +230,10 @@ actor UpdateChecker {
             )
 
             guard !ProcessInfo.processInfo.isOperatingSystemAtLeast(actualMaximumOS) else {
-                throw UpdateError.incompatibleSystem("Update requires macOS \(maximumOS.description) or earlier")
+                throw UpdateError.incompatibleSystem("Update requires macOS \(maximumOS) or earlier")
             }
 
-            log.debug("Maximum OS requirement check passed for version: \(maximumOS.description)")
+            log.debug("Maximum OS requirement check passed for version: \(maximumOS)")
         }
 
         let supportedArchitectures = manifest.compatibility.supportedArchitectures

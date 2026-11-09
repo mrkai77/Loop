@@ -428,7 +428,7 @@ extension WindowFrameResolver {
     /// - Returns: the frame of the last action performed on the window, or the current frame if no last action is found.
     private static func getLastActionFrame(context: ResizeContext, bounds: CGRect, windowProperties: Window.ResolvedProperties) -> CGRect {
         if let previousAction = context.resolvedRecord?.lastAction {
-            log.info("Last action was \(previousAction.description)")
+            log.info("Last action was \(previousAction)")
 
             let recursiveContext = context.derivedContext(action: previousAction, bounds: bounds)
             return getFrame(resizeContext: recursiveContext).frame

@@ -191,7 +191,7 @@ final class MultitouchTrigger {
         releaseGestureBlocker(for: session)
 
         guard systemGestureFilter.canClaimCurrentTouch(fingerCount: fingerCount) else {
-            log.info("Rejected \(fingerCount)-finger \(gesture.kind) gesture: \(dockOwnershipRejectionReason)")
+            log.info("Rejected \(gesture): \(dockOwnershipRejectionReason)")
             session.abandonStroke()
             return false
         }
@@ -202,9 +202,9 @@ final class MultitouchTrigger {
             loopWasAlreadyOpen: loopWasAlreadyOpen
         ) else {
             if !activationContext.allows(gesture) {
-                log.info("Rejected \(fingerCount)-finger \(gesture.kind) gesture: titlebar-only gesture started outside a titlebar")
+                log.info("Rejected \(gesture): titlebar-only gesture started outside a titlebar")
             } else {
-                log.info("Rejected \(fingerCount)-finger \(gesture.kind) gesture: no target window")
+                log.info("Rejected \(gesture): no target window")
             }
             systemGestureFilter.releaseCurrentTouch(fingerCount: fingerCount)
             // Keep the DEBUG overlay alive, as it follows the physical stroke
@@ -213,7 +213,7 @@ final class MultitouchTrigger {
 
         // Claimed only once accepted, so the filter never sees Loop own a stroke it's about to reject
         guard systemGestureFilter.claimCurrentTouch(fingerCount: fingerCount) else {
-            log.info("Rejected \(fingerCount)-finger \(gesture.kind) gesture: failed to claim the touch, \(dockOwnershipRejectionReason)")
+            log.info("Rejected \(gesture): failed to claim the touch, \(dockOwnershipRejectionReason)")
             session.reject()
             return false
         }

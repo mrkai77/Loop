@@ -130,7 +130,7 @@ final class StashManager {
             return false
         }
 
-        log.info("Toggling stashed window \(stashedWindow.window.description)")
+        log.info("Toggling stashed window \(stashedWindow.window)")
 
         if store.isWindowRevealed(stashedWindow.window.cgWindowID) {
             await hideWindow(stashedWindow)
@@ -219,7 +219,7 @@ extension StashManager {
     /// Add the given `StashWindow` to the list of monitored windows, move the window to the stashed area
     /// and start mouse moved listener if needed.
     private func stash(_ windowToStash: StashedWindowInfo) async {
-        log.info("stash \(windowToStash.window.description)")
+        log.info("stash \(windowToStash.window)")
 
         await unstashOverlappingWindows(windowToStash)
 
@@ -239,7 +239,7 @@ extension StashManager {
 
     /// Stop monitoring the window. If `resetFrame` is true, the window will be moved to its initial frame.
     private func unstash(_ window: StashedWindowInfo, resetFrame: Bool, resetFrameAnimated: Bool) async {
-        log.info("unstash \(window.window.description)")
+        log.info("unstash \(window.window)")
 
         if resetFrame {
             if resetFrameAnimated {
@@ -272,7 +272,7 @@ extension StashManager {
     }
 
     private func unstashSynchronously(_ window: StashedWindowInfo, resetFrame: Bool) {
-        log.info("unstash \(window.window.description)")
+        log.info("unstash \(window.window)")
 
         if resetFrame {
             window.window.setFrameSynchronously(window.restoreFrame)
@@ -327,12 +327,12 @@ private extension StashManager {
             return
         } catch {
             cancelTransition(windowID: windowID, transitionID: transitionID, fallbackRevealed: false)
-            log.error("Failed to revealWindow \(window.window.description): \(error.localizedDescription)")
+            log.error("Failed to revealWindow \(window.window): \(error.localizedDescription)")
             return
         }
 
         if finishTransition(windowID: windowID, transitionID: transitionID) {
-            log.info("revealWindow \(window.window.description)")
+            log.info("revealWindow \(window.window)")
         }
     }
 
@@ -341,12 +341,12 @@ private extension StashManager {
         let windowID = window.window.cgWindowID
 
         guard allowUnrevealed || store.isWindowRevealed(windowID) else {
-            log.warn("Skipping hideWindow because window is not revealed: \(window.window.description)")
+            log.warn("Skipping hideWindow because window is not revealed: \(window.window)")
             return
         }
 
         guard !shouldThrottle || !self.shouldThrottle(windowID: windowID) else {
-            log.warn("Skipping hideWindow because transition is throttled: \(window.window.description)")
+            log.warn("Skipping hideWindow because transition is throttled: \(window.window)")
             return
         }
 
@@ -371,12 +371,12 @@ private extension StashManager {
             return
         } catch {
             cancelTransition(windowID: windowID, transitionID: transitionID, fallbackRevealed: true)
-            log.error("Failed to hideWindow \(window.window.description): \(error.localizedDescription)")
+            log.error("Failed to hideWindow \(window.window): \(error.localizedDescription)")
             return
         }
 
         if finishTransition(windowID: windowID, transitionID: transitionID) {
-            log.info("hideWindow \(window.window.description)")
+            log.info("hideWindow \(window.window)")
         }
     }
 
@@ -411,7 +411,7 @@ private extension StashManager {
         }
 
         if let focusWindow {
-            log.info("Focusing another window on the same screen: \(focusWindow.description).")
+            log.info("Focusing another window on the same screen: \(focusWindow).")
             Task { @MainActor in
                 focusWindow.focus()
             }

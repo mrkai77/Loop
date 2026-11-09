@@ -201,7 +201,7 @@ final class WindowDragManager {
             await context.refreshResolvedState()
             self.resizeContext = context
 
-            log.info("Determined window being dragged: \(window.description)")
+            log.info("Determined window being dragged: \(window)")
         }
     }
 

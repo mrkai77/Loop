@@ -27,10 +27,9 @@ final class MultitouchRecognizerRegistry {
             _ gestures: [GestureBinding]
         ) -> (radial: GestureBinding?, directionals: [GestureBinding], magnifyOut: GestureBinding?, magnifyIn: GestureBinding?) {
             let radial = gestures.first { $0.kind == .radialMenu }
-            let gesturesByPriority = gestures.sortedByActionability
-            let directionals = gesturesByPriority.filter(\.kind.isDirectionalSwipe)
-            let magnifyOut = gesturesByPriority.first { $0.kind == .magnifyOut }
-            let magnifyIn = gesturesByPriority.first { $0.kind == .magnifyIn }
+            let directionals = gestures.filter { $0.kind?.isDirectionalSwipe == true }
+            let magnifyOut = gestures.first { $0.kind == .magnifyOut }
+            let magnifyIn = gestures.first { $0.kind == .magnifyIn }
             return (radial, directionals, magnifyOut, magnifyIn)
         }
     }
@@ -111,7 +110,7 @@ final class MultitouchRecognizerRegistry {
     }
 
     private func logConflictingGestures(in gestures: [GestureBinding]) {
-        let conflictingIDs = GestureBinding.conflictingActionableIDs(in: gestures)
+        let conflictingIDs = GestureBinding.conflictingIDs(in: gestures)
         guard conflictingIDs != conflictingGestureIDs else { return }
         conflictingGestureIDs = conflictingIDs
 
@@ -122,8 +121,7 @@ final class MultitouchRecognizerRegistry {
 
         let conflictingGestures = gestures
             .filter { conflictingIDs.contains($0.id) }
-            .map { "\($0.fingerCount)-finger \($0.kind)" }
-        log.warn("Disabled gestures that conflict on the same finger count: \(conflictingGestures.joined(separator: ", "))")
+        log.warn("Disabled gestures that conflict on the same finger count: \(conflictingGestures)")
     }
 
     private func startRecognizer(
@@ -167,17 +165,5 @@ final class MultitouchRecognizerRegistry {
             didOpenLoopWithGesture: entry.session.didOpenLoopWithThisGesture,
             didAcquireGestureBlocker: entry.session.releaseGestureBlocker()
         )
-    }
-}
-
-private extension Array where Element == GestureBinding {
-    var sortedByActionability: [GestureBinding] {
-        sorted {
-            if $0.resolvesToNoAction != $1.resolvesToNoAction {
-                return !$0.resolvesToNoAction
-            }
-
-            return false
-        }
     }
 }

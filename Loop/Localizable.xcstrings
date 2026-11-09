@@ -29410,6 +29410,9 @@
         }
       }
     },
+    "Set Gesture…" : {
+      "comment" : "Button title on a gesture that has no trigger set yet. Opens the gesture configuration."
+    },
     "Settings" : {
       "comment" : "Section header shown in settings",
       "localizations" : {
@@ -33132,6 +33135,9 @@
           }
         }
       }
+    },
+    "Takes priority over the radial menu for this gesture." : {
+      "comment" : "Tooltip shown on a gesture in settings that overrides one direction of a radial menu gesture using the same finger count"
     },
     "Target window" : {
       "comment" : "Label for the target window picker.",

@@ -76,7 +76,7 @@ struct CycleActionCoordinatorTests {
         ))
     }
 
-    @Test func selectingCurrentFromOutsideResumesStoredProgress() throws {
+    @Test func resumingCurrentFromOutsideResumesSessionProgress() throws {
         let first = WindowAction(.leftHalf)
         let second = WindowAction(.maximize)
         let cycle = WindowAction([first, second])
@@ -107,7 +107,7 @@ struct CycleActionCoordinatorTests {
             in: cycle,
             currentAction: noSelection,
             currentParentAction: nil,
-            mode: .selectCurrent
+            mode: .resumeCurrent
         )
         coordinator.recordActionTransition(
             from: noSelection,
