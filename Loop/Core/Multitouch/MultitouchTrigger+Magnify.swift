@@ -42,11 +42,8 @@ extension MultitouchTrigger {
             if !session.hasGestureBegun {
                 let initialGesture = magnify.distance >= magnify.originDistance ? entry.magnifyInGesture : entry.magnifyOutGesture
                 guard let initialGesture else {
-                    // The recognition sample only records which way the fingers first moved.
-                    // A short twitch that way must not give the stroke to the Dock, or a
-                    // later spread in the bound direction can never take it back.
-                    // The recognizer has already seen `minimumMagnificationDistance` here, so this waits for a full step from the start.
-                    if abs(magnify.distance - magnify.originDistance) >= magnifyStepSize {
+                    if magnify.phase == .began {
+                        // No binding for this direction, so the stroke belongs to the Dock
                         systemGestureFilter.releaseCurrentTouch(fingerCount: fingerCount)
                     }
                     return

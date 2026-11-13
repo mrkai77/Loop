@@ -552,7 +552,7 @@ final class SystemGestureFilter {
         let (negative, positive): (DockGesture, DockGesture) = switch motion {
         case .horizontal: (.swipeRight, .swipeLeft)
         case .vertical: (.swipeUp, .swipeDown)
-        case .pinch: (.pinch, .spread)
+        case .pinch: (.spread, .pinch)
         }
 
         if progress < 0 { return [negative] }
@@ -586,9 +586,8 @@ extension SystemGestureFilter {
         case .swipeRight: [.swipeRight]
         case .swipeUp: [.swipeUp]
         case .swipeDown: [.swipeDown]
-        // Either magnify direction holds the whole pinch. The first sample can
-        // point the wrong way, and claiming only one side lets Show Desktop start.
-        case .magnifyOut, .magnifyIn: [.pinch, .spread]
+        case .magnifyOut: [.pinch]
+        case .magnifyIn: [.spread]
         }
     }
 }
