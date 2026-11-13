@@ -215,6 +215,7 @@ enum SkyLightToolBelt {
     }
 
     /// Finds the topmost window at a given screen position.
+    /// Child windows, such as an overlay an app draws over its own window, resolve to the window they belong to.
     /// - Parameter position: The screen position to check.
     /// - Returns: The `CGWindowID` of the window at the position, or `nil` if none found.
     static func windowIDAtPosition(_ position: CGPoint) -> CGWindowID? {
@@ -233,7 +234,38 @@ enum SkyLightToolBelt {
         let status = SLSFindWindowByGeometry(cid, 0, 1, 0, &screenPoint, &windowPoint, &hitWindowID, &windowCID)
         guard status == .success else { return nil }
 
-        return hitWindowID != 0 ? hitWindowID : nil
+        return hitWindowID != 0 ? topLevelWindowID(of: hitWindowID) : nil
+    }
+
+    /// Follows a window's parents up to the top-level window it belongs to.
+    /// - Parameter windowID: The `CGWindowID` to resolve.
+    /// - Returns: The top-level `CGWindowID`, or `windowID` itself if it has no parent or the lookup failed.
+    private static func topLevelWindowID(of windowID: CGWindowID) -> CGWindowID {
+        guard let SLSWindowQueryWindows = SkyLightSymbolLoader.SLSWindowQueryWindows,
+              let SLSWindowQueryResultCopyWindows = SkyLightSymbolLoader.SLSWindowQueryResultCopyWindows,
+              let SLSWindowIteratorAdvance = SkyLightSymbolLoader.SLSWindowIteratorAdvance,
+              let SLSWindowIteratorGetParentID = SkyLightSymbolLoader.SLSWindowIteratorGetParentID,
+              let SLSMainConnectionID = SkyLightSymbolLoader.SLSMainConnectionID
+        else {
+            log.error("Failed to load SkyLight symbols in \(#function)")
+            return windowID
+        }
+
+        let cid = SLSMainConnectionID()
+        var currentWindowID = windowID
+        var visited: Set<CGWindowID> = []
+
+        while visited.insert(currentWindowID).inserted {
+            let query = SLSWindowQueryWindows(cid, [currentWindowID] as CFArray, 0)
+            let iterator = SLSWindowQueryResultCopyWindows(query)
+            guard SLSWindowIteratorAdvance(iterator) else { break }
+
+            let parentWindowID = SLSWindowIteratorGetParentID(iterator)
+            guard parentWindowID != 0 else { break }
+            currentWindowID = parentWindowID
+        }
+
+        return currentWindowID
     }
 
     /// Checks whether a specific window has valid SkyLight tags and no parent window.
