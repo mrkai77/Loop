@@ -24,11 +24,11 @@ enum SystemInfo {
 
     static var architecture: Architecture {
         #if arch(x86_64)
-            return .x86_64
+            .x86_64
         #elseif arch(arm64)
-            return .arm64
+            .arm64
         #else
-            return .other
+            .other
         #endif
     }
 }
