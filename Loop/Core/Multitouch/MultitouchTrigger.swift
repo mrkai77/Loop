@@ -47,9 +47,6 @@ final class MultitouchTrigger {
     let swipeCycleStepSize: CGFloat = 0.15
     /// Later pinch repeats are this far apart. The first action fires sooner.
     let magnifyStepSize: CGFloat = 0.2
-    /// Selects the action once the pinch is recognizably a pinch.
-    /// Waiting for `magnifyStepSize` left a gap where the gesture was visible and lifting applied nothing.
-    let magnifyActivationDistance: CGFloat = 0.1
 
     var radialMenuActions = RadialMenuAction.userConfiguredActions
 
@@ -224,9 +221,9 @@ final class MultitouchTrigger {
             return false
         }
 
-        session.setSwipeActivationDistance(
-            recognizerRegistry.entry(for: fingerCount)?.recognizer.minimumSwipeTranslation
-        )
+        let recognizer = recognizerRegistry.entry(for: fingerCount)?.recognizer
+        session.setSwipeActivationDistance(recognizer?.minimumSwipeTranslation)
+        session.setMagnifyActivationDistance(recognizer?.minimumMagnificationDistance)
 
         targetResolver.rememberRepeatableWindow(
             activationContext.targetWindow,
@@ -342,7 +339,8 @@ final class MultitouchTrigger {
                 recognitionThreshold: threshold,
                 actionCount: actionCount,
                 swipeStep: swipeCycleStepSize,
-                magnifyStep: magnifyActivationDistance,
+                magnifyActivation: entry.recognizer.minimumMagnificationDistance,
+                magnifyStep: magnifyStepSize,
                 screenCenter: center
             )
             startDebugContactsIfNeeded()

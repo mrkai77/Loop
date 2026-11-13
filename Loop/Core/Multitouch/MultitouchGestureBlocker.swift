@@ -32,7 +32,8 @@ final class MultitouchGestureBlocker {
         case dropping(hasForwarded: Bool)
     }
 
-    private enum NavigationSwipe {
+    /// A navigation swipe or zoom stroke
+    private enum HeldGesture {
         case passing(hasForwarded: Bool)
         case holding(events: [CGEvent], start: ContinuousClock.Instant)
         case dropping(hasForwarded: Bool)
@@ -43,8 +44,8 @@ final class MultitouchGestureBlocker {
     private var lastScrollPhase: Int64 = 0
     /// Decided when momentum begins, as a new stroke's `mayBegin` can arrive mid-momentum
     private var isDroppingMomentum = false
-    private var navigationSwipe = NavigationSwipe.passing(hasForwarded: false)
-    private var magnification = NavigationSwipe.passing(hasForwarded: false)
+    private var navigationSwipe = HeldGesture.passing(hasForwarded: false)
+    private var magnification = HeldGesture.passing(hasForwarded: false)
 
     /// Touch frames, force clicks and gesture brackets pass, as dropping them can leave apps mid-gesture.
     /// Zoom is held separately, the same way scrolls are, until Loop accepts or releases the pinch.
@@ -163,12 +164,21 @@ final class MultitouchGestureBlocker {
 
         let hidType = event.getIntegerValueField(.gestureHIDType)
         if hidType == CGEventField.GestureHIDType.navigationSwipe.rawValue {
-            return handleNavigationSwipe(event, proxy: proxy)
+            return handleHeldGesture(
+                event,
+                proxy: proxy,
+                state: &navigationSwipe,
+                name: "navigation swipe",
+                direction: Self.direction(ofSwipeMask: event.getIntegerValueField(.swipeMask))
+            ) { systemGestureFilter.scrollOwner(heldFor: $0, direction: $1) }
         }
 
         if hidType == CGEventField.GestureHIDType.zoom.rawValue {
-            return handleMagnification(event, proxy: proxy)
+            return handleHeldGesture(event, proxy: proxy, state: &magnification, name: "magnification") { elapsed, _ in
+                systemGestureFilter.magnificationOwner(heldFor: elapsed)
+            }
         }
+
 
         guard Self.blockedGestureHIDTypes.contains(hidType), activeCount.withLock({ $0 > 0 }) else {
             return Unmanaged.passUnretained(event)
@@ -319,106 +329,62 @@ final class MultitouchGestureBlocker {
         return Unmanaged.passUnretained(event)
     }
 
-    // MARK: Navigation Swipes
+    // MARK: Held Gestures
 
-    /// Apps swipe between pages from these, so they're held like scrolls while Loop decides on the stroke
-    private func handleNavigationSwipe(_ event: CGEvent, proxy: CGEventTapProxy) -> Unmanaged<CGEvent>? {
+    /// Apps swipe between pages and zoom from these, so they're held like scrolls while Loop decides on the stroke.
+    /// `owner` is asked with `direction` while deciding, and without it once the stroke passes.
+    private func handleHeldGesture(
+        _ event: CGEvent,
+        proxy: CGEventTapProxy,
+        state stroke: inout HeldGesture,
+        name: String,
+        direction: SystemGestureFilter.DockGesture? = nil,
+        owner: (_ heldFor: Duration, _ direction: SystemGestureFilter.DockGesture?) -> SystemGestureFilter.ScrollOwner
+    ) -> Unmanaged<CGEvent>? {
         let forward = Unmanaged.passUnretained(event)
         let phase = CGEventField.GesturePhase(rawValue: event.getIntegerValueField(.gesturePhase))
         let isEnd = phase == .ended || phase == .cancelled
-        let direction = Self.direction(ofSwipeMask: event.getIntegerValueField(.swipeMask))
 
         if phase == .began {
-            navigationSwipe = switch systemGestureFilter.scrollOwner(heldFor: .zero, direction: direction) {
+            stroke = switch owner(.zero, direction) {
             case .loop: .dropping(hasForwarded: false)
             case .undecided: .holding(events: [], start: .now)
             case .apps: .passing(hasForwarded: false)
             }
         }
 
-        switch navigationSwipe {
+        switch stroke {
         case let .passing(hasForwarded):
-            if !isEnd, systemGestureFilter.scrollOwner(heldFor: .zero, direction: nil) == .loop {
-                navigationSwipe = .dropping(hasForwarded: hasForwarded)
+            if !isEnd, owner(.zero, nil) == .loop {
+                stroke = .dropping(hasForwarded: hasForwarded)
                 return nil
             }
-            navigationSwipe = .passing(hasForwarded: !isEnd)
+            stroke = .passing(hasForwarded: !isEnd)
             return forward
 
         case let .holding(events, start):
-            switch systemGestureFilter.scrollOwner(heldFor: ContinuousClock.now - start, direction: direction) {
+            switch owner(ContinuousClock.now - start, direction) {
             case .loop:
-                navigationSwipe = isEnd ? .passing(hasForwarded: false) : .dropping(hasForwarded: false)
-                log.debug("Dropped \(events.count) held navigation swipe events, Loop took the stroke")
+                stroke = isEnd ? .passing(hasForwarded: false) : .dropping(hasForwarded: false)
+                log.debug("Dropped \(events.count) held \(name) events, Loop took the stroke")
                 return nil
             case .undecided where !isEnd:
-                navigationSwipe = .holding(events: events + [event.copy() ?? event], start: start)
+                stroke = .holding(events: events + [event.copy() ?? event], start: start)
                 return nil
             case .apps, .undecided:
-                navigationSwipe = .passing(hasForwarded: !isEnd)
+                stroke = .passing(hasForwarded: !isEnd)
                 // Posted from this tap's position, so they reach apps before the current event
                 for heldEvent in events {
                     heldEvent.tapPostEvent(proxy)
                 }
-                log.debug("Replayed \(events.count) held navigation swipe events after \(ContinuousClock.now - start)")
+                log.debug("Replayed \(events.count) held \(name) events after \(ContinuousClock.now - start)")
                 return forward
             }
 
         case let .dropping(hasForwarded):
             guard isEnd else { return nil }
-            navigationSwipe = .passing(hasForwarded: false)
-            // Let ends through to apps that saw the swipe begin, so they don't stay mid-swipe
-            return hasForwarded ? forward : nil
-        }
-    }
-
-    // MARK: Magnification
-
-    /// Apps zoom from these. Held until Loop accepts the pinch or the stroke is clearly not one of its gestures.
-    private func handleMagnification(_ event: CGEvent, proxy: CGEventTapProxy) -> Unmanaged<CGEvent>? {
-        let forward = Unmanaged.passUnretained(event)
-        let phase = CGEventField.GesturePhase(rawValue: event.getIntegerValueField(.gesturePhase))
-        let isEnd = phase == .ended || phase == .cancelled
-
-        if phase == .began {
-            magnification = switch systemGestureFilter.magnificationOwner(heldFor: .zero) {
-            case .loop: .dropping(hasForwarded: false)
-            case .undecided: .holding(events: [], start: .now)
-            case .apps: .passing(hasForwarded: false)
-            }
-        }
-
-        switch magnification {
-        case let .passing(hasForwarded):
-            if !isEnd, systemGestureFilter.magnificationOwner(heldFor: .zero) == .loop {
-                magnification = .dropping(hasForwarded: hasForwarded)
-                return nil
-            }
-            magnification = .passing(hasForwarded: !isEnd)
-            return forward
-
-        case let .holding(events, start):
-            switch systemGestureFilter.magnificationOwner(heldFor: ContinuousClock.now - start) {
-            case .loop:
-                magnification = isEnd ? .passing(hasForwarded: false) : .dropping(hasForwarded: false)
-                log.debug("Dropped \(events.count) held magnification events, Loop took the stroke")
-                return nil
-            case .undecided where !isEnd:
-                magnification = .holding(events: events + [event.copy() ?? event], start: start)
-                return nil
-            case .apps, .undecided:
-                magnification = .passing(hasForwarded: !isEnd)
-                for heldEvent in events {
-                    heldEvent.tapPostEvent(proxy)
-                }
-                log.debug("Replayed \(events.count) held magnification events after \(ContinuousClock.now - start)")
-                return forward
-            }
-
-        case let .dropping(hasForwarded):
-            guard isEnd else { return nil }
-            magnification = .passing(hasForwarded: false)
-            // Let ends through to apps that saw the zoom begin, so they don't stay mid-zoom
+            stroke = .passing(hasForwarded: false)
+            // Let ends through to apps that saw the stroke begin, so they don't stay mid-gesture
             return hasForwarded ? forward : nil
         }
     }

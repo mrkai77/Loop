@@ -274,13 +274,13 @@ struct MultitouchGestureActivationTests {
 
     @Test func magnifyCycleReversesOuterBoundaryAndResetsInsideActivationRing() {
         let session = MultitouchGestureSession()
+        session.setMagnifyActivationDistance(0.2)
         var directions: [Bool] = []
         let action = gesture(kind: .magnifyIn, activationZone: .anywhere)
 
         session.commitMagnify(
             gesture: action,
             distance: 0.7,
-            originDistance: 0.5,
             step: 0.2,
             allowsRapidRepeat: true
         ) {
@@ -289,7 +289,6 @@ struct MultitouchGestureActivationTests {
         session.commitMagnify(
             gesture: action,
             distance: 0.901,
-            originDistance: 0.5,
             step: 0.2,
             allowsRapidRepeat: true
         ) {
@@ -298,7 +297,6 @@ struct MultitouchGestureActivationTests {
         session.commitMagnify(
             gesture: action,
             distance: 0.899,
-            originDistance: 0.5,
             step: 0.2,
             allowsRapidRepeat: true
         ) {
@@ -306,20 +304,18 @@ struct MultitouchGestureActivationTests {
         }
         let didReset = session.resetMagnifyActionIfNeeded(
             distance: 0.699,
-            originDistance: 0.5,
-            step: 0.2
+            originDistance: 0.5
         )
 
         #expect(didReset)
         #expect(!session.hasCommittedMagnifyAction)
         #expect(directions == [false, false, true])
-        #expect(session.resetMagnifyActionIfNeeded(distance: 0.6, originDistance: 0.5, step: 0.2))
-        #expect(!session.resetMagnifyActionIfNeeded(distance: 0.701, originDistance: 0.5, step: 0.2))
+        #expect(session.resetMagnifyActionIfNeeded(distance: 0.6, originDistance: 0.5))
+        #expect(!session.resetMagnifyActionIfNeeded(distance: 0.701, originDistance: 0.5))
 
         session.commitMagnify(
             gesture: action,
             distance: 0.701,
-            originDistance: 0.5,
             step: 0.2,
             allowsRapidRepeat: true
         ) {
@@ -336,7 +332,6 @@ struct MultitouchGestureActivationTests {
         session.commitMagnify(
             gesture: action,
             distance: 0.7,
-            originDistance: 0.5,
             step: 0.2,
             allowsRapidRepeat: false
         ) { _ in
@@ -350,7 +345,6 @@ struct MultitouchGestureActivationTests {
         session.commitMagnify(
             gesture: action,
             distance: 0.7,
-            originDistance: 0.5,
             step: 0.2,
             allowsRapidRepeat: false
         ) { _ in
@@ -361,8 +355,31 @@ struct MultitouchGestureActivationTests {
         #expect(session.hasCommittedMagnifyAction)
     }
 
+    @Test func magnifyRepeatsStepFromWhereTheActionWasSelected() {
+        let session = MultitouchGestureSession()
+        var fires = 0
+        let action = gesture(kind: .magnifyIn, activationZone: .anywhere)
+
+        for distance in [0.6, 0.79, 0.801, 1.001] {
+            session.commitMagnify(
+                gesture: action,
+                distance: distance,
+                step: 0.2,
+                allowsRapidRepeat: true
+            ) { _ in
+                fires += 1
+            }
+            if distance == 0.79 {
+                #expect(fires == 1)
+            }
+        }
+
+        #expect(fires == 3)
+    }
+
     @Test func radialMagnifyFiresOnceForEveryCrossedStepInEitherDirection() {
         let session = MultitouchGestureSession()
+        session.setMagnifyActivationDistance(0.2)
         var directions: [Bool] = []
 
         session.commitRadialMagnify(distance: 0.7, originDistance: 0.5, step: 0.2) {
@@ -376,8 +393,7 @@ struct MultitouchGestureActivationTests {
         }
         let didReset = session.resetMagnifyActionIfNeeded(
             distance: 0.699,
-            originDistance: 0.5,
-            step: 0.2
+            originDistance: 0.5
         )
 
         #expect(didReset)

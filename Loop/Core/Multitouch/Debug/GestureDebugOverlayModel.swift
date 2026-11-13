@@ -39,6 +39,7 @@
         var magnifyDistance: CGFloat?
         var magnifyOriginDistance: CGFloat?
         var magnifyBaseline: CGFloat?
+        var magnifyActivation: CGFloat = 0
         var magnifyStep: CGFloat = 0
         var scale: CGFloat = gestureDebugPointsPerNormalizedUnit
     }
@@ -55,6 +56,7 @@
             recognitionThreshold: CGFloat,
             actionCount: Int,
             swipeStep: CGFloat,
+            magnifyActivation: CGFloat,
             magnifyStep: CGFloat
         ) {
             activeFingerCount = fingerCount
@@ -67,6 +69,7 @@
                 swipeBaseline: recognitionThreshold > 0 ? recognitionThreshold : nil,
                 swipeActionCount: actionCount,
                 swipeBoundaries: RadialGestureGeometry.slotBoundaryAngles(actionCount: actionCount),
+                magnifyActivation: magnifyActivation,
                 magnifyStep: magnifyStep
             )
             snapshot.fingerCount = fingerCount
@@ -81,6 +84,7 @@
                     recognitionThreshold: snapshot.recognitionThreshold,
                     actionCount: snapshot.swipeActionCount,
                     swipeStep: snapshot.swipeStep,
+                    magnifyActivation: snapshot.magnifyActivation,
                     magnifyStep: snapshot.magnifyStep
                 )
             }
@@ -105,6 +109,7 @@
                     recognitionThreshold: snapshot.recognitionThreshold,
                     actionCount: snapshot.swipeActionCount,
                     swipeStep: snapshot.swipeStep,
+                    magnifyActivation: snapshot.magnifyActivation,
                     magnifyStep: snapshot.magnifyStep
                 )
             }
@@ -143,6 +148,7 @@
                     recognitionThreshold: snapshot.recognitionThreshold,
                     actionCount: snapshot.swipeActionCount,
                     swipeStep: snapshot.swipeStep,
+                    magnifyActivation: snapshot.magnifyActivation,
                     magnifyStep: snapshot.magnifyStep
                 )
             }

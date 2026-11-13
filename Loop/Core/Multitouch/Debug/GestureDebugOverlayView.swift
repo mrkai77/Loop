@@ -51,7 +51,7 @@
                 Text("slot: \(snapshot.swipeSlot.map(String.init) ?? "-")")
                 Text("magnify: \(format(snapshot.magnifyDistance)) / origin \(format(snapshot.magnifyOriginDistance))")
                 Text("magnify Δ: \(magnifyDelta)")
-                Text("magnify activation: abs(Δ) >= \(format(snapshot.magnifyStep))")
+                Text("magnify activation: abs(Δ) >= \(format(snapshot.magnifyActivation))  step: \(format(snapshot.magnifyStep))")
                 Text("magnify committed: \(format(snapshot.magnifyBaseline))")
             }
             .font(.caption)
@@ -127,6 +127,7 @@
                       originDistance: originDistance,
                       activationRadius: baseline,
                       ringStep: snapshot.swipeStep,
+                      magnificationActivation: snapshot.magnifyActivation,
                       magnificationStep: snapshot.magnifyStep
                   )
             else {

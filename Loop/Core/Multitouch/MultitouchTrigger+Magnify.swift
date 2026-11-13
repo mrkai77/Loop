@@ -45,6 +45,7 @@ extension MultitouchTrigger {
                     // The recognition sample only records which way the fingers first moved.
                     // A short twitch that way must not give the stroke to the Dock, or a
                     // later spread in the bound direction can never take it back.
+                    // The recognizer has already seen `minimumMagnificationDistance` here, so this waits for a full step from the start.
                     if abs(magnify.distance - magnify.originDistance) >= magnifyStepSize {
                         systemGestureFilter.releaseCurrentTouch(fingerCount: fingerCount)
                     }
@@ -71,18 +72,16 @@ extension MultitouchTrigger {
                 return
             }
 
-            let crossedActivationThreshold = hasCrossedActivationThreshold(magnify)
+            let crossedActivationThreshold = hasCrossedActivationThreshold(magnify, recognizer: entry.recognizer)
             if retractsOneShotMagnify(
                 session: session,
-                activeGesture: activeGesture,
                 magnify: magnify,
+                currentGesture: activeGesture,
+                oppositeGesture: activeGesture.kind == .magnifyOut ? entry.magnifyInGesture : entry.magnifyOutGesture,
                 allowsRapidRepeatAction: allowsRapidRepeatAction,
-                crossedActivationThreshold: crossedActivationThreshold,
-                oppositeGesture: activeGesture.kind == .magnifyOut ? entry.magnifyInGesture : entry.magnifyOutGesture
+                crossedActivationThreshold: crossedActivationThreshold
             ) {
-                if session.clearMagnifyAction() {
-                    clearActionSelection()
-                }
+                clearMagnifyAction(fingerCount: fingerCount)
                 return
             }
             if !session.hasCommittedMagnifyAction {
@@ -117,7 +116,6 @@ extension MultitouchTrigger {
             session.commitMagnify(
                 gesture: activeGesture,
                 distance: magnify.distance,
-                originDistance: magnify.originDistance,
                 step: magnifyStepSize,
                 allowsRapidRepeat: allowsRapidRepeatAction
             ) { reverse in
@@ -174,7 +172,7 @@ extension MultitouchTrigger {
 
         guard magnify.phase == .began || magnify.phase == .changed,
               !session.hasCommittedMagnifyAction,
-              hasCrossedActivationThreshold(magnify),
+              hasCrossedActivationThreshold(magnify, recognizer: entry.recognizer),
               let overrideGesture = directionGesture
         else {
             return false
@@ -195,6 +193,8 @@ extension MultitouchTrigger {
         fingerCount: Int,
         gesture: GestureBinding
     ) async {
+        guard let entry = recognizerRegistry.entry(for: fingerCount) else { return }
+
         switch magnify.phase {
         case .began, .changed:
             if magnify.phase == .began, recognizerRegistry.session(for: fingerCount)?.hasGestureBegun != true {
@@ -205,7 +205,7 @@ extension MultitouchTrigger {
                 return
             }
             if !session.hasCommittedMagnifyAction {
-                guard hasCrossedActivationThreshold(magnify),
+                guard hasCrossedActivationThreshold(magnify, recognizer: entry.recognizer),
                       await activateGestureIfNeeded(fingerCount: fingerCount)
                 else {
                     return
@@ -260,16 +260,21 @@ extension MultitouchTrigger {
     /// the cancelled one instead.
     private func retractsOneShotMagnify(
         session: MultitouchGestureSession,
-        activeGesture: GestureBinding,
         magnify: SubsurfaceGestureEvent.MagnifyEvent,
+        currentGesture: GestureBinding,
+        oppositeGesture: GestureBinding?,
         allowsRapidRepeatAction: Bool,
-        crossedActivationThreshold: Bool,
-        oppositeGesture: GestureBinding?
+        crossedActivationThreshold: Bool
     ) -> Bool {
         guard !allowsRapidRepeatAction, session.hasCommittedMagnifyAction else { return false }
-        guard magnifyReversalDetected(currentGesture: activeGesture, magnify: magnify) else { return false }
+        guard magnifyReversalDetected(currentGesture: currentGesture, magnify: magnify) else { return false }
         let oppositeTakesOver = crossedActivationThreshold && oppositeGesture != nil
         return !oppositeTakesOver
+    }
+
+    private func clearMagnifyAction(fingerCount: Int) {
+        guard recognizerRegistry.session(for: fingerCount)?.clearMagnifyAction() == true else { return }
+        clearActionSelection()
     }
 
     private func magnifyReversalDetected(
@@ -286,8 +291,13 @@ extension MultitouchTrigger {
         }
     }
 
-    private func hasCrossedActivationThreshold(_ magnify: SubsurfaceGestureEvent.MagnifyEvent) -> Bool {
-        abs(magnify.distance - magnify.originDistance) >= magnifyActivationDistance
+    /// Selects the action as soon as the recognizer reports a pinch, like swipes do.
+    /// Waiting for `magnifyStepSize` left a gap where the gesture was visible and lifting applied nothing.
+    private func hasCrossedActivationThreshold(
+        _ magnify: SubsurfaceGestureEvent.MagnifyEvent,
+        recognizer: SubsurfaceGestureRecognizer
+    ) -> Bool {
+        abs(magnify.distance - magnify.originDistance) >= recognizer.minimumMagnificationDistance
     }
 
     private func resetMagnifyActionIfNeeded(
@@ -297,8 +307,7 @@ extension MultitouchTrigger {
         let hadCommittedAction = session.hasCommittedMagnifyAction
         let isInsideNoSelectionZone = session.resetMagnifyActionIfNeeded(
             distance: magnify.distance,
-            originDistance: magnify.originDistance,
-            step: magnifyActivationDistance
+            originDistance: magnify.originDistance
         )
         if isInsideNoSelectionZone, hadCommittedAction {
             clearActionSelection()

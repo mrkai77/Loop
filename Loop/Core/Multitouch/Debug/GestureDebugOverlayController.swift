@@ -18,6 +18,7 @@
             recognitionThreshold: CGFloat,
             actionCount: Int,
             swipeStep: CGFloat,
+            magnifyActivation: CGFloat,
             magnifyStep: CGFloat,
             screenCenter: CGPoint
         ) {
@@ -27,6 +28,7 @@
                 recognitionThreshold: recognitionThreshold,
                 actionCount: actionCount,
                 swipeStep: swipeStep,
+                magnifyActivation: magnifyActivation,
                 magnifyStep: magnifyStep
             )
 
