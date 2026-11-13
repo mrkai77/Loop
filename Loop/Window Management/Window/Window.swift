@@ -545,13 +545,15 @@ final class Window {
         }
     }
 
+    /// A failed size-first write returns false without repositioning the window.
+    @discardableResult
     func setFrameSynchronously(
         _ rect: CGRect,
         sizeFirst: Bool = false,
         resolvedProperties: ResolvedProperties? = nil
-    ) {
+    ) -> Bool {
         guard !applyOwnWindowFrameSynchronously(rect) else {
-            return
+            return true
         }
 
         let enhancedUI = resolvedProperties?.isEnhancedUserInterface ?? enhancedUserInterface
@@ -562,9 +564,15 @@ final class Window {
             log.info("\(appName ?? "This app")'s enhanced UI will be temporarily disabled while resizing.")
             enhancedUserInterface = false
         }
+        defer { if enhancedUI { enhancedUserInterface = true } }
 
         if sizeFirst, shouldSetSize {
-            setSize(rect.size)
+            do {
+                try axWindow.setValue(.size, value: rect.size)
+            } catch {
+                log.error("Failed to set initial size: \(error.localizedDescription)")
+                return false
+            }
         }
 
         setPosition(rect.origin)
@@ -573,9 +581,7 @@ final class Window {
             setSize(rect.size)
         }
 
-        if enhancedUI {
-            enhancedUserInterface = true
-        }
+        return true
     }
 
     @MainActor

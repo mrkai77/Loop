@@ -87,6 +87,9 @@ extension Defaults.Keys {
     /// Excluded apps
     static let excludedApps = Key<[URL]>("excludedApps", default: [])
 
+    /// Initial geometry by app bundle ID, using the existing custom-action model.
+    static let initialWindowFrames = Key<[String: WindowAction]>("initialWindowFrames", default: [:])
+
     // About
     #if RELEASE
         static let includeDevelopmentVersions = Key<Bool>("includeDevelopmentVersions", default: false)
