@@ -42,9 +42,10 @@ final class MultitouchGestureSession {
     private var swipeMoveBackResetActive = false
     private var swipeActionResetActive = false
     private var lastCommittedMagnifyStepIndex: Int?
-    private var magnifyOriginDistance: CGFloat?
-    private var magnifyStepDistance: CGFloat?
+    /// Where the current magnify action was selected. Repeats step from here, like swipes do.
+    private var firstCommitMagnifyDistance: CGFloat?
     private var magnificationKind: GestureBinding.Kind?
+    private var magnifyActivationDistance: CGFloat?
     private var magnifyActionResetActive = false
 
     func reset(endsStroke: Bool = true) {
@@ -71,8 +72,8 @@ final class MultitouchGestureSession {
         swipeMoveBackResetActive = false
         swipeActionResetActive = false
         lastCommittedMagnifyStepIndex = nil
-        magnifyOriginDistance = nil
-        magnifyStepDistance = nil
+        firstCommitMagnifyDistance = nil
+        magnifyActivationDistance = nil
         magnificationKind = nil
         magnifyActionResetActive = false
     }
@@ -193,6 +194,10 @@ final class MultitouchGestureSession {
         swipeActivationDistance = distance
     }
 
+    func setMagnifyActivationDistance(_ distance: CGFloat?) {
+        magnifyActivationDistance = distance
+    }
+
     /// Clears the committed swipe action when the processed swipe returns to the
     /// move-back zone. The zone is the full first action's commit distance.
     func resetSwipeActionIfNeeded(distance: CGFloat) -> Bool {
@@ -234,14 +239,20 @@ final class MultitouchGestureSession {
         lastCommittedMagnifyStepIndex != nil
     }
 
+    /// Drops a selected magnify action so a later spread or pinch can select one again.
+    func clearMagnifyAction() -> Bool {
+        guard lastCommittedMagnifyStepIndex != nil else { return false }
+        lastCommittedAction = nil
+        lastCommittedMagnifyStepIndex = nil
+        magnifyActionResetActive = true
+        return true
+    }
+
     /// Clears the committed magnify action when the gesture returns inside its
     /// activation ring
-    func resetMagnifyActionIfNeeded(
-        distance: CGFloat,
-        originDistance: CGFloat,
-        step: CGFloat
-    ) -> Bool {
-        guard abs(distance - originDistance) <= step else {
+    func resetMagnifyActionIfNeeded(distance: CGFloat, originDistance: CGFloat) -> Bool {
+        guard let magnifyActivationDistance else { return false }
+        guard abs(distance - originDistance) <= magnifyActivationDistance else {
             magnifyActionResetActive = false
             return false
         }
@@ -278,21 +289,20 @@ final class MultitouchGestureSession {
         step: CGFloat,
         fire: (_ reverse: Bool) -> ()
     ) {
-        magnifyOriginDistance = originDistance
-        magnifyStepDistance = step
-        let newStepIndex = signedMagnifyStepIndex(
-            for: distance,
-            originDistance: originDistance,
-            step: step
-        )
-
         if lastCommittedAction != .radialCenter {
             lastCommittedAction = .radialCenter
             enterAction(.radialCenter)
-            lastCommittedMagnifyStepIndex = newStepIndex
+            firstCommitMagnifyDistance = distance
+            lastCommittedMagnifyStepIndex = 0
             fire(distance < originDistance)
             return
         }
+
+        let newStepIndex = signedMagnifyStepIndex(
+            for: distance,
+            baseline: firstCommitMagnifyDistance ?? distance,
+            step: step
+        )
 
         let previousStepIndex = lastCommittedMagnifyStepIndex ?? newStepIndex
         let crossedStepCount = newStepIndex - previousStepIndex
@@ -308,31 +318,30 @@ final class MultitouchGestureSession {
     func commitMagnify(
         gesture: GestureBinding,
         distance: CGFloat,
-        originDistance: CGFloat,
         step: CGFloat,
         allowsRapidRepeat: Bool,
         fire: (_ reverse: Bool) -> ()
     ) {
         let newKey = ActionKey.gesture(gesture.id)
-        magnifyOriginDistance = originDistance
-        magnifyStepDistance = step
-        let newStepIndex = directionalMagnifyStepIndex(
-            for: distance,
-            originDistance: originDistance,
-            kind: gesture.kind,
-            step: step
-        )
 
         if lastCommittedAction != newKey {
             magnificationKind = gesture.kind
             lastCommittedAction = newKey
             enterAction(newKey)
-            lastCommittedMagnifyStepIndex = newStepIndex
+            firstCommitMagnifyDistance = distance
+            lastCommittedMagnifyStepIndex = 0
             fire(false)
             return
         }
 
         guard allowsRapidRepeat else { return }
+
+        let newStepIndex = directionalMagnifyStepIndex(
+            for: distance,
+            baseline: firstCommitMagnifyDistance ?? distance,
+            kind: gesture.kind,
+            step: step
+        )
 
         let previousStepIndex = lastCommittedMagnifyStepIndex ?? newStepIndex
         let crossedStepCount = newStepIndex - previousStepIndex
@@ -393,16 +402,8 @@ final class MultitouchGestureSession {
         lastCommittedAction = .gesture(gesture.id)
         enterAction(.gesture(gesture.id))
         magnificationKind = gesture.kind
-        if let magnifyOriginDistance, let magnifyStepDistance {
-            lastCommittedMagnifyStepIndex = directionalMagnifyStepIndex(
-                for: distance,
-                originDistance: magnifyOriginDistance,
-                kind: gesture.kind,
-                step: magnifyStepDistance
-            )
-        } else {
-            lastCommittedMagnifyStepIndex = 0
-        }
+        firstCommitMagnifyDistance = distance
+        lastCommittedMagnifyStepIndex = 0
         return true
     }
 
@@ -416,10 +417,10 @@ final class MultitouchGestureSession {
     }
 
     func synchronizeMagnifyStepIndex(distance: CGFloat, step: CGFloat) {
-        guard let magnifyOriginDistance, let magnificationKind else { return }
+        guard let firstCommitMagnifyDistance, let magnificationKind else { return }
         lastCommittedMagnifyStepIndex = directionalMagnifyStepIndex(
             for: distance,
-            originDistance: magnifyOriginDistance,
+            baseline: firstCommitMagnifyDistance,
             kind: magnificationKind,
             step: step
         )
@@ -433,11 +434,11 @@ final class MultitouchGestureSession {
 
     private func signedMagnifyStepIndex(
         for distance: CGFloat,
-        originDistance: CGFloat,
+        baseline: CGFloat,
         step: CGFloat
     ) -> Int {
         guard step > 0 else { return 0 }
-        let normalizedDistance = (distance - originDistance) / step
+        let normalizedDistance = (distance - baseline) / step
         if normalizedDistance >= 0 {
             return Int(floor(normalizedDistance + 0.000_001))
         }
@@ -446,12 +447,12 @@ final class MultitouchGestureSession {
 
     private func directionalMagnifyStepIndex(
         for distance: CGFloat,
-        originDistance: CGFloat,
+        baseline: CGFloat,
         kind: GestureBinding.Kind?,
         step: CGFloat
     ) -> Int {
         guard step > 0, let direction = kind?.magnificationDirection else { return 0 }
-        let normalizedDistance = (distance - originDistance) * direction / step
+        let normalizedDistance = (distance - baseline) * direction / step
         return max(Int(floor(normalizedDistance + 0.000_001)), 0)
     }
 }

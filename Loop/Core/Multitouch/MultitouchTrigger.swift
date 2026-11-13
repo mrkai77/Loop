@@ -45,6 +45,7 @@ final class MultitouchTrigger {
     private var isStarted = false
 
     let swipeCycleStepSize: CGFloat = 0.15
+    /// Later pinch repeats are this far apart. The first action fires sooner.
     let magnifyStepSize: CGFloat = 0.2
 
     var radialMenuActions = RadialMenuAction.userConfiguredActions
@@ -97,14 +98,18 @@ final class MultitouchTrigger {
         radialMenuActionsObservationTask?.cancel()
         radialMenuActionsObservationTask = nil
 
-        systemGestureFilter.stop()
-        gestureMonitor.stop()
+        stopGestureMonitors()
         #if DEBUG
             closeDebugOverlay(force: true)
         #endif
         handleStopResults(recognizerRegistry.stopAll())
-        gestureBlocker.stop()
         targetResolver.reset()
+    }
+
+    private func stopGestureMonitors() {
+        gestureBlocker.stop()
+        systemGestureFilter.stop()
+        gestureMonitor.stop()
     }
 
     func shutdown() {
@@ -121,6 +126,7 @@ final class MultitouchTrigger {
     }
 
     private func rebuildRecognizers() {
+        stopGestureMonitors()
         #if DEBUG
             closeDebugOverlay(force: true)
         #endif
@@ -128,9 +134,6 @@ final class MultitouchTrigger {
         if recognizerRegistry.hasRecognizers {
             gestureMonitor.start()
             gestureBlocker.start()
-        } else {
-            gestureMonitor.stop()
-            gestureBlocker.stop()
         }
         updateSystemGestureFilter()
     }
@@ -218,9 +221,9 @@ final class MultitouchTrigger {
             return false
         }
 
-        session.setSwipeActivationDistance(
-            recognizerRegistry.entry(for: fingerCount)?.recognizer.minimumSwipeTranslation
-        )
+        let recognizer = recognizerRegistry.entry(for: fingerCount)?.recognizer
+        session.setSwipeActivationDistance(recognizer?.minimumSwipeTranslation)
+        session.setMagnifyActivationDistance(recognizer?.minimumMagnificationDistance)
 
         targetResolver.rememberRepeatableWindow(
             activationContext.targetWindow,
@@ -336,6 +339,7 @@ final class MultitouchTrigger {
                 recognitionThreshold: threshold,
                 actionCount: actionCount,
                 swipeStep: swipeCycleStepSize,
+                magnifyActivation: entry.recognizer.minimumMagnificationDistance,
                 magnifyStep: magnifyStepSize,
                 screenCenter: center
             )
