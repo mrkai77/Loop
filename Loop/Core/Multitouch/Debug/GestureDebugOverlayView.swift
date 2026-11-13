@@ -13,7 +13,7 @@
                 Canvas { context, size in
                     drawReference(in: &context, size: size)
                     drawRings(in: &context, size: size)
-                    drawMagnificationRing(in: &context, size: size)
+                    drawMagnifyRing(in: &context, size: size)
                     drawContacts(in: &context, size: size)
                 }
 
@@ -45,14 +45,15 @@
                 Text("centroid: \(format(snapshot.processedCentroid))")
                 Text("translation: \(format(translation))  r: \(format(snapshot.radialDistance))")
                 Text("angle: \(format(snapshot.swipeAngle))")
-                Text("recognition: \(format(snapshot.recognitionThreshold))")
-                Text("swipe baseline: \(format(snapshot.swipeBaseline))  step: \(format(snapshot.swipeStep))")
+                Text("swipe activation: \(format(snapshot.swipeActivation))  step: \(format(snapshot.swipeStep))")
+                Text("swipe baseline: \(format(snapshot.swipeBaseline))")
                 Text("swipe action reset: \(snapshot.swipeActionReset ? "yes" : "no")")
                 Text("slot: \(snapshot.swipeSlot.map(String.init) ?? "-")")
+                Text("magnify activation: abs(Δ) >= \(format(snapshot.magnifyActivation))  step: \(format(snapshot.magnifyStep))")
+                Text("magnify committed: \(format(snapshot.magnifyCommitDistance))")
+                Text("magnify action reset: \(snapshot.magnifyActionReset ? "yes" : "no")")
                 Text("magnify: \(format(snapshot.magnifyDistance)) / origin \(format(snapshot.magnifyOriginDistance))")
                 Text("magnify Δ: \(magnifyDelta)")
-                Text("magnify activation: abs(Δ) >= \(format(snapshot.magnifyActivation))  step: \(format(snapshot.magnifyStep))")
-                Text("magnify committed: \(format(snapshot.magnifyBaseline))")
             }
             .font(.caption)
             .foregroundStyle(.white)
@@ -72,14 +73,14 @@
                 context.stroke(path, with: .color(.cyan.opacity(0.32)), lineWidth: 1.5)
             }
 
-            let recognitionRadius = snapshot.recognitionThreshold * snapshot.scale
-            if recognitionRadius > 0, recognitionRadius <= maxRadius {
+            let swipeActivationRadius = snapshot.swipeActivation * snapshot.scale
+            if swipeActivationRadius > 0, swipeActivationRadius <= maxRadius {
                 context.stroke(
                     Path(ellipseIn: CGRect(
-                        x: center.x - recognitionRadius,
-                        y: center.y - recognitionRadius,
-                        width: recognitionRadius * 2,
-                        height: recognitionRadius * 2
+                        x: center.x - swipeActivationRadius,
+                        y: center.y - swipeActivationRadius,
+                        width: swipeActivationRadius * 2,
+                        height: swipeActivationRadius * 2
                     )),
                     with: .color(.yellow.opacity(0.7)),
                     lineWidth: 1.5
@@ -117,18 +118,18 @@
             }
         }
 
-        private func drawMagnificationRing(in context: inout GraphicsContext, size: CGSize) {
+        private func drawMagnifyRing(in context: inout GraphicsContext, size: CGSize) {
             let snapshot = model.snapshot
             guard let distance = snapshot.magnifyDistance,
                   let originDistance = snapshot.magnifyOriginDistance,
                   let baseline = snapshot.swipeBaseline,
-                  let radius = RadialGestureGeometry.magnificationDisplayRadius(
+                  let radius = RadialGestureGeometry.magnifyDisplayRadius(
                       distance: distance,
                       originDistance: originDistance,
                       activationRadius: baseline,
                       ringStep: snapshot.swipeStep,
-                      magnificationActivation: snapshot.magnifyActivation,
-                      magnificationStep: snapshot.magnifyStep
+                      magnifyActivation: snapshot.magnifyActivation,
+                      magnifyStep: snapshot.magnifyStep
                   )
             else {
                 return

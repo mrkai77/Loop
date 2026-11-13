@@ -98,27 +98,27 @@ enum RadialGestureGeometry {
         return radii.sorted()
     }
 
-    /// Maps magnification progress onto the swipe-ring geometry. The activation
+    /// Maps magnify progress onto the swipe-ring geometry. The activation
     /// distance reaches the baseline ring; every later step advances
     /// by one concentric-ring interval.
-    static func magnificationDisplayRadius(
+    static func magnifyDisplayRadius(
         distance: CGFloat,
         originDistance: CGFloat,
         activationRadius: CGFloat,
         ringStep: CGFloat,
-        magnificationActivation: CGFloat,
-        magnificationStep: CGFloat
+        magnifyActivation: CGFloat,
+        magnifyStep: CGFloat
     ) -> CGFloat? {
-        guard activationRadius >= 0, ringStep >= 0, magnificationActivation > 0, magnificationStep > 0 else {
+        guard activationRadius >= 0, ringStep >= 0, magnifyActivation > 0, magnifyStep > 0 else {
             return nil
         }
 
         // The activation ring marks the first action, and each ring past it one repeat step
         let delta = abs(distance - originDistance)
-        if delta <= magnificationActivation {
-            return activationRadius * delta / magnificationActivation
+        if delta <= magnifyActivation {
+            return activationRadius * delta / magnifyActivation
         }
-        return activationRadius + (delta - magnificationActivation) / magnificationStep * ringStep
+        return activationRadius + (delta - magnifyActivation) / magnifyStep * ringStep
     }
 
     private static func normalize(angle: CGFloat) -> CGFloat {

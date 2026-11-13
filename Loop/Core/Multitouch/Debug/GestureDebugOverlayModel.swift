@@ -29,18 +29,19 @@
         var swipeAngle: CGFloat = 0
         var fingerCount = 0
         var fingers: [GestureDebugFinger] = []
-        var recognitionThreshold: CGFloat = 0
+        var swipeActivation: CGFloat = 0
         var swipeStep: CGFloat = 0
         var swipeBaseline: CGFloat?
         var swipeActionReset = false
         var swipeSlot: Int?
         var swipeActionCount = 0
         var swipeBoundaries: [CGFloat] = []
-        var magnifyDistance: CGFloat?
-        var magnifyOriginDistance: CGFloat?
-        var magnifyBaseline: CGFloat?
         var magnifyActivation: CGFloat = 0
         var magnifyStep: CGFloat = 0
+        var magnifyCommitDistance: CGFloat?
+        var magnifyActionReset = false
+        var magnifyDistance: CGFloat?
+        var magnifyOriginDistance: CGFloat?
         var scale: CGFloat = gestureDebugPointsPerNormalizedUnit
     }
 
@@ -53,8 +54,8 @@
         func begin(
             originCentroid: CGPoint,
             fingerCount: Int,
-            recognitionThreshold: CGFloat,
             actionCount: Int,
+            swipeActivation: CGFloat,
             swipeStep: CGFloat,
             magnifyActivation: CGFloat,
             magnifyStep: CGFloat
@@ -64,9 +65,9 @@
             snapshot = GestureDebugSnapshot(
                 visible: true,
                 originCentroid: originCentroid,
-                recognitionThreshold: recognitionThreshold,
+                swipeActivation: swipeActivation,
                 swipeStep: swipeStep,
-                swipeBaseline: recognitionThreshold > 0 ? recognitionThreshold : nil,
+                swipeBaseline: swipeActivation > 0 ? swipeActivation : nil,
                 swipeActionCount: actionCount,
                 swipeBoundaries: RadialGestureGeometry.slotBoundaryAngles(actionCount: actionCount),
                 magnifyActivation: magnifyActivation,
@@ -81,8 +82,8 @@
                 begin(
                     originCentroid: centroid,
                     fingerCount: fingerCount,
-                    recognitionThreshold: snapshot.recognitionThreshold,
                     actionCount: snapshot.swipeActionCount,
+                    swipeActivation: snapshot.swipeActivation,
                     swipeStep: snapshot.swipeStep,
                     magnifyActivation: snapshot.magnifyActivation,
                     magnifyStep: snapshot.magnifyStep
@@ -106,8 +107,8 @@
                 begin(
                     originCentroid: CGPoint(x: centroid.x - translation.x, y: centroid.y - translation.y),
                     fingerCount: fingerCount,
-                    recognitionThreshold: snapshot.recognitionThreshold,
                     actionCount: snapshot.swipeActionCount,
+                    swipeActivation: snapshot.swipeActivation,
                     swipeStep: snapshot.swipeStep,
                     magnifyActivation: snapshot.magnifyActivation,
                     magnifyStep: snapshot.magnifyStep
@@ -122,8 +123,8 @@
         }
 
         func recordSwipeCommit(distance: CGFloat, slot: Int? = nil) {
-            let firstActionDistance = snapshot.recognitionThreshold > 0
-                ? snapshot.recognitionThreshold
+            let firstActionDistance = snapshot.swipeActivation > 0
+                ? snapshot.swipeActivation
                 : distance
             let baseline = snapshot.swipeBaseline ?? firstActionDistance
             snapshot.swipeBaseline = baseline
@@ -145,8 +146,8 @@
                 begin(
                     originCentroid: centroid,
                     fingerCount: fingerCount,
-                    recognitionThreshold: snapshot.recognitionThreshold,
                     actionCount: snapshot.swipeActionCount,
+                    swipeActivation: snapshot.swipeActivation,
                     swipeStep: snapshot.swipeStep,
                     magnifyActivation: snapshot.magnifyActivation,
                     magnifyStep: snapshot.magnifyStep
@@ -162,7 +163,12 @@
         }
 
         func recordMagnifyCommit(distance: CGFloat) {
-            snapshot.magnifyBaseline = distance
+            snapshot.magnifyCommitDistance = distance
+            snapshot.magnifyActionReset = false
+        }
+
+        func recordMagnifyActionReset() {
+            snapshot.magnifyActionReset = true
         }
 
         func updateRawContacts(_ contacts: [MTContact]) {

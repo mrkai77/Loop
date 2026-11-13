@@ -10,13 +10,13 @@
 
         let model = GestureDebugOverlayModel()
         private var windowController: NSWindowController?
-        private var preserveDuringSwipeReset = false
+        private var preserveDuringActionReset = false
 
         func begin(
             originCentroid: CGPoint,
             fingerCount: Int,
-            recognitionThreshold: CGFloat,
             actionCount: Int,
+            swipeActivation: CGFloat,
             swipeStep: CGFloat,
             magnifyActivation: CGFloat,
             magnifyStep: CGFloat,
@@ -25,8 +25,8 @@
             model.begin(
                 originCentroid: originCentroid,
                 fingerCount: fingerCount,
-                recognitionThreshold: recognitionThreshold,
                 actionCount: actionCount,
+                swipeActivation: swipeActivation,
                 swipeStep: swipeStep,
                 magnifyActivation: magnifyActivation,
                 magnifyStep: magnifyStep
@@ -86,7 +86,7 @@
         }
 
         func recordSwipeActionReset() {
-            preserveDuringSwipeReset = true
+            preserveDuringActionReset = true
             model.recordSwipeActionReset()
         }
 
@@ -108,13 +108,18 @@
             model.recordMagnifyCommit(distance: distance)
         }
 
+        func recordMagnifyActionReset() {
+            preserveDuringActionReset = true
+            model.recordMagnifyActionReset()
+        }
+
         func updateRawContacts(_ contacts: [MTContact]) {
             model.updateRawContacts(contacts)
         }
 
         func close(force: Bool = false) {
-            guard force || !preserveDuringSwipeReset else { return }
-            preserveDuringSwipeReset = false
+            guard force || !preserveDuringActionReset else { return }
+            preserveDuringActionReset = false
             model.clear()
             windowController?.window?.orderOut(nil)
             windowController?.close()

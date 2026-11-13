@@ -94,7 +94,7 @@ extension MultitouchTrigger {
             session.commitSwipe(
                 distance: swipe.distance,
                 newKey: overrideGesture.map { .gesture($0.id) } ?? .radialSlot(newIndex),
-                step: swipeCycleStepSize
+                step: swipeStepSize
             ) { reverse in
                 #if DEBUG
                     didCommit = true
@@ -239,7 +239,7 @@ extension MultitouchTrigger {
             session.commitSwipe(
                 distance: swipe.distance,
                 newKey: .gesture(activeGesture.id),
-                step: swipeCycleStepSize
+                step: swipeStepSize
             ) { reverse in
                 #if DEBUG
                     didCommit = true
