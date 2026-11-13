@@ -226,8 +226,8 @@ final class SystemGestureFilter {
     }
 
     /// Pinches reach apps as zoom events before Loop recognizes them.
-    /// Either bound direction holds both, because the first sample can point the wrong way.
-    func magnificationOwner(heldFor elapsed: Duration) -> ScrollOwner {
+    /// Zoom events carry no direction, so any claimed pinch holds them until Loop takes or releases the touch.
+    func magnifyOwner(heldFor elapsed: Duration) -> ScrollOwner {
         state.withLock { state in
             guard state.isRunning, state.isTouching else { return .apps }
 

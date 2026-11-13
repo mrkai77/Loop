@@ -310,8 +310,8 @@ struct MultitouchGestureActivationTests {
         #expect(didReset)
         #expect(!session.hasCommittedMagnifyAction)
         #expect(directions == [false, false, true])
-        #expect(session.resetMagnifyActionIfNeeded(distance: 0.6, originDistance: 0.5))
-        #expect(!session.resetMagnifyActionIfNeeded(distance: 0.701, originDistance: 0.5))
+        #expect(session.shouldSuppressMagnifyAction(distance: 0.6, originDistance: 0.5))
+        #expect(!session.shouldSuppressMagnifyAction(distance: 0.701, originDistance: 0.5))
 
         session.commitMagnify(
             gesture: action,

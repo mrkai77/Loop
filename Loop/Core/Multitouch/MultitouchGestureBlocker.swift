@@ -45,7 +45,7 @@ final class MultitouchGestureBlocker {
     /// Decided when momentum begins, as a new stroke's `mayBegin` can arrive mid-momentum
     private var isDroppingMomentum = false
     private var navigationSwipe = HeldGesture.passing(hasForwarded: false)
-    private var magnification = HeldGesture.passing(hasForwarded: false)
+    private var magnify = HeldGesture.passing(hasForwarded: false)
 
     /// Touch frames, force clicks and gesture brackets pass, as dropping them can leave apps mid-gesture.
     /// Zoom is held separately, the same way scrolls are, until Loop accepts or releases the pinch.
@@ -132,7 +132,7 @@ final class MultitouchGestureBlocker {
         lastScrollPhase = 0
         isDroppingMomentum = false
         navigationSwipe = .passing(hasForwarded: false)
-        magnification = .passing(hasForwarded: false)
+        magnify = .passing(hasForwarded: false)
 
         // Gestures arrive as `NSEvent.EventType.gesture`, told apart by their HID type
         let eventTypes: [CGEventType] = [.scrollWheel, CGEventType(rawValue: UInt32(NSEvent.EventType.gesture.rawValue))!]
@@ -174,11 +174,10 @@ final class MultitouchGestureBlocker {
         }
 
         if hidType == CGEventField.GestureHIDType.zoom.rawValue {
-            return handleHeldGesture(event, proxy: proxy, state: &magnification, name: "magnification") { elapsed, _ in
-                systemGestureFilter.magnificationOwner(heldFor: elapsed)
+            return handleHeldGesture(event, proxy: proxy, state: &magnify, name: "magnify") { elapsed, _ in
+                systemGestureFilter.magnifyOwner(heldFor: elapsed)
             }
         }
-
 
         guard Self.blockedGestureHIDTypes.contains(hidType), activeCount.withLock({ $0 > 0 }) else {
             return Unmanaged.passUnretained(event)

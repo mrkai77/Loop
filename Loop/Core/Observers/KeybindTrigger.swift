@@ -205,17 +205,15 @@ final class KeybindTrigger {
     ) {
         if checkIfLoopOpen() {
             openCallback(startingAction) // Only update Loop to the latest WindowAction
+        } else if doubleClickToTrigger {
+            doubleClickTimer.handleKeyDown(startingAction: startingAction)
+        } else if useTriggerDelay {
+            startTriggerDelayTimer(
+                startingAction: startingAction,
+                overrideExistingTriggerDelayTimerAction: overrideExistingTriggerDelayTimerAction
+            )
         } else {
-            if doubleClickToTrigger {
-                doubleClickTimer.handleKeyDown(startingAction: startingAction)
-            } else if useTriggerDelay {
-                startTriggerDelayTimer(
-                    startingAction: startingAction,
-                    overrideExistingTriggerDelayTimerAction: overrideExistingTriggerDelayTimerAction
-                )
-            } else {
-                openCallback(startingAction)
-            }
+            openCallback(startingAction)
         }
     }
 

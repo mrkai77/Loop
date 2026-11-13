@@ -65,7 +65,11 @@ extension MultitouchTrigger {
 
             // The green ring is the cancel line. Coming back inside it clears the
             // preview. Lift while the teal ring is still outside that circle to apply.
-            if resetMagnifyActionIfNeeded(session: session, magnify: magnify) {
+            if resetMagnifyActionIfNeeded(
+                fingerCount: fingerCount,
+                distance: magnify.distance,
+                originDistance: magnify.originDistance
+            ) {
                 return
             }
 
@@ -96,7 +100,7 @@ extension MultitouchTrigger {
             }
 
             if crossedActivationThreshold,
-               magnifyReversalDetected(currentGesture: activeGesture, magnify: magnify) {
+               hasMagnifyCrossedOrigin(magnify: magnify, currentGesture: activeGesture) {
                 let opposite = activeGesture.kind == .magnifyOut ? entry.magnifyInGesture : entry.magnifyOutGesture
                 handleMagnifyReversal(
                     fingerCount: fingerCount,
@@ -198,7 +202,11 @@ extension MultitouchTrigger {
                 handleGestureBegan(fingerCount: fingerCount, gesture: gesture)
             }
             guard let session = recognizerRegistry.session(for: fingerCount), !session.isGestureRejected else { return }
-            if resetMagnifyActionIfNeeded(session: session, magnify: magnify) {
+            if resetMagnifyActionIfNeeded(
+                fingerCount: fingerCount,
+                distance: magnify.distance,
+                originDistance: magnify.originDistance
+            ) {
                 return
             }
             if !session.hasCommittedMagnifyAction {
@@ -264,7 +272,7 @@ extension MultitouchTrigger {
         crossedActivationThreshold: Bool
     ) -> Bool {
         guard !allowsRapidRepeatAction, session.hasCommittedMagnifyAction else { return false }
-        guard magnifyReversalDetected(currentGesture: currentGesture, magnify: magnify) else { return false }
+        guard hasMagnifyCrossedOrigin(magnify: magnify, currentGesture: currentGesture) else { return false }
         let oppositeTakesOver = crossedActivationThreshold && oppositeGesture != nil
         return !oppositeTakesOver
     }
@@ -274,9 +282,9 @@ extension MultitouchTrigger {
         clearActionSelection()
     }
 
-    private func magnifyReversalDetected(
-        currentGesture: GestureBinding,
-        magnify: SubsurfaceGestureEvent.MagnifyEvent
+    private func hasMagnifyCrossedOrigin(
+        magnify: SubsurfaceGestureEvent.MagnifyEvent,
+        currentGesture: GestureBinding
     ) -> Bool {
         switch currentGesture.kind {
         case .magnifyOut:
@@ -295,21 +303,6 @@ extension MultitouchTrigger {
         recognizer: SubsurfaceGestureRecognizer
     ) -> Bool {
         abs(magnify.distance - magnify.originDistance) >= recognizer.minimumMagnificationDistance
-    }
-
-    private func resetMagnifyActionIfNeeded(
-        session: MultitouchGestureSession,
-        magnify: SubsurfaceGestureEvent.MagnifyEvent
-    ) -> Bool {
-        let hadCommittedAction = session.hasCommittedMagnifyAction
-        let isInsideNoSelectionZone = session.resetMagnifyActionIfNeeded(
-            distance: magnify.distance,
-            originDistance: magnify.originDistance
-        )
-        if isInsideNoSelectionZone, hadCommittedAction {
-            clearActionSelection()
-        }
-        return isInsideNoSelectionZone
     }
 
     private func handleMagnifyReversal(
@@ -334,10 +327,7 @@ extension MultitouchTrigger {
 
         if isCycleAction(currentGesture) {
             triggerSingleAction(from: currentGesture, reverse: true)
-            recognizerRegistry.session(for: fingerCount)?.synchronizeMagnifyStepIndex(
-                distance: distance,
-                step: magnifyStepSize
-            )
+            recognizerRegistry.session(for: fingerCount)?.synchronizeMagnifyStepIndex(distance: distance)
         } else {
             resetLoopState(for: fingerCount, forceClose: true, endsStroke: false)
         }

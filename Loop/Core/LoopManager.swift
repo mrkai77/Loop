@@ -588,15 +588,13 @@ extension LoopManager {
             if let parent = newParentAction {
                 setResizeAction(to: newAction, parent: newParentAction)
                 await changeAction(parent, triggeredFromScreenChange: true)
-            } else {
-                if !Defaults[.previewVisibility] {
-                    if !disableHapticFeedback {
-                        performHapticFeedback()
-                    }
+            } else if !Defaults[.previewVisibility] {
+                if !disableHapticFeedback {
+                    performHapticFeedback()
+                }
 
-                    Task {
-                        _ = try? await WindowActionEngine.shared.apply(context: resizeContext)
-                    }
+                Task {
+                    _ = try? await WindowActionEngine.shared.apply(context: resizeContext)
                 }
             }
 

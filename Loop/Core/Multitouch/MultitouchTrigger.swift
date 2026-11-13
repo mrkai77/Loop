@@ -44,7 +44,7 @@ final class MultitouchTrigger {
     private var radialMenuActionsObservationTask: Task<(), Never>?
     private var isStarted = false
 
-    let swipeCycleStepSize: CGFloat = 0.15
+    let swipeStepSize: CGFloat = 0.15
     /// Later pinch repeats are this far apart. The first action fires sooner.
     let magnifyStepSize: CGFloat = 0.2
 
@@ -205,7 +205,7 @@ final class MultitouchTrigger {
             loopWasAlreadyOpen: loopWasAlreadyOpen
         ) else {
             if !activationContext.allows(gesture) {
-                log.info("Rejected \(gesture): titlebar-only gesture started outside a titlebar")
+                log.info("Rejected \(gesture): titlebar-only gesture didn't start on a window's titlebar")
             } else {
                 log.info("Rejected \(gesture): no target window")
             }
@@ -318,7 +318,6 @@ final class MultitouchTrigger {
                 return
             }
 
-            let threshold = entry.recognizer.minimumSwipeTranslation
             let center: CGPoint = if Defaults[.lockRadialMenuToCenter], let screen = NSScreen.main {
                 CGPoint(x: screen.frame.midX, y: screen.frame.midY)
             } else {
@@ -336,9 +335,9 @@ final class MultitouchTrigger {
             debugOverlayController.begin(
                 originCentroid: centroid,
                 fingerCount: fingerCount,
-                recognitionThreshold: threshold,
                 actionCount: actionCount,
-                swipeStep: swipeCycleStepSize,
+                swipeActivation: entry.recognizer.minimumSwipeTranslation,
+                swipeStep: swipeStepSize,
                 magnifyActivation: entry.recognizer.minimumMagnificationDistance,
                 magnifyStep: magnifyStepSize,
                 screenCenter: center
@@ -435,7 +434,7 @@ final class MultitouchTrigger {
         }
 
         if session.resetSwipeActionIfNeeded(distance: distance) {
-            changeAction(.init(.noSelection))
+            clearActionSelection()
             #if DEBUG
                 debugOverlayController.recordSwipeActionReset()
             #endif
@@ -443,6 +442,23 @@ final class MultitouchTrigger {
         }
 
         return session.shouldSuppressSwipeAction(distance: distance)
+    }
+
+    @discardableResult
+    func resetMagnifyActionIfNeeded(fingerCount: Int, distance: CGFloat, originDistance: CGFloat) -> Bool {
+        guard let session = recognizerRegistry.session(for: fingerCount) else {
+            return false
+        }
+
+        if session.resetMagnifyActionIfNeeded(distance: distance, originDistance: originDistance) {
+            clearActionSelection()
+            #if DEBUG
+                debugOverlayController.recordMagnifyActionReset()
+            #endif
+            return true
+        }
+
+        return session.shouldSuppressMagnifyAction(distance: distance, originDistance: originDistance)
     }
 
     private func releaseGestureBlocker(for session: MultitouchGestureSession) {
