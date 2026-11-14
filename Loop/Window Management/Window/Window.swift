@@ -530,15 +530,7 @@ final class Window {
             enhancedUserInterface = false
         }
 
-        if sizeFirst, shouldSetSize {
-            setSize(rect.size)
-        }
-
-        setPosition(rect.origin)
-
-        if shouldSetSize {
-            setSize(rect.size)
-        }
+        applyAccessibilityFrame(rect, sizeFirst: sizeFirst, shouldSetSize: shouldSetSize)
 
         if enhancedUI {
             enhancedUserInterface = true
@@ -563,18 +555,28 @@ final class Window {
             enhancedUserInterface = false
         }
 
-        if sizeFirst, shouldSetSize {
-            setSize(rect.size)
+        applyAccessibilityFrame(rect, sizeFirst: sizeFirst, shouldSetSize: shouldSetSize)
+
+        if enhancedUI {
+            enhancedUserInterface = true
+        }
+    }
+
+    /// Shrinks in place before moving. A same-screen grow still moves first unless `sizeFirst` is set.
+    private func applyAccessibilityFrame(_ rect: CGRect, sizeFirst: Bool, shouldSetSize: Bool) {
+        if shouldSetSize,
+           let preliminarySize = WindowEngine.sizeBeforeMove(
+               target: rect.size,
+               current: size,
+               sizeFirst: sizeFirst
+           ) {
+            setSize(preliminarySize)
         }
 
         setPosition(rect.origin)
 
         if shouldSetSize {
             setSize(rect.size)
-        }
-
-        if enhancedUI {
-            enhancedUserInterface = true
         }
     }
 

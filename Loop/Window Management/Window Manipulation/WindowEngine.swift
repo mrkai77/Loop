@@ -193,9 +193,8 @@ enum WindowEngine {
             try await window.setFrameAnimated(targetFrame, bounds: bounds, resolvedProperties: resolvedProperties)
             actualFrame = window.frame
         } else {
-            // Size before moving when the target is narrower or shorter, and on a screen change.
-            // The retry checks the size the window actually has: moving first at the old size
-            // leaves the window past the display, and some apps then latch that frame as their minimum size.
+            // Shrink before moving, and size first on a screen change. The retry measures the
+            // size the window actually has, so a miss does not move the window at its old size.
             await window.setFrame(
                 targetFrame,
                 sizeFirst: shouldSizeFirst(
@@ -275,9 +274,32 @@ enum WindowEngine {
         from currentSize: CGSize,
         willChangeScreens: Bool = false
     ) -> Bool {
-        willChangeScreens ||
-            targetSize.width < currentSize.width ||
-            targetSize.height < currentSize.height
+        sizeBeforeMove(target: targetSize, current: currentSize, sizeFirst: willChangeScreens) != nil
+    }
+
+    /// The size to apply before changing the window's origin, when one is needed.
+    ///
+    /// A shrinking axis is reduced in place. Growth on the other axis waits until after the move,
+    /// so the window is never slid across the screen at its old, larger size. When `sizeFirst` is
+    /// set and nothing is shrinking, the full target size is applied first. That is the screen-change
+    /// path, including a window that only grows.
+    static func sizeBeforeMove(
+        target: CGSize,
+        current: CGSize,
+        sizeFirst: Bool
+    ) -> CGSize? {
+        let shrinksWidth = target.width < current.width
+        let shrinksHeight = target.height < current.height
+        if shrinksWidth || shrinksHeight {
+            return CGSize(
+                width: min(current.width, target.width),
+                height: min(current.height, target.height)
+            )
+        }
+        if sizeFirst {
+            return target
+        }
+        return nil
     }
 
     static func anchoredFrame(
