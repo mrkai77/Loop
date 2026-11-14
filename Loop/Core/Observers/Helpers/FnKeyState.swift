@@ -5,11 +5,12 @@
 //  Created by root-daemon on 2026-10-18.
 //
 
+import AppKit
 import CoreGraphics
 
 /// Tracks whether the Fn/Globe key is physically held.
 ///
-/// macOS adds `maskSecondaryFn` to some keys (arrows, F-keys, media keys, etc.) even when Fn isn't held,
+/// macOS adds `maskSecondaryFn` to many keys (arrows, F-keys, Apple's top-row keys, etc.) even when Fn isn't held,
 /// so an event's flags alone can't tell whether Fn is actually down. Only a `flagsChanged` event for the
 /// Fn key itself can press it, and any event without the Fn flag releases it.
 struct FnKeyState {
@@ -23,16 +24,18 @@ struct FnKeyState {
         }
     }
 
-    /// Removes the Fn flag from keys that macOS tags with it automatically, unless Fn is physically held.
-    func filteredFlags(_ flags: CGEventFlags, keyCode: CGKeyCode) -> CGEventFlags {
-        guard keyCode.isFnSpecialKey, !isPressed else { return flags }
-
-        var result = flags
-        result.remove(.maskSecondaryFn)
-        return result
+    mutating func update(with event: NSEvent) {
+        guard let type = CGEventType(rawValue: UInt32(event.type.rawValue)) else { return }
+        update(type: type, keyCode: event.keyCode, flags: CGEventFlags(cocoaFlags: event.modifierFlags))
     }
 
-    mutating func reset() {
-        isPressed = false
+    /// Removes the Fn flag unless Fn is physically held.
+    func filteredFlags(_ flags: CGEventFlags) -> CGEventFlags {
+        isPressed ? flags : flags.subtracting(.maskSecondaryFn)
+    }
+
+    /// - Parameter isPressed: the Fn state to start from, for when Fn may already be held (its press event was missed).
+    mutating func reset(isPressed: Bool = false) {
+        self.isPressed = isPressed
     }
 }

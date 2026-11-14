@@ -90,11 +90,11 @@ final class KeybindTrigger {
     }
 
     private func handle(_ event: CGEvent) -> ActiveEventMonitor.EventHandling {
-        let keyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
-            .baseKey(flags: .init(rawValue: UInt(event.flags.rawValue)))
+        let rawKeyCode = CGKeyCode(event.getIntegerValueField(.keyboardEventKeycode))
+        fnKeyState.update(type: event.type, keyCode: rawKeyCode, flags: event.flags)
 
-        fnKeyState.update(type: event.type, keyCode: keyCode, flags: event.flags)
-        let filteredFlags = fnKeyState.filteredFlags(event.flags, keyCode: keyCode)
+        let keyCode = rawKeyCode.baseKey(isFnPressed: fnKeyState.isPressed)
+        let filteredFlags = fnKeyState.filteredFlags(event.flags)
 
         let isLoopOpen = checkIfLoopOpen()
         effectiveEventFlags = filteredFlags

@@ -153,12 +153,13 @@ extension CGKeyCode {
 extension CGKeyCode {
     /// Some keycodes seem to alter when a modifier key (ex. the globe key) is being pressed.
     /// This function attempts to try and restore the "original" key.
-    func baseKey(flags: NSEvent.ModifierFlags) -> CGKeyCode {
+    /// - Parameter isFnPressed: whether Fn is physically held, as tracked by ``FnKeyState``.
+    func baseKey(isFnPressed: Bool) -> CGKeyCode {
         if self == .kVK_ANSI_KeypadEnter {
             return .kVK_Return
         }
 
-        if flags.contains(.function) {
+        if isFnPressed {
             switch self {
             case .kVK_Home: return .kVK_LeftArrow
             case .kVK_End: return .kVK_RightArrow
@@ -190,33 +191,6 @@ extension CGKeyCode {
         let rightModifiers: Set<CGKeyCode> = [.kVK_RightCommand, .kVK_RightControl, .kVK_RightOption, .kVK_RightShift]
         return rightModifiers.contains(self)
     }
-
-    var isFnSpecialKey: Bool {
-        // See: https://github.com/koekeishiya/skhd/issues/1
-        let specialKeys: Set<CGKeyCode> = [
-            .kVK_Delete, // Usually `kVK_ForwardDelete`, but `baseKey(flags:)` converts that back into `kVK_Delete` if the fn key is also being pressed.
-            .kVK_Help
-        ]
-        let allKeys = specialKeys
-            .union(Self.arrowKeys)
-            .union(Self.fKeys)
-
-        return allKeys.contains(self)
-    }
-
-    private static let arrowKeys: Set<CGKeyCode> = [
-        .kVK_LeftArrow,
-        .kVK_RightArrow,
-        .kVK_DownArrow,
-        .kVK_UpArrow
-    ]
-
-    private static let fKeys: Set<CGKeyCode> = [
-        .kVK_F1, .kVK_F2, .kVK_F3, .kVK_F4, .kVK_F5,
-        .kVK_F6, .kVK_F7, .kVK_F8, .kVK_F9, .kVK_F10,
-        .kVK_F11, .kVK_F12, .kVK_F13, .kVK_F14, .kVK_F15,
-        .kVK_F16, .kVK_F17, .kVK_F18, .kVK_F19, .kVK_F20
-    ]
 }
 
 // MARK: Stringification of keycodes
