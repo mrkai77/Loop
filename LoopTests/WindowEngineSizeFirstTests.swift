@@ -63,4 +63,40 @@ struct WindowEngineSizeFirstTests {
         let size = CGSize(width: 800, height: 600)
         #expect(WindowEngine.shouldSizeFirst(to: size, from: size, willChangeScreens: true))
     }
+
+    @Test func pureShrinkUsesTheTargetSizeBeforeMoving() {
+        let size = WindowEngine.sizeBeforeMove(
+            target: CGSize(width: 640, height: 400),
+            current: CGSize(width: 1920, height: 900),
+            sizeFirst: false
+        )
+        #expect(size == CGSize(width: 640, height: 400))
+    }
+
+    @Test func mixedResizeShrinksInPlaceAndDefersGrowth() {
+        let size = WindowEngine.sizeBeforeMove(
+            target: CGSize(width: 800, height: 1000),
+            current: CGSize(width: 1000, height: 500),
+            sizeFirst: false
+        )
+        #expect(size == CGSize(width: 800, height: 500))
+    }
+
+    @Test func screenChangeGrowthUsesTheFullTargetSize() {
+        let size = WindowEngine.sizeBeforeMove(
+            target: CGSize(width: 1920, height: 1080),
+            current: CGSize(width: 640, height: 400),
+            sizeFirst: true
+        )
+        #expect(size == CGSize(width: 1920, height: 1080))
+    }
+
+    @Test func sameScreenGrowthDoesNotSizeBeforeMoving() {
+        let size = WindowEngine.sizeBeforeMove(
+            target: CGSize(width: 1280, height: 900),
+            current: CGSize(width: 640, height: 400),
+            sizeFirst: false
+        )
+        #expect(size == nil)
+    }
 }
