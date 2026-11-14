@@ -128,6 +128,13 @@ extension CGKeyCode {
     static let kVK_DownArrow: CGKeyCode = 0x7D
     static let kVK_UpArrow: CGKeyCode = 0x7E
 
+    /// Apple top-row keys, as seen on a built-in MacBook keyboard
+    /// macOS seems to send them as regular `keyDown` / `keyUp` events with `maskSecondaryFn` set, even when Fn isn't held
+    static let kVK_MissionControl: CGKeyCode = 0xA0 // F3
+    static let kVK_Dictation: CGKeyCode = 0xB0 // F5
+    static let kVK_Spotlight: CGKeyCode = 0xB1 // F4
+    static let kVK_DoNotDisturb: CGKeyCode = 0xB2 // F6
+
     static let kVK_Globe_Emoji: CGKeyCode = 0xB3
 
     /// ISO keyboards only
