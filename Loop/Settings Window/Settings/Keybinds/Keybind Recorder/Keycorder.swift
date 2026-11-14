@@ -24,6 +24,7 @@ struct Keycorder: View {
     @Binding private var bypassTriggerKey: Bool?
 
     @State private var eventMonitor: LocalEventMonitor?
+    @State private var fnKeyState = FnKeyState()
     @State private var shouldShake: Bool = false
     @State private var shouldError: Bool = false
     @State private var errorMessage: LocalizedStringKey = .init(String("")) // We use Text here for String interpolation with images
@@ -110,8 +111,17 @@ struct Keycorder: View {
         isActive = true
 
         LoopManager.shared.keybindTrigger.stop()
+        // Recording starts from a click, so no other key is held and the current Fn flag is reliable
+        fnKeyState.reset(isPressed: NSEvent.modifierFlags.contains(.function))
 
-        eventMonitor = LocalEventMonitor(events: [.keyDown, .keyUp]) { event in
+        eventMonitor = LocalEventMonitor(events: [.keyDown, .keyUp, .flagsChanged]) { event in
+            fnKeyState.update(with: event)
+
+            // flagsChanged is only used to track the Fn key
+            if event.type == .flagsChanged {
+                return event
+            }
+
             // Handle regular key presses first
             if event.type == .keyDown, !event.isARepeat {
                 if event.keyCode == .kVK_Escape {
@@ -138,16 +148,14 @@ struct Keycorder: View {
     func handleKeyDown(with event: NSEvent) {
         // Get current selected keys that aren't modifiers
         let currentKeys = selectionKeybind + [event.keyCode]
-            .map { $0.baseKey(flags: event.modifierFlags) }
+            .map { $0.baseKey(isFnPressed: fnKeyState.isPressed) }
 
-        var flags = CGEventFlags(
-            cocoaFlags: event.modifierFlags
-                .intersection(.deviceIndependentFlagsMask) // Prevents right/left dependence
+        let flags = fnKeyState.filteredFlags(
+            CGEventFlags(
+                cocoaFlags: event.modifierFlags
+                    .intersection(.deviceIndependentFlagsMask) // Prevents right/left dependence
+            )
         )
-
-        if event.keyCode.isFnSpecialKey {
-            flags.remove(.maskSecondaryFn)
-        }
 
         let validModifiers = if bypassTriggerKey == true {
             flags.keyCodes

@@ -133,9 +133,12 @@ struct TriggerKeycorder: View {
         LoopManager.shared.keybindTrigger.stop()
 
         eventMonitor = LocalEventMonitor(events: [.keyDown, .flagsChanged]) { event in
-            // keyDown event is only used to track escape key
-            if event.keyCode == CGKeyCode.kVK_Escape {
-                finishedObservingKeys(wasForced: true)
+            // keyDown event is only used to track escape key, as its flags can include an Fn flag that isn't actually held
+            if event.type == .keyDown {
+                if event.keyCode == CGKeyCode.kVK_Escape {
+                    finishedObservingKeys(wasForced: true)
+                }
+                return nil
             }
 
             let flags = CGEventFlags(cocoaFlags: event.modifierFlags)
