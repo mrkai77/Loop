@@ -164,7 +164,7 @@ final class LoopManager {
     )
 
     func start() {
-        accessibilityCheckerTask = Task(priority: .background) { [weak self] in
+        accessibilityCheckerTask = Task(priority: .userInitiated) { [weak self] in
             for await status in AccessibilityManager.shared.stream(initial: true) {
                 guard let self, !Task.isCancelled else {
                     return
@@ -184,7 +184,7 @@ final class LoopManager {
             }
         }
 
-        gestureToggleTask = Task(priority: .background) { [weak self] in
+        gestureToggleTask = Task(priority: .userInitiated) { [weak self] in
             for await enabled in Defaults.updates(.enableGestures, initial: false) {
                 guard let self, !Task.isCancelled else { break }
 
