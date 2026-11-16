@@ -265,9 +265,30 @@ final class Window {
         }
     }
 
+    /// The `CGWindowID` of the window currently focused within this window's app.
+    private var focusedWindowIDInApp: CGWindowID? {
+        let app = AXUIElementCreateApplication(pid)
+        guard let focusedWindow: AXUIElement = try? app.getValue(.focusedWindow) else {
+            return nil
+        }
+        return try? focusedWindow.getWindowID()
+    }
+
     /// Focus the window.
     @MainActor
-    func focus() {
+    func focus() async {
+        // When the app is already frontmost, the steps below alone may not move focus from its key window to
+        // another one of its windows (such as Finder's Quick Look panel), so hand activation over first.
+        if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid,
+           let focusedWindowID = focusedWindowIDInApp,
+           focusedWindowID != cgWindowID {
+            SkyLightToolBelt.setWindowActive(windowID: focusedWindowID, pid: pid, isActive: false)
+            // Some apps get confused when both events arrive at once:
+            // https://github.com/koekeishiya/yabai/blob/b2dc8b4c892d74738a6e865d73048ed2dc3c9ed1/src/window_manager.c#L1305-L1313
+            try? await Task.sleep(for: .milliseconds(40))
+            SkyLightToolBelt.setWindowActive(windowID: cgWindowID, pid: pid, isActive: true)
+        }
+
         let fronted = SkyLightToolBelt.makeFrontProcess(
             windowID: cgWindowID,
             pid: pid

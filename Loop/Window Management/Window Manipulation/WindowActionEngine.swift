@@ -151,7 +151,7 @@ final class WindowActionEngine {
         if let newTargetWindow {
             Task { @MainActor in
                 log.info("Focusing window: \(newTargetWindow)")
-                newTargetWindow.focus()
+                await newTargetWindow.focus()
             }
         }
 

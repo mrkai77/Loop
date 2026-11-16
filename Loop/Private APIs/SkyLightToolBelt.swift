@@ -124,7 +124,7 @@ enum SkyLightToolBelt {
 
     /// Makes a window key within its owning process by posting a synthetic left-mouse-down event.
     ///
-    /// Uses a private API. Derived from Hammerspoon / yabai / AltTab
+    /// Derived from Hammerspoon / yabai / AltTab
     /// (https://github.com/Hammerspoon/hammerspoon/issues/370#issuecomment-545545468,
     /// https://github.com/lwouis/alt-tab-macos/commit/ec30bb13084e68cb3cde32ec415fdba1fd92876e).
     ///
@@ -162,6 +162,68 @@ enum SkyLightToolBelt {
 
         guard cgStatus == .success else {
             log.error("Failed to post key-window event with status: \(cgStatus.rawValue)")
+            return false
+        }
+
+        return true
+    }
+
+    /// Byte layout for the `CGSEventRecord` posted by `setWindowActive`.
+    private enum WindowActivationEvent {
+        static let bufferSize = MakeKeyWindowEvent.bufferSize
+        static let lengthOffset = MakeKeyWindowEvent.lengthOffset
+        static let recordLength = MakeKeyWindowEvent.recordLength
+        static let eventTypeOffset = MakeKeyWindowEvent.eventTypeOffset
+        /// Window activation event type, as used by yabai.
+        static let windowActivation: UInt8 = 0x0D
+        static let windowIdOffset = MakeKeyWindowEvent.windowIdOffset
+        /// `0x01` activates the window, `0x02` deactivates it.
+        static let activationStateOffset = 0x8A
+        static let activate: UInt8 = 0x01
+        static let deactivate: UInt8 = 0x02
+    }
+
+    /// Tells a window that it gained or lost activation within its owning process.
+    ///
+    /// When a window's app is already frontmost, `makeFrontProcess` and `makeKeyWindow` alone may not make it key
+    /// (for example, Finder's Quick Look panel after clicking the Finder window behind it). Deactivating the current
+    /// key window and then activating the target first lets them take effect.
+    /// Derived from yabai's `window_manager_focus_window_without_raise`:
+    /// https://github.com/koekeishiya/yabai/blob/b2dc8b4c892d74738a6e865d73048ed2dc3c9ed1/src/window_manager.c#L1293-L1322
+    ///
+    /// - Parameters:
+    ///   - windowID: The `CGWindowID` of the window to activate or deactivate.
+    ///   - pid: The PID of the window's owner process.
+    ///   - isActive: Whether the window should become active.
+    /// - Returns: Whether this operation was successful.
+    @discardableResult
+    static func setWindowActive(windowID: CGWindowID, pid: pid_t, isActive: Bool) -> Bool {
+        guard let SLPSPostEventRecordTo = SkyLightSymbolLoader.SLPSPostEventRecordTo else {
+            log.error("Failed to load SkyLight symbols in \(#function)")
+            return false
+        }
+
+        var wid = windowID
+        var psn = ProcessSerialNumber()
+        let status = GetProcessForPID(pid, &psn)
+
+        guard status == noErr else {
+            log.error("Failed to get PSN: \(status)")
+            return false
+        }
+
+        var bytes = [UInt8](repeating: 0, count: WindowActivationEvent.bufferSize)
+        bytes[WindowActivationEvent.lengthOffset] = WindowActivationEvent.recordLength
+        bytes[WindowActivationEvent.eventTypeOffset] = WindowActivationEvent.windowActivation
+        bytes[WindowActivationEvent.activationStateOffset] = isActive ? WindowActivationEvent.activate : WindowActivationEvent.deactivate
+        memcpy(&bytes[WindowActivationEvent.windowIdOffset], &wid, MemoryLayout<CGWindowID>.size)
+
+        let cgStatus = bytes.withUnsafeMutableBufferPointer { pointer in
+            SLPSPostEventRecordTo(&psn, &pointer.baseAddress!.pointee)
+        }
+
+        guard cgStatus == .success else {
+            log.error("Failed to post window activation event with status: \(cgStatus.rawValue)")
             return false
         }
 
