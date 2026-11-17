@@ -126,14 +126,16 @@ final class MultitouchTrigger {
     }
 
     private func rebuildRecognizers() {
-        stopGestureMonitors()
         #if DEBUG
             closeDebugOverlay(force: true)
         #endif
         handleStopResults(recognizerRegistry.rebuild(with: Defaults[.gestures]))
+        // Stopping the monitor finishes the contact streams of recognizers the rebuild keeps.
         if recognizerRegistry.hasRecognizers {
             gestureMonitor.start()
             gestureBlocker.start()
+        } else {
+            stopGestureMonitors()
         }
         updateSystemGestureFilter()
     }

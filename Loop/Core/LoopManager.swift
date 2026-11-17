@@ -634,7 +634,7 @@ extension LoopManager {
 
                         originatingContext.commitWindowTarget(preparedTarget)
                         log.info("Focusing window: \(newTargetWindow)")
-                        newTargetWindow.focus()
+                        await newTargetWindow.focus()
                     }
                 } else if !Defaults[.previewVisibility] {
                     _ = try? await WindowActionEngine.shared.apply(context: originatingContext)
