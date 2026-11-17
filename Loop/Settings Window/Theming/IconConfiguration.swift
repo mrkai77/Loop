@@ -8,6 +8,7 @@
 import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 final class IconConfigurationModel: ObservableObject {
     @Published var showingLockedAlert = false
@@ -55,13 +56,13 @@ final class IconConfigurationModel: ObservableObject {
     }
 
     func handleNotificationChange() {
-        if Defaults[.notificationWhenIconUnlocked] {
+        if Tome.notificationWhenIconUnlocked {
             AppDelegate.sendNotification(
                 Bundle.main.appName,
                 .init(localized: "Icon notifications enabled", defaultValue: "You’ll be notified when you unlock a new icon.")
             )
             if !AppDelegate.areNotificationsEnabled() {
-                Defaults[.notificationWhenIconUnlocked] = false
+                Tome.notificationWhenIconUnlocked = false
                 userDisabledNotificationsAlert()
             }
         }
@@ -100,8 +101,8 @@ struct IconConfigurationView: View {
     @StateObject private var model = IconConfigurationModel()
 
     @Default(.currentIcon) var currentIcon
-    @Default(.showDockIcon) var showDockIcon
-    @Default(.notificationWhenIconUnlocked) var notificationWhenIconUnlocked
+    @TomeValue(\.showDockIcon) var showDockIcon
+    @TomeValue(\.notificationWhenIconUnlocked) var notificationWhenIconUnlocked
 
     var body: some View {
         LuminareForm {

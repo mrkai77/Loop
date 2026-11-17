@@ -5,15 +5,16 @@
 //  Created by Kai Azim on 2024-04-19.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 struct PaddingConfigurationView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
-    @Default(.enablePadding) private var enablePadding
+    @TomeValue(\.enablePadding) private var enablePadding
 
-    @State var paddingModel = Defaults[.padding]
+    @TomeValue(\.padding) private var storedPadding
+    @State private var paddingModel = Tome.padding
     @State private var isDeferringDefaultsCommit = false
     @Binding var isPresented: Bool
 
@@ -34,14 +35,14 @@ struct PaddingConfigurationView: View {
                 LuminareSection {
                     paddingMode()
 
-                    if !paddingModel.configureScreenPadding {
+                    if paddingModel.mode == .simple {
                         nonScreenPaddingConfiguration()
                     } else {
                         screenSidesPaddingConfiguration()
                     }
                 }
 
-                if paddingModel.configureScreenPadding {
+                if paddingModel.mode == .custom {
                     LuminareSection {
                         screenInsetsPaddingConfiguration()
                     }
@@ -57,25 +58,29 @@ struct PaddingConfigurationView: View {
             .buttonStyle(.luminare(overrideUseMainStyle: true))
             .luminareCornerRadius(8)
         }
+        .onChange(of: storedPadding) { newValue in
+            // Pick up hand edits; the guard below avoids writing fallback values back
+            paddingModel = newValue
+        }
         .onChange(of: paddingModel) { _ in
-            guard !isDeferringDefaultsCommit else { return }
+            guard !isDeferringDefaultsCommit, paddingModel != storedPadding else { return }
             // This fixes some weird animations.
-            Defaults[.padding] = paddingModel
+            storedPadding = paddingModel
         }
     }
 
     func paddingMode() -> some View {
         LuminarePicker(
-            elements: [false, true],
+            elements: PaddingConfiguration.Mode.allCases,
             selection: Binding(
                 get: {
-                    paddingModel.configureScreenPadding
+                    paddingModel.mode
                 },
                 set: { newValue in
                     withAnimation(luminareAnimation) {
-                        paddingModel.configureScreenPadding = newValue
+                        paddingModel.mode = newValue
 
-                        if !paddingModel.configureScreenPadding {
+                        if paddingModel.mode == .simple {
                             if paddingModel.allEqual {
                                 let window = paddingModel.window
                                 paddingModel.top = window
@@ -94,9 +99,9 @@ struct PaddingConfigurationView: View {
                 }
             ),
             columns: 2
-        ) { custom in
+        ) { mode in
             HStack(spacing: 6) {
-                if custom {
+                if mode == .custom {
                     Image(systemName: "slider.horizontal.3")
                     Text("Custom")
                 } else {
@@ -117,11 +122,12 @@ struct PaddingConfigurationView: View {
                     paddingModel.window
                 },
                 set: {
-                    paddingModel.window = $0
-                    paddingModel.top = $0
-                    paddingModel.bottom = $0
-                    paddingModel.right = $0
-                    paddingModel.left = $0
+                    let value = ($0 * 100).rounded() / 100
+                    paddingModel.window = value
+                    paddingModel.top = value
+                    paddingModel.bottom = value
+                    paddingModel.right = value
+                    paddingModel.left = value
                 }
             ),
             in: range,
@@ -222,6 +228,7 @@ struct PaddingConfigurationView: View {
 
     private func commitSliderChanges() {
         isDeferringDefaultsCommit = false
-        Defaults[.padding] = paddingModel
+        guard paddingModel != storedPadding else { return }
+        storedPadding = paddingModel
     }
 }

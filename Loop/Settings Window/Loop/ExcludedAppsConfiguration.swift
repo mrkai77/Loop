@@ -5,12 +5,12 @@
 //  Created by Kai Azim on 2024-05-25.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 struct ExcludedAppsConfigurationView: View {
-    @Default(.excludedApps) private var excludedApps
+    @TomeValue(\.excludedApps) private var excludedApps
     @State private var selectedApps = Set<URL>()
 
     var body: some View {

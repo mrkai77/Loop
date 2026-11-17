@@ -5,9 +5,9 @@
 //  Created by Kai Azim on 2024-04-19.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 // MARK: - View
 
@@ -15,10 +15,10 @@ struct AccentColorConfigurationView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
     @ObservedObject private var accentColorController: AccentColorController = .shared
 
-    @Default(.accentColorMode) private var accentColorMode
-    @Default(.useGradient) private var useGradient
-    @Default(.customAccentColor) private var customAccentColor
-    @Default(.gradientColor) private var gradientColor
+    @TomeValue(\.accentColorMode) private var accentColorMode
+    @TomeValue(\.useGradient) private var useGradient
+    @TomeValue(\.customAccentColor) private var customAccentColor
+    @TomeValue(\.gradientColor) private var gradientColor
 
     @State private var didSyncWallpaper: Bool = false
     @State private var syncWallpaperTask: Task<(), Never>?

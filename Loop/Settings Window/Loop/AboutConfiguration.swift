@@ -9,6 +9,7 @@ import Combine
 import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 @MainActor
 final class AboutConfigurationModel: ObservableObject {
@@ -156,8 +157,8 @@ struct AboutConfigurationView: View {
 
     @Default(.timesLooped) private var timesLooped
     @Default(.currentIcon) private var currentIcon
-    @Default(.includeDevelopmentVersions) private var includeDevelopmentVersions
-    @Default(.automaticallyUpdate) private var automaticallyUpdate
+    @TomeValue(\.includeDevelopmentVersions) private var includeDevelopmentVersions
+    @TomeValue(\.automaticallyUpdate) private var automaticallyUpdate
 
     private var updateButtonEnabled: Bool {
         updater.updatesEnabled || model.isHoveringOverUpdateButton

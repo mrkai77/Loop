@@ -20,6 +20,11 @@ extension AppDelegate: UNUserNotificationCenterDelegate {
             IconManager.setAppIcon(to: icon)
         }
 
+        if response.actionIdentifier == UNNotificationDefaultActionIdentifier,
+           response.notification.request.content.categoryIdentifier == ConfigurationIssueReporter.notificationCategory {
+            Task { @MainActor in ConfigurationManager.shared.openInEditor() }
+        }
+
         completionHandler()
     }
 

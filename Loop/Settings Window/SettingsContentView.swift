@@ -5,9 +5,9 @@
 //  Created by Kai Azim on 2025-10-18.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 struct SettingsContentView: View {
     @ObservedObject var model: SettingsWindowManager
@@ -15,10 +15,10 @@ struct SettingsContentView: View {
 
     @Environment(\.luminareAnimation) private var animation
     @Environment(\.luminareTitleBarHeight) private var titleBarHeight
-    @Default(.enableRadialMenuCustomization) var enableRadialMenuCustomization
-    @Default(.radialMenuVisibility) var radialMenuVisibility
-    @Default(.previewVisibility) var previewVisibility
-    @Default(.windowSnapping) var windowSnapping
+    @TomeValue(\.enableRadialMenuCustomization) var enableRadialMenuCustomization
+    @TomeValue(\.radialMenuVisibility) var radialMenuVisibility
+    @TomeValue(\.previewVisibility) var previewVisibility
+    @TomeValue(\.windowSnapping) var windowSnapping
 
     private var showRadialMenu: Bool {
         model.showRadialMenu && radialMenuVisibility

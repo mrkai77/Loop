@@ -15,7 +15,6 @@ import UniformTypeIdentifiers
 
 enum MigratorError: LocalizedError {
     case fileSelectionCancelled
-    case directorySelectionCancelled
     case failedToReadFile
     case invalidKeybinds(String)
 
@@ -25,31 +24,28 @@ enum MigratorError: LocalizedError {
             reason
         case .fileSelectionCancelled:
             "File selection was cancelled."
-        case .directorySelectionCancelled:
-            "Directory selection was cancelled."
         case .failedToReadFile:
             "Failed to read file."
         }
     }
 }
 
-/// Adds functionality for saving, loading, and managing window actions.
+struct ImportedKeybinds {
+    var triggerKey: KeyCombination?
+    var bindings: [KeyBinding]
+}
+
+extension ImportedKeybinds {
+    init(_ file: LegacyKeybindsFile) {
+        self.init(triggerKey: file.triggerKey.map { KeyCombination(keyCodes: $0) }, bindings: file.actions.map { $0.convertToKeyBinding() })
+    }
+}
+
+/// Imports config.toml, legacy Loop keybinds files, or Rectangle's.
 @Loggable(style: .static)
 enum Migrator {
     private static var documentsDirectory: URL? {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
-    }
-
-    static func exportConfiguration() throws -> String {
-        let issues = Tome.issues
-        guard issues.isEmpty else { throw Tome.ValidationError(issues: issues) }
-        return Tome.serializedDocument
-    }
-
-    static func exportPrompt(onSuccess: () -> ()) async throws {
-        let destination = try await getSaveDirectoryURL()
-        try exportConfiguration().write(to: destination, atomically: true, encoding: .utf8)
-        onSuccess()
     }
 
     static func importPrompt(onSuccess: () -> ()) async throws {
@@ -86,37 +82,12 @@ enum Migrator {
         Tome.validate(document: source)
     }
 
+    /// An invalid document leaves the running profile untouched.
     @discardableResult
     static func importConfiguration(_ source: String, confirmed: Bool) throws -> Bool {
         guard confirmed else { return false }
         try Tome.replaceDocument(with: source)
         return true
-    }
-}
-
-// MARK: Migrator + Export
-
-@MainActor
-private extension Migrator {
-    static func getSaveDirectoryURL() async throws -> URL {
-        let savePanel = NSSavePanel()
-        savePanel.directoryURL = Defaults[.lastMigratorURL] ?? documentsDirectory
-        savePanel.title = .init(localized: "Export Configuration")
-        savePanel.nameFieldStringValue = "Loop Configuration.toml"
-        savePanel.allowedContentTypes = [UTType(filenameExtension: "toml") ?? .plainText]
-        savePanel.canCreateDirectories = true
-        savePanel.showsTagField = false
-
-        let result = await savePanel.begin()
-
-        guard result == .OK, let selectedFileURL = savePanel.url else {
-            throw MigratorError.directorySelectionCancelled
-        }
-
-        // Save the last used directory for future exports
-        Defaults[.lastMigratorURL] = selectedFileURL.deletingLastPathComponent()
-
-        return selectedFileURL
     }
 }
 
@@ -143,7 +114,8 @@ extension Migrator {
         return selectedFileURL
     }
 
-    static func decodeJSON(_ data: Data) throws -> LegacyKeybindsFile {
+    static func decodeJSON(_ data: Data) throws -> ImportedKeybinds {
+        // Report unrunnable content in a Loop file as such, not as an unreadable file
         for importer in [importLoopKeybinds, importLoopLegacyKeybinds, importRectangleKeybinds] {
             do { return try importer(data) }
             catch let error as MigratorError { throw error }
@@ -153,34 +125,29 @@ extension Migrator {
     }
 
     /// Tries to import Loop's keybinds format.
-    static func importLoopKeybinds(from data: Data) throws -> LegacyKeybindsFile {
-        let decoder = JSONDecoder()
-        let keybinds = try decoder.decode(LegacyKeybindsFile.self, from: data)
-        return try keybinds.validated()
+    static func importLoopKeybinds(from data: Data) throws -> ImportedKeybinds {
+        try ImportedKeybinds(JSONDecoder().decode(LegacyKeybindsFile.self, from: data).validated())
     }
 
     /// Tries to import Loop's old (pre 1.2.0) keybinds format.
-    static func importLoopLegacyKeybinds(from data: Data) throws -> LegacyKeybindsFile {
-        let decoder = JSONDecoder()
-        let keybinds = try decoder.decode([LegacyWindowAction].self, from: data)
-        return try LegacyKeybindsFile(version: nil, triggerKey: nil, actions: keybinds).validated()
+    static func importLoopLegacyKeybinds(from data: Data) throws -> ImportedKeybinds {
+        let actions = try JSONDecoder().decode([LegacyWindowAction].self, from: data)
+        return try ImportedKeybinds(LegacyKeybindsFile(version: nil, triggerKey: nil, actions: actions).validated())
     }
 
     /// Tries to import Rectangle's keybinds format.
-    static func importRectangleKeybinds(from data: Data) throws -> LegacyKeybindsFile {
-        let keybinds = try RectangleTranslationLayer.importKeybinds(from: data)
-        return LegacyKeybindsFile(version: nil, triggerKey: nil, actions: keybinds)
+    static func importRectangleKeybinds(from data: Data) throws -> ImportedKeybinds {
+        try ImportedKeybinds(triggerKey: nil, bindings: RectangleTranslationLayer.importKeybinds(from: data))
     }
 
     // MARK: Saving Imports
 
     /// The decision is resolved before any mutation, including the trigger key.
     @discardableResult
-    static func applyJSON(_ saved: LegacyKeybindsFile, decision: ImportDecision) throws -> Bool {
+    static func applyJSON(_ imported: ImportedKeybinds, decision: ImportDecision) throws -> Bool {
         guard decision != .cancel else { return false }
-        _ = try saved.validated()
-        let imported = saved.actions.map { $0.convertToKeyBinding() }
         var actions = decision == .erase ? [] : Tome.keyBindings
+        // Keys and name identify a binding; on a match the existing one is kept
         struct Identity: Hashable {
             var keys: KeyCombination
             var name: String?
@@ -190,13 +157,14 @@ extension Migrator {
             return Identity(keys: binding.keys, name: action.name)
         }
         let existing = Set(actions.compactMap(identity(of:)))
-        actions.append(contentsOf: imported.filter { action in
+        actions.append(contentsOf: imported.bindings.filter { action in
             decision == .erase || identity(of: action).map { !existing.contains($0) } ?? true
         })
+        // Encode first, so a failure changes neither key
         _ = try actions.encodeTOML()
-        if let trigger = saved.triggerKey { _ = try KeyCombination.tomeBridge.serialize(KeyCombination(keyCodes: trigger)) }
+        if let trigger = imported.triggerKey { _ = try KeyCombination.tomeBridge.serialize(trigger) }
         try Tome.standard.set(actions, for: \.keyBindings)
-        if let trigger = saved.triggerKey { try Tome.standard.set(KeyCombination(keyCodes: trigger), for: \.triggerKey) }
+        if let trigger = imported.triggerKey { try Tome.standard.set(trigger, for: \.triggerKey) }
         return true
     }
 

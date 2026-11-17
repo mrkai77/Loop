@@ -6,18 +6,18 @@
 //
 
 import Combine
-import Defaults
 import Luminare
 import Scribe
 import SwiftUI
+import Tome
 
 @Loggable
 @MainActor
 final class AdvancedConfigurationModel: ObservableObject {
     @Published private(set) var showResetRadialMenuActionsSuccessIndicator = false
-    @Published private(set) var showImportKeybindsSuccessIndicator = false
-    @Published private(set) var showExportKeybindsSuccessIndicator = false
-    @Published private(set) var showResetKeybindsSuccessIndicator = false
+    @Published private(set) var showImportConfigurationSuccessIndicator = false
+    @Published private(set) var showResetConfigurationSuccessIndicator = false
+    @Published var resetError: String?
 
     @Published private(set) var isLowPowerModeEnabled: Bool = ProcessInfo.processInfo.isLowPowerModeEnabled
     @Published private(set) var isAccessibilityAccessGranted = AccessibilityManager.shared.isGranted
@@ -65,40 +65,30 @@ final class AdvancedConfigurationModel: ObservableObject {
         }
     }
 
-    /// Prompts the user to import keybinds from a file.
     func importPrompt() {
         Task {
             do {
                 try await Migrator.importPrompt {
-                    showSuccessIndicator(\.showImportKeybindsSuccessIndicator)
+                    showSuccessIndicator(\.showImportConfigurationSuccessIndicator)
                 }
             } catch {
-                log.error("Error importing keybinds: \(error)")
+                log.error("Error importing configuration: \(error)")
             }
         }
     }
 
-    /// Prompts the user to export keybinds to a file.
-    func exportPrompt() {
-        Task {
-            do {
-                try await Migrator.exportPrompt {
-                    showSuccessIndicator(\.showExportKeybindsSuccessIndicator)
-                }
-            } catch {
-                log.error("Error exporting keybinds: \(error)")
-            }
+    func resetConfiguration() {
+        do {
+            try ConfigurationManager.shared.reset()
+            showSuccessIndicator(\.showResetConfigurationSuccessIndicator)
+        } catch {
+            log.error("Error resetting configuration: \(error)")
+            resetError = error.localizedDescription
         }
-    }
-
-    /// Resets keybinds to default values.
-    func resetKeybinds() {
-        Defaults.reset(.keybinds)
-        showSuccessIndicator(\.showResetKeybindsSuccessIndicator)
     }
 
     func resetRadialMenuActions() {
-        Defaults.reset(.radialMenuActions)
+        Tome.reset(\.radialMenuActions)
         showSuccessIndicator(\.showResetRadialMenuActionsSuccessIndicator)
     }
 
@@ -124,21 +114,21 @@ struct AdvancedConfigurationView: View {
 
     @StateObject private var model = AdvancedConfigurationModel()
 
-    @Default(.useSystemWindowManagerWhenAvailable) var useSystemWindowManagerWhenAvailable
-    @Default(.ignoreLowPowerMode) var ignoreLowPowerMode
-    @Default(.animateWindowResizes) var animateWindowResizes
-    @Default(.disableCursorInteraction) var disableCursorInteraction
-    @Default(.ignoreFullscreen) var ignoreFullscreen
-    @Default(.hapticFeedback) var hapticFeedback
-    @Default(.sizeIncrement) var sizeIncrement
-    @Default(.enableRadialMenuCustomization) var enableRadialMenuCustomization
-    @Default(.screenOrder) var screenOrder
+    @TomeValue(\.useSystemWindowManagerWhenAvailable) var useSystemWindowManagerWhenAvailable
+    @TomeValue(\.animateInLowPowerMode) var animateInLowPowerMode
+    @TomeValue(\.animateWindowResizes) var animateWindowResizes
+    @TomeValue(\.selectActionsWithCursor) var selectActionsWithCursor
+    @TomeValue(\.ignoreFullscreen) var ignoreFullscreen
+    @TomeValue(\.hapticFeedback) var hapticFeedback
+    @TomeValue(\.sizeIncrement) var sizeIncrement
+    @TomeValue(\.enableRadialMenuCustomization) var enableRadialMenuCustomization
+    @TomeValue(\.screenOrder) var screenOrder
 
-    @State private var isConfirmingResetKeybinds: Bool = false
+    @State private var isConfirmingResetConfiguration: Bool = false
     @State private var isConfirmingResetRadialMenuActions: Bool = false
 
     private var showLowPowerModeWarning: Bool {
-        animateWindowResizes && !ignoreLowPowerMode && model.isLowPowerModeEnabled
+        animateWindowResizes && !animateInLowPowerMode && model.isLowPowerModeEnabled
     }
 
     /// The preference only takes effect where the macOS window manager integration is available
@@ -154,7 +144,7 @@ struct AdvancedConfigurationView: View {
         LuminareForm {
             generalSection
             radialMenuSection
-            keybindsSection
+            configurationSection
             permissionsSection
                 .onAppear(perform: model.startTracking)
                 .onDisappear(perform: model.stopTracking)
@@ -198,10 +188,7 @@ struct AdvancedConfigurationView: View {
 
             LuminareToggle(
                 "Select actions with cursor",
-                isOn: Binding(
-                    get: { !disableCursorInteraction },
-                    set: { disableCursorInteraction = !$0 }
-                )
+                isOn: $selectActionsWithCursor
             )
             LuminareToggle("Ignore full-screen windows", isOn: $ignoreFullscreen)
             LuminareToggle("Haptic feedback", isOn: $hapticFeedback)
@@ -269,26 +256,25 @@ struct AdvancedConfigurationView: View {
         }
     }
 
-    private var keybindsSection: some View {
-        LuminareSection(String(localized: "Keybinds", comment: "Section header shown in settings")) {
+    private var configurationSection: some View {
+        LuminareSection(String(localized: "Configuration", comment: "Section header shown in settings")) {
+            LuminareButton {
+                Text((Tome.standard.url.path as NSString).abbreviatingWithTildeInPath)
+                    .monospaced()
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            } content: {
+                Text("Open…")
+            } action: {
+                ConfigurationManager.shared.openInEditor()
+            }
+
             LuminareButtonRow {
                 Button(action: model.importPrompt) {
                     HStack {
                         Text("Import…")
 
-                        if model.showImportKeybindsSuccessIndicator {
-                            Image(systemName: "checkmark")
-                                .foregroundStyle(.green)
-                                .bold()
-                        }
-                    }
-                }
-
-                Button(action: model.exportPrompt) {
-                    HStack {
-                        Text("Export…")
-
-                        if model.showExportKeybindsSuccessIndicator {
+                        if model.showImportConfigurationSuccessIndicator {
                             Image(systemName: "checkmark")
                                 .foregroundStyle(.green)
                                 .bold()
@@ -297,26 +283,34 @@ struct AdvancedConfigurationView: View {
                 }
 
                 Button(role: .destructive) {
-                    isConfirmingResetKeybinds = true
+                    isConfirmingResetConfiguration = true
                 } label: {
                     HStack {
                         Text("Reset…")
 
-                        if model.showResetKeybindsSuccessIndicator {
+                        if model.showResetConfigurationSuccessIndicator {
                             Image(systemName: "checkmark")
                                 .foregroundStyle(.green)
                                 .bold()
                         }
                     }
                 }
-                .alert("Reset keybinds?", isPresented: $isConfirmingResetKeybinds) {
+                .alert("Reset all settings?", isPresented: $isConfirmingResetConfiguration) {
                     Button("Cancel", role: .cancel) {}
-                    Button("Reset", role: .destructive, action: model.resetKeybinds)
+                    Button("Reset", role: .destructive, action: model.resetConfiguration)
                 } message: {
-                    Text("This resets all keybinds to their defaults.")
+                    Text("Every setting returns to its default. Your current configuration file is saved to \((ConfigurationManager.shared.backupsDirectory.path as NSString).abbreviatingWithTildeInPath) first.")
+                }
+                .alert(
+                    "Couldn't reset settings",
+                    isPresented: Binding(get: { model.resetError != nil }, set: { if !$0 { model.resetError = nil } })
+                ) {
+                    Button("OK", role: .cancel) {}
+                } message: {
+                    Text(model.resetError ?? "")
                 }
             }
-            .luminareRoundingBehavior(top: true, bottom: true)
+            .luminareRoundingBehavior(bottom: true)
         }
     }
 

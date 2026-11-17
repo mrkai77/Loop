@@ -10,6 +10,7 @@ import Defaults
 import Luminare
 import Scribe
 import SwiftUI
+import Tome
 
 @Loggable
 @MainActor
@@ -71,7 +72,7 @@ final class SettingsWindowManager: ObservableObject {
         self.radialMenuViewModel = .init(isSettingsPreview: true)
         self.previewViewModel = .init(isSettingsPreview: true)
 
-        if let firstAction = RadialMenuAction.userConfiguredActions.first?.resolved {
+        if let firstAction = RadialMenuBinding.userConfiguredActions.first.flatMap({ ActionTargetEditorGraph.current.resolve($0.target) }) {
             setPreviewedAction(to: firstAction)
         }
     }
@@ -122,7 +123,7 @@ final class SettingsWindowManager: ObservableObject {
 
         stopTimer()
 
-        if !Defaults[.showDockIcon] {
+        if !Tome.showDockIcon {
             NSApp.setActivationPolicy(.accessory)
         }
     }
@@ -160,7 +161,8 @@ final class SettingsWindowManager: ObservableObject {
         if isPreviewingUserSelection {
             guard let parent = previewedParentAction,
                   parent.direction == .cycle,
-                  let cycle = parent.cycle,
+                  case let .cycle(payload) = parent.kind,
+                  case let cycle = payload.steps.compactMap(ActionTargetEditorGraph.current.resolve),
                   let index = cycle.firstIndex(of: previewedAction)
             else {
                 return
@@ -169,8 +171,8 @@ final class SettingsWindowManager: ObservableObject {
             let nextIndex = (index + 1) % cycle.count
             setPreviewedAction(to: parent, cycleAction: cycle[nextIndex])
         } else {
-            let radialMenuActions: [WindowAction] = RadialMenuAction.userConfiguredActions
-                .compactMap(\.resolved)
+            let radialMenuActions: [WindowAction] = RadialMenuBinding.userConfiguredActions
+                .compactMap { ActionTargetEditorGraph.current.resolve($0.target) }
 
             let nextAction = if let index = radialMenuActions.firstIndex(of: previewedParentAction ?? previewedAction) {
                 radialMenuActions[(index + 1) % radialMenuActions.count]
@@ -182,10 +184,23 @@ final class SettingsWindowManager: ObservableObject {
         }
     }
 
+    func previewSelection<Binding: ConfigurationIdentifiable>(_ selection: Set<Binding>, in bindings: [Binding], graph: ActionTargetEditorGraph) {
+        if selection.count == 1, let selected = selection.first,
+           let current = bindings.first(where: { $0.id == selected.id }),
+           let action = graph.resolve(current.target) {
+            isPreviewingUserSelection = true
+            setPreviewedAction(to: action)
+        } else {
+            isPreviewingUserSelection = false
+        }
+    }
+
     func setPreviewedAction(to newAction: WindowAction, cycleAction: WindowAction? = nil) {
         if newAction.direction == .cycle {
             previewedParentAction = newAction
-            previewedAction = cycleAction ?? newAction.cycle?.first ?? .init(.noAction)
+            previewedAction = cycleAction ?? {
+                if case let .cycle(payload) = newAction.kind { payload.steps.first.flatMap(ActionTargetEditorGraph.current.resolve) } else { nil }
+            }() ?? .init(.noAction)
         } else {
             previewedParentAction = nil
             previewedAction = newAction

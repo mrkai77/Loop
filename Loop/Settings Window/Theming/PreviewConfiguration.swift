@@ -5,22 +5,22 @@
 //  Created by Kai Azim on 2024-04-19.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 struct PreviewConfigurationView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
 
-    @Default(.previewVisibility) private var previewVisibility
-    @Default(.windowSnapping) private var windowSnapping
-    @Default(.previewPadding) private var previewPadding
-    @Default(.previewCornerRadius) private var previewCornerRadius
-    @Default(.previewBorderThickness) private var previewBorderThickness
-    @Default(.previewUseWindowCornerRadius) private var previewUseWindowCornerRadius
-    @Default(.previewBackgroundStyle) private var previewBackgroundStyle
-    @Default(.previewBackgroundEnableBlur) private var previewBackgroundEnableBlur
-    @Default(.previewBackgroundAccentOpacity) private var previewBackgroundAccentOpacity
+    @TomeValue(\.previewVisibility) private var previewVisibility
+    @TomeValue(\.windowSnapping) private var windowSnapping
+    @TomeValue(\.previewPadding) private var previewPadding
+    @TomeValue(\.previewCornerRadius) private var previewCornerRadius
+    @TomeValue(\.previewBorderThickness) private var previewBorderThickness
+    @TomeValue(\.previewUseWindowCornerRadius) private var previewUseWindowCornerRadius
+    @TomeValue(\.previewBackgroundStyle) private var previewBackgroundStyle
+    @TomeValue(\.previewBackgroundEnableBlur) private var previewBackgroundEnableBlur
+    @TomeValue(\.previewBackgroundAccentOpacity) private var previewBackgroundAccentOpacity
 
     var body: some View {
         LuminareForm {

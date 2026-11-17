@@ -5,14 +5,14 @@
 //  Created by Kai Azim on 2023-01-23.
 //
 
-import Defaults
 import SwiftUI
+import Tome
 
 @main
 struct LoopApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @ObservedObject private var updater = Updater.shared
-    @Default(.hideMenuBarIcon) var hideMenuBarIcon
+    @TomeValue(\.hideMenuBarIcon) private var hideMenuBarIcon
 
     var body: some Scene {
         MenuBarExtra(Bundle.main.appName, image: "menubarIcon", isInserted: Binding.constant(!hideMenuBarIcon)) {
@@ -64,5 +64,13 @@ struct LoopApp: App {
             .keyboardShortcut("q", modifiers: .command)
         }
         .menuBarExtraStyle(.menu)
+        .commands {
+            CommandGroup(after: .appSettings) {
+                Button("Open Configuration File") {
+                    ConfigurationManager.shared.openInEditor()
+                }
+                .keyboardShortcut(",", modifiers: [.command, .shift])
+            }
+        }
     }
 }
