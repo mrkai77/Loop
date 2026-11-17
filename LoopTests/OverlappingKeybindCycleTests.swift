@@ -6,6 +6,7 @@
 //
 
 import CoreGraphics
+import Foundation
 @testable import Loop
 import Testing
 
@@ -62,8 +63,7 @@ struct OverlappingKeybindCycleTests {
             cycle: [
                 .init(.leftHalf),
                 .init(.rightHalf)
-            ],
-            keybind: [firstKey]
+            ]
         )
         let firstChordAction = WindowAction(.topHalf)
         let secondChordAction = WindowAction(.bottomHalf)
@@ -71,15 +71,13 @@ struct OverlappingKeybindCycleTests {
             cycle: [
                 firstChordAction,
                 secondChordAction
-            ],
-            keybind: [firstKey, secondKey]
+            ]
         )
         let unrelatedCycle = WindowAction(
             cycle: [
                 .init(.topLeftQuarter),
                 .init(.bottomRightQuarter)
-            ],
-            keybind: [unrelatedKey]
+            ]
         )
         let actions: [Set<CGKeyCode>: WindowAction] = [
             [firstKey]: prefixCycle,
@@ -102,15 +100,13 @@ struct OverlappingKeybindCycleTests {
             cycle: [
                 .init(.leftHalf),
                 .init(.rightHalf)
-            ],
-            keybind: [firstKey]
+            ]
         )
         let intermediateCycle = WindowAction(
             cycle: [
                 .init(.topLeftQuarter),
                 .init(.bottomRightQuarter)
-            ],
-            keybind: [firstKey, secondKey]
+            ]
         )
         let firstChordAction = WindowAction(.topHalf)
         let secondChordAction = WindowAction(.bottomHalf)
@@ -118,8 +114,7 @@ struct OverlappingKeybindCycleTests {
             cycle: [
                 firstChordAction,
                 secondChordAction
-            ],
-            keybind: [firstKey, secondKey, thirdKey]
+            ]
         )
         let actions: [Set<CGKeyCode>: WindowAction] = [
             [firstKey]: prefixCycle,
@@ -147,7 +142,16 @@ struct OverlappingKeybindCycleTests {
         let triggerKey: Set<CGKeyCode>
         let actions: [Set<CGKeyCode>: WindowAction]
 
+        let bindings: [UUID: KeyBinding]
         var resizeContext = ResizeContext()
+
+        init(triggerKey: Set<CGKeyCode>, actions: [Set<CGKeyCode>: WindowAction]) {
+            self.triggerKey = triggerKey
+            self.actions = actions
+            self.bindings = Dictionary(uniqueKeysWithValues: actions.map { keys, action in
+                (action.id, KeyBinding(id: action.id, keys: KeyCombination(keyCodes: keys, layout: FakeLayouts.layout(FakeLayouts.us).0), target: .windowAction(action)))
+            })
+        }
 
         mutating func activate(pressedKeys: Set<CGKeyCode>) throws -> WindowAction {
             let decision = KeybindResolver.resolve(
@@ -165,7 +169,7 @@ struct OverlappingKeybindCycleTests {
             let matchedAction = try #require(openedAction(decision.effect))
 
             guard matchedAction.direction == .cycle else {
-                resizeContext.setAction(to: matchedAction, parent: nil)
+                resizeContext.setAction(to: matchedAction, parent: nil, sourceBinding: bindings[matchedAction.id])
                 return matchedAction
             }
 
@@ -173,13 +177,14 @@ struct OverlappingKeybindCycleTests {
             let proposedAction = resizeContext.proposeCycleAction(
                 in: cycleAction,
                 restartAtBeginningWhenInterrupted: true,
-                mode: .advance(.forward)
+                mode: .advance(.forward),
+                sourceBinding: bindings[cycleAction.id]
             )
             let proposal = try #require(proposedAction)
             let committedAction = resizeContext.commitCycleAction(proposal, in: cycleAction)
             let action = try #require(committedAction)
 
-            resizeContext.setAction(to: action, parent: cycleAction)
+            resizeContext.setAction(to: action, parent: cycleAction, sourceBinding: bindings[cycleAction.id])
             return action
         }
 

@@ -33,6 +33,15 @@ struct RadialMenuGestureOverrideTests {
         #expect(GestureBinding.radialMenuOverrideIDs(in: gestures).isEmpty)
     }
 
+    @Test func conflictsGroupByFingerCountAndKind() {
+        let up2 = (0 ..< 3).map { _ in gesture(fingerCount: 2, kind: .swipeUp) }
+        let up3 = gesture(kind: .swipeUp)
+        let down2 = gesture(fingerCount: 2, kind: .swipeDown)
+        #expect(GestureBinding.conflictingIDs(in: up2 + [up3, down2]) == Set(up2.map(\.id)))
+        let twin = gesture(fingerCount: 4, kind: .magnifyIn)
+        #expect(GestureBinding.conflictingIDs(in: [twin, twin]).isEmpty)
+    }
+
     @Test func unsetGesturesAreInactiveAndNeverConflict() {
         let radial = gesture(kind: .radialMenu)
         let firstUnset = gesture(kind: nil)
@@ -92,7 +101,7 @@ struct RadialMenuGestureOverrideTests {
         GestureBinding(
             fingerCount: fingerCount,
             kind: kind,
-            action: kind == .radialMenu ? .radialMenuActions : .singleAction(.custom(.init(action))),
+            target: kind == .radialMenu ? .radialMenuMode : .windowAction(.init(action)),
             activationZone: activationZone
         )
     }

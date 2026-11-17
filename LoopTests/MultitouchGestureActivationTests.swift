@@ -409,7 +409,7 @@ struct MultitouchGestureActivationTests {
         GestureBinding(
             fingerCount: fingerCount,
             kind: kind,
-            action: .singleAction(.custom(.init(.maximize))),
+            target: .windowAction(.init(.maximize)),
             activationZone: activationZone
         )
     }

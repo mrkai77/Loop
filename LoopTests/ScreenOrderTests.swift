@@ -41,12 +41,6 @@ struct ScreenOrderTests {
         #expect(order(.clockwise, row) == ["left", "middle", "right"])
     }
 
-    @Test func aRowKeepsEveryScreenInTheCycle() {
-        // A row has no inside, so the middle screen has to stay in the ring rather than being
-        // treated as a screen the cycle visits later.
-        #expect(order(.clockwise, row).count == row.count)
-    }
-
     @Test func aRowOfDifferentlySizedScreensIsStillWalkedLeftToRight() {
         // A laptop display next to two larger screens: the centers no longer line up.
         let screens = [
@@ -242,27 +236,6 @@ struct ScreenOrderTests {
         for order in ScreenOrder.allCases {
             #expect(Set(self.order(order, screens)) == Set(screens.map(\.name)))
             #expect(self.order(order, screens).count == screens.count)
-        }
-    }
-
-    @Test func everyScreenIsReachableByWalkingTheCycle() {
-        // What next/previous screen actually relies on: starting anywhere and stepping forward
-        // has to reach every screen before coming back around.
-        let screens = [
-            Screen("a", x: 0, y: 1080),
-            Screen("b", x: 1920, y: 1080),
-            Screen("c", x: 3840, y: 1080),
-            Screen("d", x: 1920, y: 0),
-            Screen("e", x: 0, y: 0)
-        ]
-
-        for order in ScreenOrder.allCases {
-            let cycle = self.order(order, screens)
-
-            for start in cycle.indices {
-                let walked = (0 ..< cycle.count).map { cycle[(start + $0) % cycle.count] }
-                #expect(Set(walked).count == screens.count)
-            }
         }
     }
 }

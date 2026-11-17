@@ -9,30 +9,18 @@
 import Testing
 
 struct DirectionPickerSearchTests {
-    @Test func prefixMatchScoresZero() {
+    @Test func searchRanksPrefixSubstringSubsequenceAndRejectsOutOfOrder() {
         #expect(DirectionPickerView.fuzzyScore("Left Half", "left") == 0)
-    }
-
-    @Test func substringMatchScoresOne() {
         #expect(DirectionPickerView.fuzzyScore("Left Half", "half") == 1)
-    }
-
-    @Test func subsequenceMatchScoresTwo() {
         #expect(DirectionPickerView.fuzzyScore("Left Half", "lfhf") == 2)
-    }
-
-    @Test func outOfOrderCharactersDoNotMatch() {
         #expect(DirectionPickerView.fuzzyScore("Left Half", "fl l") == nil)
     }
 
     /// Regression test for #1187, where a multi-byte character in the name crashed the search.
     /// "meta" doesn't match "Metà" because the search isn't diacritic-insensitive.
-    @Test func subsequenceMatchAgainstNonASCIINameDoesNotCrash() {
+    @Test func nonASCIINamesAndPatternsDoNotCrashTheSubsequenceMatch() {
         #expect(DirectionPickerView.fuzzyScore("Metà inferiore", "meta") == nil)
         #expect(DirectionPickerView.fuzzyScore("Metà inferiore", "eeoe") == 2)
-    }
-
-    @Test func subsequenceMatchWithNonASCIIPattern() {
         #expect(DirectionPickerView.fuzzyScore("Metà inferiore", "mà ie") == 2)
     }
 }

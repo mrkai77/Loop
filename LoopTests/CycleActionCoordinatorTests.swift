@@ -18,60 +18,68 @@ struct CycleActionCoordinatorTests {
         let outside = WindowAction(.maximize)
         let children = [first, second]
         let cycle = WindowAction(children)
-        let prefixCycle = WindowAction(cycle: [outside], keybind: [.kVK_LeftArrow])
+        let prefixCycle = WindowAction(cycle: [outside])
+        let prefixBinding = KeyBinding(id: prefixCycle.id, keys: [.kVK_LeftArrow], target: .windowAction(prefixCycle))
         let dualKeyCycle = WindowAction(
-            cycle: children,
-            keybind: [.kVK_LeftArrow, .kVK_RightArrow]
+            cycle: children
         )
-        let unrelatedCycle = WindowAction(cycle: [outside], keybind: [.kVK_UpArrow])
+        let dualBinding = KeyBinding(id: dualKeyCycle.id, keys: [.kVK_LeftArrow, .kVK_RightArrow], target: .windowAction(dualKeyCycle))
+        let unrelatedCycle = WindowAction(cycle: [outside])
+        let unrelatedBinding = KeyBinding(id: unrelatedCycle.id, keys: [.kVK_UpArrow], target: .windowAction(unrelatedCycle))
 
         #expect(CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: outside,
             currentParentAction: nil,
-            keybindSequenceOriginAction: nil,
+            keybindSequenceOrigin: nil,
             in: cycle
         ))
         #expect(CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: .init(.noSelection),
             currentParentAction: nil,
-            keybindSequenceOriginAction: nil,
+            keybindSequenceOrigin: nil,
             in: cycle
         ))
         #expect(!CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: first,
             currentParentAction: cycle,
-            keybindSequenceOriginAction: nil,
+            keybindSequenceOrigin: nil,
             in: cycle
         ))
         #expect(!CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: false,
             currentAction: outside,
             currentParentAction: nil,
-            keybindSequenceOriginAction: nil,
+            keybindSequenceOrigin: nil,
             in: cycle
         ))
         #expect(CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: outside,
             currentParentAction: prefixCycle,
-            keybindSequenceOriginAction: nil,
+            keybindSequenceOrigin: nil,
+            currentBinding: prefixBinding,
+            cycleBinding: dualBinding,
             in: dualKeyCycle
         ))
         #expect(!CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: outside,
             currentParentAction: prefixCycle,
-            keybindSequenceOriginAction: dualKeyCycle,
+            keybindSequenceOrigin: dualBinding,
+            currentBinding: prefixBinding,
+            cycleBinding: dualBinding,
             in: dualKeyCycle
         ))
         #expect(CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: outside,
             currentParentAction: prefixCycle,
-            keybindSequenceOriginAction: unrelatedCycle,
+            keybindSequenceOrigin: unrelatedBinding,
+            currentBinding: prefixBinding,
+            cycleBinding: dualBinding,
             in: dualKeyCycle
         ))
     }
@@ -96,12 +104,7 @@ struct CycleActionCoordinatorTests {
             currentAction: first,
             currentParentAction: cycle
         )
-        coordinator.recordActionTransition(
-            from: secondSelection,
-            currentParentAction: cycle,
-            to: noSelection,
-            newParentAction: nil
-        )
+        coordinator.recordActionTransition()
         let radialSelection = try commitNext(
             with: &coordinator,
             in: cycle,
@@ -109,12 +112,7 @@ struct CycleActionCoordinatorTests {
             currentParentAction: nil,
             mode: .resumeCurrent
         )
-        coordinator.recordActionTransition(
-            from: noSelection,
-            currentParentAction: nil,
-            to: radialSelection,
-            newParentAction: cycle
-        )
+        coordinator.recordActionTransition()
 
         let nextProposal = coordinator.proposeAction(
             for: targetWindowID,
