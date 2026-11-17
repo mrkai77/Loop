@@ -6,21 +6,38 @@
 //
 
 import SwiftUI
+import Tome
+import TOML
 
-enum CustomWindowActionSizeMode: Int, Codable, CaseIterable, Identifiable {
+enum CustomWindowActionSizeMode: String, Codable, CaseIterable, Identifiable, Tome.Serializable {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(Int.self)
+        let index = raw - 0
+        guard Self.allCases.indices.contains(index) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown size mode \(ConfigurationMessage.quoted(String(raw)))")
+        }
+        self = Self.allCases[index]
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(Self.allCases.firstIndex(of: self)! + 0)
+    }
+
     var id: Self { self }
 
-    case custom = 0
-    case preserveSize = 1
-    case initialSize = 2
+    case custom
+    case preserve
+    case initial
 
     var name: LocalizedStringKey {
         switch self {
         case .custom:
             "Custom"
-        case .preserveSize:
+        case .preserve:
             "Preserve Size"
-        case .initialSize:
+        case .initial:
             "Initial Size"
         }
     }
@@ -29,9 +46,9 @@ enum CustomWindowActionSizeMode: Int, Codable, CaseIterable, Identifiable {
         switch self {
         case .custom:
             Image(systemName: "ruler.fill")
-        case .preserveSize:
+        case .preserve:
             Image(systemName: "lock.fill")
-        case .initialSize:
+        case .initial:
             Image(systemName: "backward.fill")
         }
     }

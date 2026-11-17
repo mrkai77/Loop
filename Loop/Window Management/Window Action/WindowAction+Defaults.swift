@@ -10,33 +10,33 @@ import Foundation
 
 // MARK: Keybinds
 
-extension WindowAction {
-    static let defaultKeybinds: [WindowAction] = [
-        WindowAction(.maximize, keybind: [.kVK_Space]),
-        WindowAction(.center, keybind: [.kVK_Return]),
-        WindowAction(
+extension KeyBinding {
+    static let defaultKeybinds: [KeyBinding] = [
+        KeyBinding(.maximize, keybind: [.kVK_Space]),
+        KeyBinding(.center, keybind: [.kVK_Return]),
+        KeyBinding(
             .init(localized: "Top Cycle"),
             cycle: [.init(.topHalf), .init(.topThird), .init(.topTwoThirds)],
             keybind: [.kVK_UpArrow]
         ),
-        WindowAction(
+        KeyBinding(
             .init(localized: "Bottom Cycle"),
             cycle: [.init(.bottomHalf), .init(.bottomThird), .init(.bottomTwoThirds)],
             keybind: [.kVK_DownArrow]
         ),
-        WindowAction(
+        KeyBinding(
             .init(localized: "Right Cycle"),
             cycle: [.init(.rightHalf), .init(.rightThird), .init(.rightTwoThirds)],
             keybind: [.kVK_RightArrow]
         ),
-        WindowAction(
+        KeyBinding(
             .init(localized: "Left Cycle"),
             cycle: [.init(.leftHalf), .init(.leftThird), .init(.leftTwoThirds)],
             keybind: [.kVK_LeftArrow]
         ),
-        WindowAction(.topLeftQuarter, keybind: [.kVK_UpArrow, .kVK_LeftArrow]),
-        WindowAction(.topRightQuarter, keybind: [.kVK_UpArrow, .kVK_RightArrow]),
-        WindowAction(.bottomRightQuarter, keybind: [.kVK_DownArrow, .kVK_RightArrow]),
-        WindowAction(.bottomLeftQuarter, keybind: [.kVK_DownArrow, .kVK_LeftArrow])
+        KeyBinding(.topLeftQuarter, keybind: [.kVK_UpArrow, .kVK_LeftArrow]),
+        KeyBinding(.topRightQuarter, keybind: [.kVK_UpArrow, .kVK_RightArrow]),
+        KeyBinding(.bottomRightQuarter, keybind: [.kVK_DownArrow, .kVK_RightArrow]),
+        KeyBinding(.bottomLeftQuarter, keybind: [.kVK_DownArrow, .kVK_LeftArrow])
     ]
 }

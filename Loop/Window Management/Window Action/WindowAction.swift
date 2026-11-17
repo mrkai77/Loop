@@ -6,154 +6,95 @@
 //
 
 import Defaults
-import Scribe
 import SwiftUI
 
-/// The window action struct represents a single action that can be performed on a window, such as resizing, moving, or cycling through actions.
-///
-/// Common actions, such as right half, or bottom right quarter, are represented by `WindowDirection` enum, while user-made actions, such as custom frames and cycles are speciied by this struct.
-struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serializable {
+/// Codable because stash recovery records store actions in Defaults.
+struct WindowAction: Codable, Identifiable, Hashable, Sendable, Defaults.Serializable {
     private(set) var id: UUID
-    private static var sharedNoSelectionId: UUID = .init()
-
-    /// Initializes a `WindowAction` with the specified parameters. Only to be used when decoding from JSON.
-    /// - Parameters:
-    ///   - direction: the direction of the window action. If custom or cycle, use those and further specify the action with the parameters below.
-    ///   - keybind: the keybinds associated with this action. If empty, the action is not bound to any key.
-    ///   - name: the name of the action. If `nil`, the name will be derived from the direction.
-    ///   - unit: the unit of measurement for width and height.  This needs to be specified for custom actions.
-    ///   - anchor: the anchor point for the action.  This needs to be specified for custom actions that use a `generic` ``positionMode``
-    ///   - width: the width of the window. This needs to be specified for custom actions.
-    ///   - height: the height of the window. This needs to be specified for custom actions.
-    ///   - xPoint: the x-coordinate of the window's position. This needs to be specified for custom actions with a `coordinates` ``positionMode``.
-    ///   - yPoint: the y-coordinate of the window's position. This needs to be specified for custom actions with a `coordinates` ``positionMode``.
-    ///   - positionMode: whether to use anchors or exact coordinates to move a window. This needs to be specified for custom actions.
-    ///   - sizeMode: the size mode of the action, which allows users to preserve size when manipulating a window.
-    ///   - cycle: The cycling window actions.
-    init(
-        _ direction: WindowDirection,
-        keybind: Set<CGKeyCode>,
-        name: String? = nil,
-        unit: CustomWindowActionUnit? = nil,
-        anchor: CustomWindowActionAnchor? = nil,
-        width: Double? = nil,
-        height: Double? = nil,
-        xPoint: Double? = nil,
-        yPoint: Double? = nil,
-        positionMode: CustomWindowActionPositionMode? = nil,
-        sizeMode: CustomWindowActionSizeMode? = nil,
-        cycle: [WindowAction]? = nil,
-        bypassTriggerKey: Bool? = nil
-    ) {
-        self.id = UUID()
-        self.direction = direction
-        self.keybind = keybind
-        self.name = name
-        self.unit = unit
-        self.anchor = anchor
-        self.width = width
-        self.height = height
-        self.positionMode = positionMode
-        self.xPoint = xPoint
-        self.yPoint = yPoint
-        self.sizeMode = sizeMode
-        self.cycle = cycle
-        self.bypassTriggerKey = bypassTriggerKey
+    var kind: Kind {
+        didSet { kind = kind.normalized }
     }
 
-    /// Initializes a `WindowAction` with the specified direction and an empty keybind.
-    /// - Parameter direction: the direction of the window action.
-    init(_ direction: WindowDirection, keybind: Set<CGKeyCode> = []) {
-        if direction == .noSelection {
-            self.id = Self.sharedNoSelectionId
-        } else {
-            self.id = UUID()
-        }
+    private static let sharedNoSelectionId = UUID()
 
-        self.direction = direction
-        self.keybind = keybind
-    }
+    enum Kind: Codable, Hashable {
+        case builtin(WindowDirection)
+        case custom(FrameAction)
+        case cycle(CycleAction)
+        case stash(FrameAction)
 
-    /// Initializes a cycle `WindowAction`. Used for user-defined cycles.
-    /// - Parameters:
-    ///   - name: the name of the cycle. If `nil`, a default name will be used (eg. "Cycle").
-    ///   - cycle: the cycle of window actions. This is an array of `WindowAction` that will be cycled through when the action is triggered.
-    ///   - keybind: the keybinds associated with this action.
-    init(_ name: String? = nil, cycle: [WindowAction], keybind: Set<CGKeyCode> = []) {
-        self.id = UUID()
-        self.direction = .cycle
-        self.name = name
-        self.cycle = cycle
-        self.keybind = keybind
-    }
-
-    /// Initializes a cycle without a name or keybind. Used in radial menu.
-    /// - Parameter cycle: the cycle of window actions.
-    init(_ cycle: [WindowAction]) {
-        self.init(nil, cycle: cycle)
-    }
-
-    // Generic Properties
-    var direction: WindowDirection
-    var keybind: Set<CGKeyCode>
-    var bypassTriggerKey: Bool?
-
-    // Custom Keybind Properties
-    var name: String?
-    var unit: CustomWindowActionUnit?
-    var anchor: CustomWindowActionAnchor?
-    var sizeMode: CustomWindowActionSizeMode?
-    var width: Double?
-    var height: Double?
-    var positionMode: CustomWindowActionPositionMode?
-    var xPoint: Double?
-    var yPoint: Double?
-
-    /// Custom Cycle Properties
-    var cycle: [WindowAction]?
-
-    // MARK: - Methods
-
-    var iconResolvedAction: WindowAction {
-        if direction == .cycle, let first = cycle?.first {
-            first
-        } else {
-            self
+        /// Payload directions can't be stored as built-ins.
+        var normalized: Self {
+            switch self {
+            case .builtin(.custom): .custom(.init())
+            case .builtin(.cycle): .cycle(.init())
+            case .builtin(.stash): .stash(.init(position: .anchor(.topLeft)))
+            default: self
+            }
         }
     }
 
-    struct SemanticKey: Hashable {
-        let direction: WindowDirection
-        let keybind: Set<CGKeyCode>
-        let bypassTriggerKey: Bool?
-        let name: String?
-        let unit: CustomWindowActionUnit?
-        let anchor: CustomWindowActionAnchor?
-        let sizeMode: CustomWindowActionSizeMode?
-        let width: Double?
-        let height: Double?
-        let positionMode: CustomWindowActionPositionMode?
-        let xPoint: Double?
-        let yPoint: Double?
-        let cycle: [Self]?
+    init(_ direction: WindowDirection) {
+        self.id = direction == .noSelection ? Self.sharedNoSelectionId : UUID()
+        switch direction {
+        case .custom: self.kind = .custom(.init())
+        case .cycle: self.kind = .cycle(.init())
+        case .stash: self.kind = .stash(.init(position: .anchor(.topLeft)))
+        default: self.kind = .builtin(direction)
+        }
     }
 
-    var semanticKey: SemanticKey {
-        .init(
-            direction: direction,
-            keybind: keybind,
-            bypassTriggerKey: bypassTriggerKey,
-            name: name,
-            unit: unit,
-            anchor: anchor,
-            sizeMode: sizeMode,
-            width: width,
-            height: height,
-            positionMode: positionMode,
-            xPoint: xPoint,
-            yPoint: yPoint,
-            cycle: cycle?.map(\.semanticKey)
-        )
+    init(kind: Kind, id: UUID = UUID()) {
+        self.id = id
+        self.kind = kind.normalized
+    }
+
+    init(_ name: String? = nil, cycle: [WindowAction]) {
+        self.init(kind: .cycle(.init(name: name, steps: cycle.map(ActionTarget.windowAction))))
+    }
+
+    init(_ cycle: [WindowAction]) { self.init(nil, cycle: cycle) }
+
+    func withRuntimeID(_ id: UUID) -> Self {
+        var action = self
+        action.id = id
+        return action
+    }
+
+    var direction: WindowDirection {
+        get {
+            switch kind {
+            case let .builtin(direction): direction
+            case .custom: .custom
+            case .cycle: .cycle
+            case .stash: .stash
+            }
+        }
+        set {
+            guard direction != newValue else { return }
+            let identity = id
+            self = Self(newValue)
+            id = identity
+        }
+    }
+
+    var name: String? {
+        get {
+            switch kind {
+            case .builtin: nil
+            case let .custom(payload): payload.name
+            case let .cycle(payload): payload.name
+            case let .stash(payload): payload.name
+            }
+        }
+        set {
+            switch kind {
+            case .builtin: break
+            case var .custom(payload): payload.name = newValue; kind = .custom(payload)
+            case var .cycle(payload): payload.name = newValue; kind = .cycle(payload)
+            case var .stash(payload): payload.name = newValue; kind = .stash(payload)
+            }
+        }
     }
 
     /// Retrieves the name of the action, either from the `name` property or from the `direction` enum.
@@ -215,15 +156,11 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
             return false
         }
 
-        if direction.isCustomizable, sizeMode == .initialSize || sizeMode == .preserveSize {
+        if direction.isCustomizable, size == .initial || size == .preserve {
             return false
         }
 
         return true
-    }
-
-    var eligibleForReverseCycle: Bool {
-        direction == .cycle && !keybind.contains(.kVK_Shift)
     }
 
     /// Determines the angle to show in the radial menu, if applicable.

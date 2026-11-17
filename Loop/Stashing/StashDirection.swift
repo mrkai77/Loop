@@ -26,23 +26,16 @@ enum StashEdge: String, CustomDebugStringConvertible {
 
 extension WindowAction {
     var stashEdge: StashEdge? {
-        switch direction {
-        case .stash where anchor == .left:
-            .left
-        case .stash where anchor == .right:
-            .right
-        case .stash where anchor == .bottom:
-            .bottom
-        case .stash where anchor == .topLeft:
-            .left
-        case .stash where anchor == .topRight:
-            .right
-        case .stash where anchor == .bottomLeft:
-            .left
-        case .stash where anchor == .bottomRight:
-            .right
+        guard direction == .stash, case let .anchor(anchor) = position else { return nil }
+        switch anchor {
+        case .left, .topLeft, .bottomLeft:
+            return .left
+        case .right, .topRight, .bottomRight:
+            return .right
+        case .bottom:
+            return .bottom
         default:
-            nil
+            return nil
         }
     }
 }

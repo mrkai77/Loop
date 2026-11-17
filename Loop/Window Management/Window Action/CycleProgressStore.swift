@@ -62,7 +62,7 @@ struct CycleProgressStore {
         )
 
         guard cycleAction.direction == .cycle,
-              let children = cycleAction.cycle,
+              let children = cycleAction.resolvedCycleSteps,
               !children.isEmpty
         else {
             cursors[key] = nil
@@ -101,7 +101,7 @@ struct CycleProgressStore {
         }
 
         guard cycleAction.direction == .cycle,
-              let children = cycleAction.cycle,
+              let children = cycleAction.resolvedCycleSteps,
               !children.isEmpty
         else {
             cursors[key] = nil

@@ -5,10 +5,10 @@
 //  Created by Kai Azim on 2024-02-01.
 //
 
-import Defaults
 import SwiftUI
+import Tome
 
-struct PaddingConfiguration: Codable, Defaults.Serializable, Hashable {
+struct PaddingConfiguration: Hashable, Tome.Serializable {
     var window: CGFloat
     var externalBar: CGFloat
     var top: CGFloat
@@ -16,7 +16,12 @@ struct PaddingConfiguration: Codable, Defaults.Serializable, Hashable {
     var right: CGFloat
     var left: CGFloat
 
-    var configureScreenPadding: Bool
+    enum Mode: String, Codable, CaseIterable, Tome.Serializable {
+        case simple
+        case custom
+    }
+
+    var mode: Mode
 
     var totalTopPadding: CGFloat {
         top + externalBar
@@ -29,7 +34,7 @@ struct PaddingConfiguration: Codable, Defaults.Serializable, Hashable {
         bottom: 0,
         right: 0,
         left: 0,
-        configureScreenPadding: false
+        mode: .simple
     )
 
     var allEqual: Bool {
@@ -40,7 +45,7 @@ struct PaddingConfiguration: Codable, Defaults.Serializable, Hashable {
         _ bounds: CGRect,
         screen: NSScreen? = nil
     ) -> CGRect {
-        let notchOffset: CGFloat = if Defaults[.ignoreNotch], let screen {
+        let notchOffset: CGFloat = if Tome.ignoreNotch, let screen {
             screen.menubarHeight
         } else {
             0
@@ -127,9 +132,55 @@ struct PaddingConfiguration: Codable, Defaults.Serializable, Hashable {
     }
 }
 
+/// A missing field means zero (or `simple`), and only fields that differ are written.
+extension PaddingConfiguration: Codable {
+    enum CodingKeys: String, CodingKey, CaseIterable {
+        case mode
+        case gap
+        case edges
+        case customMenuBar = "custom-menu-bar"
+    }
+
+    enum EdgeKeys: String, CodingKey {
+        case top, bottom, left, right
+    }
+
+    /// `[padding]` also holds `enabled`, `minimum-screen-size` and `ignore-notch` as separate keys.
+    static let tomeManagedFields: [String]? = CodingKeys.allCases.map(\.rawValue)
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let edges = container.contains(.edges) ? try container.nestedContainer(keyedBy: EdgeKeys.self, forKey: .edges) : nil
+        func length<Key: CodingKey>(_ container: KeyedDecodingContainer<Key>?, _ key: Key) throws -> CGFloat {
+            try container?.decodeIfPresent(CGFloat.self, forKey: key) ?? 0
+        }
+        try self.init(
+            window: length(container, .gap),
+            externalBar: length(container, .customMenuBar),
+            top: length(edges, .top),
+            bottom: length(edges, .bottom),
+            right: length(edges, .right),
+            left: length(edges, .left),
+            mode: container.decodeIfPresent(Mode.self, forKey: .mode) ?? .simple
+        )
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        if mode != .simple { try container.encode(mode, forKey: .mode) }
+        if window != 0 { try container.encode(window, forKey: .gap) }
+        let edges = [(EdgeKeys.top, top), (.bottom, bottom), (.left, left), (.right, right)].filter { $0.1 != 0 }
+        if !edges.isEmpty {
+            var nested = container.nestedContainer(keyedBy: EdgeKeys.self, forKey: .edges)
+            for (key, value) in edges { try nested.encode(value, forKey: key) }
+        }
+        if externalBar != 0 { try container.encode(externalBar, forKey: .customMenuBar) }
+    }
+}
+
 extension PaddingConfiguration {
     static func getConfiguredPadding(for screen: NSScreen?) -> PaddingConfiguration {
-        if #available(macOS 15, *), Defaults[.useSystemWindowManagerWhenAvailable] {
+        if #available(macOS 15, *), Tome.useSystemWindowManagerWhenAvailable {
             guard SystemWindowManager.MoveAndResize.enablePadding else {
                 return .zero
             }
@@ -143,17 +194,17 @@ extension PaddingConfiguration {
                 bottom: padding,
                 right: padding,
                 left: padding,
-                configureScreenPadding: false
+                mode: .simple
             )
         } else {
             let respectsPaddingThreshold = if let screen {
-                Defaults[.paddingMinimumScreenSize] == 0 || screen.diagonalSize > Defaults[.paddingMinimumScreenSize]
+                Tome.paddingMinimumScreenSize == 0 || screen.diagonalSize > Tome.paddingMinimumScreenSize
             } else {
                 true
             }
-            let enablePadding = Defaults[.enablePadding] && respectsPaddingThreshold
+            let enablePadding = Tome.enablePadding && respectsPaddingThreshold
 
-            return enablePadding ? Defaults[.padding] : .zero
+            return enablePadding ? Tome.padding : .zero
         }
     }
 }

@@ -5,78 +5,140 @@
 //  Created by Kai Azim on 2023-06-14.
 //
 
-import Defaults
 import SwiftUI
+import Tome
 
 /// Enum that stores all possible resizing options
-enum WindowDirection: String, CaseIterable, Identifiable, Codable {
+enum WindowDirection: String, CaseIterable, Identifiable, Codable, Tome.Serializable {
     var id: Self { self }
 
     /// "Empty" actions.
     /// `noAction` is explicitly chosen or user-bound.
     /// `noSelection` is the default state before any radial menu selection is made.
-    case noAction = "NoAction", noSelection = "NoSelection"
+    case noAction = "none"
+    case noSelection = "no-selection"
 
     // General Actions
-    case maximize = "Maximize", almostMaximize = "AlmostMaximize", fullscreen = "Fullscreen"
-    case maximizeHeight = "MaximizeHeight", maximizeWidth = "MaximizeWidth", fillAvailableSpace = "FillAvailableSpace"
-    case undo = "Undo", initialFrame = "InitialFrame", hide = "Hide", minimize = "Minimize", minimizeOthers = "MinimizeOthers"
-    case macOSCenter = "MacOSCenter", center = "Center"
+    case maximize
+    case almostMaximize = "almost-maximize"
+    case fullscreen
+    case maximizeHeight = "maximize-height"
+    case maximizeWidth = "maximize-width"
+    case fillAvailableSpace = "fill-available-space"
+    case undo
+    case initialFrame = "initial-frame"
+    case hide
+    case minimize
+    case minimizeOthers = "minimize-others"
+    case macOSCenter = "macos-center"
+    case center
 
     // Halves
-    case topHalf = "TopHalf", rightHalf = "RightHalf", bottomHalf = "BottomHalf", leftHalf = "LeftHalf"
-    case horizontalCenterHalf = "HorizontalCenterHalf", verticalCenterHalf = "VerticalCenterHalf"
+    case topHalf = "top-half"
+    case rightHalf = "right-half"
+    case bottomHalf = "bottom-half"
+    case leftHalf = "left-half"
+    case horizontalCenterHalf = "horizontal-center-half"
+    case verticalCenterHalf = "vertical-center-half"
 
     // Quarters
-    case topLeftQuarter = "TopLeftQuarter", topRightQuarter = "TopRightQuarter"
-    case bottomRightQuarter = "BottomRightQuarter", bottomLeftQuarter = "BottomLeftQuarter"
+    case topLeftQuarter = "top-left-quarter"
+    case topRightQuarter = "top-right-quarter"
+    case bottomRightQuarter = "bottom-right-quarter"
+    case bottomLeftQuarter = "bottom-left-quarter"
 
     // Horizontal Thirds
-    case rightThird = "RightThird", rightTwoThirds = "RightTwoThirds"
-    case horizontalCenterThird = "HorizontalCenterThird"
-    case leftThird = "LeftThird", leftTwoThirds = "LeftTwoThirds"
+    case rightThird = "right-third"
+    case rightTwoThirds = "right-two-thirds"
+    case horizontalCenterThird = "horizontal-center-third"
+    case leftThird = "left-third"
+    case leftTwoThirds = "left-two-thirds"
 
     // Horizontal Fourths
-    case firstFourth = "FirstFourth", secondFourth = "SecondFourth", thirdFourth = "ThirdFourth", fourthFourth = "FourthFourth"
-    case leftThreeFourths = "LeftThreeFourths", rightThreeFourths = "RightThreeFourths"
+    case firstFourth = "first-fourth"
+    case secondFourth = "second-fourth"
+    case thirdFourth = "third-fourth"
+    case fourthFourth = "fourth-fourth"
+    case leftThreeFourths = "left-three-fourths"
+    case rightThreeFourths = "right-three-fourths"
 
     // Vertical Thirds
-    case topThird = "TopThird", topTwoThirds = "TopTwoThirds"
-    case verticalCenterThird = "VerticalCenterThird"
-    case bottomThird = "BottomThird", bottomTwoThirds = "BottomTwoThirds"
+    case topThird = "top-third"
+    case topTwoThirds = "top-two-thirds"
+    case verticalCenterThird = "vertical-center-third"
+    case bottomThird = "bottom-third"
+    case bottomTwoThirds = "bottom-two-thirds"
 
     /// Screen Switching
-    case nextScreen = "NextScreen", previousScreen = "PreviousScreen", leftScreen = "LeftScreen", rightScreen = "RightScreen", topScreen = "TopScreen", bottomScreen = "BottomScreen"
+    case nextScreen = "next-screen"
+    case previousScreen = "previous-screen"
+    case leftScreen = "left-screen"
+    case rightScreen = "right-screen"
+    case topScreen = "top-screen"
+    case bottomScreen = "bottom-screen"
 
     /// Space Switching (move the window to another Mission Control space).
-    case nextSpace = "NextSpace", previousSpace = "PreviousSpace"
-    case moveToSpace1 = "MoveToSpace1", moveToSpace2 = "MoveToSpace2", moveToSpace3 = "MoveToSpace3", moveToSpace4 = "MoveToSpace4"
-    case moveToSpace5 = "MoveToSpace5", moveToSpace6 = "MoveToSpace6", moveToSpace7 = "MoveToSpace7", moveToSpace8 = "MoveToSpace8"
-    case moveToSpace9 = "MoveToSpace9", moveToSpace10 = "MoveToSpace10", moveToSpace11 = "MoveToSpace11", moveToSpace12 = "MoveToSpace12"
-    case moveToSpace13 = "MoveToSpace13", moveToSpace14 = "MoveToSpace14", moveToSpace15 = "MoveToSpace15", moveToSpace16 = "MoveToSpace16"
+    case nextSpace = "next-space"
+    case previousSpace = "previous-space"
+    case moveToSpace1 = "move-to-space-1"
+    case moveToSpace2 = "move-to-space-2"
+    case moveToSpace3 = "move-to-space-3"
+    case moveToSpace4 = "move-to-space-4"
+    case moveToSpace5 = "move-to-space-5"
+    case moveToSpace6 = "move-to-space-6"
+    case moveToSpace7 = "move-to-space-7"
+    case moveToSpace8 = "move-to-space-8"
+    case moveToSpace9 = "move-to-space-9"
+    case moveToSpace10 = "move-to-space-10"
+    case moveToSpace11 = "move-to-space-11"
+    case moveToSpace12 = "move-to-space-12"
+    case moveToSpace13 = "move-to-space-13"
+    case moveToSpace14 = "move-to-space-14"
+    case moveToSpace15 = "move-to-space-15"
+    case moveToSpace16 = "move-to-space-16"
 
     // Size Adjustment
-    case larger = "Larger", smaller = "Smaller"
-    case scaleUp = "ScaleUp", scaleDown = "ScaleDown"
+    case larger
+    case smaller
+    case scaleUp = "scale-up"
+    case scaleDown = "scale-down"
 
     /// Shrink
-    case shrinkTop = "ShrinkTop", shrinkBottom = "ShrinkBottom", shrinkRight = "ShrinkRight", shrinkLeft = "ShrinkLeft", shrinkHorizontal = "ShrinkHorizontal", shrinkVertical = "ShrinkVertical"
+    case shrinkTop = "shrink-top"
+    case shrinkBottom = "shrink-bottom"
+    case shrinkRight = "shrink-right"
+    case shrinkLeft = "shrink-left"
+    case shrinkHorizontal = "shrink-horizontal"
+    case shrinkVertical = "shrink-vertical"
 
     /// Grow
-    case growTop = "GrowTop", growBottom = "GrowBottom", growRight = "GrowRight", growLeft = "GrowLeft", growHorizontal = "GrowHorizontal", growVertical = "GrowVertical"
+    case growTop = "grow-top"
+    case growBottom = "grow-bottom"
+    case growRight = "grow-right"
+    case growLeft = "grow-left"
+    case growHorizontal = "grow-horizontal"
+    case growVertical = "grow-vertical"
 
     /// Move
-    case moveUp = "MoveUp", moveDown = "MoveDown", moveRight = "MoveRight", moveLeft = "MoveLeft"
+    case moveUp = "move-up"
+    case moveDown = "move-down"
+    case moveRight = "move-right"
+    case moveLeft = "move-left"
 
     /// Focus
-    case focusUp = "FocusUp", focusDown = "FocusDown", focusRight = "FocusRight", focusLeft = "FocusLeft", focusNextInStack = "FocusNextInStack"
+    case focusUp = "focus-up"
+    case focusDown = "focus-down"
+    case focusRight = "focus-right"
+    case focusLeft = "focus-left"
+    case focusNextInStack = "focus-next-in-stack"
 
     // Stash
-    case stash = "Stash"
-    case unstash = "Unstash"
+    case stash
+    case unstash
 
     /// Custom Actions
-    case custom = "Custom", cycle = "Cycle"
+    case custom
+    case cycle
 
     // These are used in the menubar resize submenu & keybind configuration
     static var general: [WindowDirection] { [.fullscreen, .maximize, .almostMaximize, .maximizeHeight, .maximizeWidth, .fillAvailableSpace, .center, .macOSCenter, .minimize, .minimizeOthers, .hide] }

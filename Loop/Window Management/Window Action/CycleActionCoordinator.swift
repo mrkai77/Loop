@@ -6,8 +6,14 @@
 //
 
 import CoreGraphics
+import Foundation
 
 struct CycleActionCoordinator {
+    /// `false` when the trigger keys or the action's own keybind already contain Shift.
+    static func allowsShiftReverseCycle(sourceBinding: KeyBinding?, triggerKeys: KeyCombination, enabled: Bool) -> Bool {
+        enabled && !triggerKeys.containsFixedKey(.kVK_Shift) && (sourceBinding.map { !$0.keys.containsFixedKey(.kVK_Shift) } ?? true)
+    }
+
     enum SelectionMode {
         case advance(CycleProgressStore.Direction)
         case selectCurrent
@@ -23,7 +29,7 @@ struct CycleActionCoordinator {
     }
 
     private var progressStore = CycleProgressStore()
-    private var keybindSequenceOriginAction: WindowAction?
+    private var keybindSequenceOrigin: KeyBinding?
 
     mutating func proposeAction(
         for targetWindowID: CGWindowID,
@@ -32,22 +38,25 @@ struct CycleActionCoordinator {
         currentParentAction: WindowAction?,
         recordedAction: WindowAction?,
         restartAtBeginningWhenInterrupted: Bool,
-        mode: SelectionMode
+        mode: SelectionMode,
+        currentBinding: KeyBinding? = nil,
+        cycleBinding: KeyBinding? = nil
     ) -> Proposal? {
-        let currentActionBelongsToCycle = cycleAction.cycle?.contains {
+        let currentActionBelongsToCycle = cycleAction.resolvedCycleSteps?.contains {
             $0.id == currentAction.id
         } == true
-        let isInsideCycle = currentActionBelongsToCycle || Self.isRepeatingLongerKeybind(
-            currentAction: currentAction,
-            currentParentAction: currentParentAction,
-            keybindSequenceOriginAction: keybindSequenceOriginAction,
-            in: cycleAction
+        let isInsideCycle = currentActionBelongsToCycle || currentParentAction?.id == cycleAction.id || Self.isRepeatingLongerKeybind(
+            keybindSequenceOrigin: keybindSequenceOrigin,
+            currentBinding: currentBinding,
+            cycleBinding: cycleBinding
         )
         let restartAtBeginning = Self.shouldRestartAtBeginning(
             whenEnabled: restartAtBeginningWhenInterrupted,
             currentAction: currentAction,
             currentParentAction: currentParentAction,
-            keybindSequenceOriginAction: keybindSequenceOriginAction,
+            keybindSequenceOrigin: keybindSequenceOrigin,
+            currentBinding: currentBinding,
+            cycleBinding: cycleBinding,
             in: cycleAction
         )
 
@@ -95,53 +104,48 @@ struct CycleActionCoordinator {
     }
 
     mutating func recordActionTransition(
-        from currentAction: WindowAction,
-        currentParentAction: WindowAction?,
-        to newAction: WindowAction,
-        newParentAction: WindowAction?
+        currentBinding: KeyBinding? = nil,
+        newBinding: KeyBinding? = nil
     ) {
-        let currentBindingAction = currentParentAction ?? currentAction
-        let nextBindingAction = newParentAction ?? newAction
-        let continuesKeybindSequence = !currentBindingAction.keybind.isEmpty
-            && currentBindingAction.keybind.isStrictSubset(of: nextBindingAction.keybind)
-
-        if !continuesKeybindSequence {
-            keybindSequenceOriginAction = currentBindingAction
-        }
+        let continuesKeybindSequence = currentBinding.map { current in
+            !current.keys.isEmpty && newBinding.map { current.keys.names.isStrictSubset(of: $0.keys.names) } == true
+        } == true
+        if !continuesKeybindSequence { keybindSequenceOrigin = currentBinding }
     }
 
     static func shouldRestartAtBeginning(
         whenEnabled isEnabled: Bool,
         currentAction: WindowAction,
         currentParentAction: WindowAction?,
-        keybindSequenceOriginAction: WindowAction?,
+        keybindSequenceOrigin: KeyBinding?,
+        currentBinding: KeyBinding? = nil,
+        cycleBinding: KeyBinding? = nil,
         in cycleAction: WindowAction
     ) -> Bool {
         let isRepeatingLongerKeybind = isRepeatingLongerKeybind(
-            currentAction: currentAction,
-            currentParentAction: currentParentAction,
-            keybindSequenceOriginAction: keybindSequenceOriginAction,
-            in: cycleAction
+            keybindSequenceOrigin: keybindSequenceOrigin,
+            currentBinding: currentBinding,
+            cycleBinding: cycleBinding
         )
 
         return isEnabled && (
             !isRepeatingLongerKeybind && (
                 currentAction.direction == .noSelection ||
-                    cycleAction.cycle?.contains { $0.id == currentAction.id } != true
+                    (currentParentAction?.id != cycleAction.id &&
+                        cycleAction.resolvedCycleSteps?.contains { $0.id == currentAction.id } != true)
             )
         )
     }
 
     /// Holding a shorter keybind while repeating the cycle's longer one briefly selects the shorter action first
     private static func isRepeatingLongerKeybind(
-        currentAction: WindowAction,
-        currentParentAction: WindowAction?,
-        keybindSequenceOriginAction: WindowAction?,
-        in cycleAction: WindowAction
+        keybindSequenceOrigin: KeyBinding?,
+        currentBinding: KeyBinding? = nil,
+        cycleBinding: KeyBinding? = nil
     ) -> Bool {
-        let currentKeybind = currentParentAction?.keybind ?? currentAction.keybind
-        return keybindSequenceOriginAction?.id == cycleAction.id
-            && !currentKeybind.isEmpty
-            && currentKeybind.isStrictSubset(of: cycleAction.keybind)
+        guard let currentBinding, let cycleBinding else { return false }
+        return keybindSequenceOrigin?.id == cycleBinding.id
+            && !currentBinding.keys.isEmpty
+            && currentBinding.keys.names.isStrictSubset(of: cycleBinding.keys.names)
     }
 }

@@ -7,8 +7,7 @@
 
 import SwiftUI
 
-/// An icon to represent a `WindowAction`.
-/// When the action is a cycle, it will display the first action in the cycle.
+/// An icon to represent a `WindowAction`. For a cycle, pass `ActionTargetEditorGraph.iconAction(for:)`.
 /// Icons will prioritize using the action's `icon` property, then a simple frame preview, and finally a default icon.
 /// - the `icon` property is used for common actions like hide, minimize, growing and shrinking, which cannot be easily represented by a frame.
 /// - a simple frame preview is used for more general actions such as right half, maximize, and center, as well as custom keybinds when available.
@@ -73,7 +72,7 @@ struct IconView: NSViewRepresentable {
 
 final class IconRenderView: NSView {
     private var currentAction: WindowAction?
-    private var currentSemanticKey: WindowAction.SemanticKey?
+    private var currentKind: WindowAction.Kind?
     private var lastDisplayMode: DisplayMode?
 
     private let strokeLayer = CAShapeLayer()
@@ -103,10 +102,9 @@ final class IconRenderView: NSView {
         to action: WindowAction,
         animated: Bool
     ) {
-        let action = action.iconResolvedAction
-        guard action.semanticKey != currentSemanticKey else { return }
+        guard action.kind != currentKind else { return }
 
-        currentSemanticKey = action.semanticKey
+        currentKind = action.kind
         currentAction = action
         updatePath(duration: animated ? 0.2 : 0.0)
     }
@@ -116,9 +114,9 @@ final class IconRenderView: NSView {
         animated: Bool
     ) {
         let action = WindowAction(direction)
-        guard action.semanticKey != currentSemanticKey else { return }
+        guard action.kind != currentKind else { return }
 
-        currentSemanticKey = action.semanticKey
+        currentKind = action.kind
         currentAction = action
         updatePath(duration: animated ? 0.2 : 0.0)
     }

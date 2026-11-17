@@ -98,17 +98,11 @@ actor WindowRecords {
             )
 
             let action = WindowAction(
-                .custom,
-                keybind: [],
-                name: customActionName,
-                unit: .percentage,
-                anchor: nil,
-                width: proportionalSize.width * 100,
-                height: proportionalSize.height * 100,
-                xPoint: proportionalSize.minX * 100,
-                yPoint: proportionalSize.minY * 100,
-                positionMode: .coordinates,
-                sizeMode: .custom
+                kind: .custom(.init(
+                    name: customActionName,
+                    size: .custom(width: ScreenLength(proportionalSize.width * 100), height: ScreenLength(proportionalSize.height * 100)),
+                    position: .coordinates(x: ScreenLength(proportionalSize.minX * 100), y: ScreenLength(proportionalSize.minY * 100))
+                ))
             )
 
             recordsByWindowID[window.cgWindowID]?.actions.insert(action, at: 0)

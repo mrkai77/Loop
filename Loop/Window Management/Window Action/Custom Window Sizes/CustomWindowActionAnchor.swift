@@ -7,21 +7,38 @@
 
 import Luminare
 import SwiftUI
+import Tome
+import TOML
 
-enum CustomWindowActionAnchor: Int, Codable, Identifiable, LuminareSelectionData {
+enum CustomWindowActionAnchor: String, Codable, CaseIterable, Identifiable, LuminareSelectionData, Tome.Serializable {
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(Int.self)
+        let index = raw - -1
+        guard Self.allCases.indices.contains(index) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown anchor \(ConfigurationMessage.quoted(String(raw)))")
+        }
+        self = Self.allCases[index]
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(Self.allCases.firstIndex(of: self)! + -1)
+    }
+
     var id: Self { self }
 
-    case none = -1
-    case topLeft = 0
-    case top = 1
-    case topRight = 2
-    case right = 3
-    case bottomRight = 4
-    case bottom = 5
-    case bottomLeft = 6
-    case left = 7
-    case center = 8
-    case macOSCenter = 9
+    case none
+    case topLeft = "top-left"
+    case top
+    case topRight = "top-right"
+    case right
+    case bottomRight = "bottom-right"
+    case bottom
+    case bottomLeft = "bottom-left"
+    case left
+    case center
+    case macOSCenter = "macos-center"
 
     var isSelectable: Bool {
         self != .none

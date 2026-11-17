@@ -5,9 +5,9 @@
 //  Created by Guillaume Clédat on 22/05/2025.
 //
 
-import Defaults
 import Scribe
 import SwiftUI
+import Tome
 
 /// Manages the behavior of windows that can be temporarily hidden (stashed) and revealed on screen edges.
 ///
@@ -19,11 +19,11 @@ import SwiftUI
 /// - Cleanup and restore: restores windows when the app terminates or when a window is explicitly unstashed.
 ///
 /// ## Key Features:
-/// - Configurable animations for reveal/hide behaviors (see `Defaults[.animateStashedWindows]`).
-/// - Configurable visibility padding to determine how much of a stashed window remains visible (see `Defaults[.stashedWindowVisiblePadding]`).
+/// - Configurable animations for reveal/hide behaviors (see `Tome.animateStashedWindows`).
+/// - Configurable visibility padding to determine how much of a stashed window remains visible (see `Tome.stashedWindowVisiblePadding`).
 /// - Smart handling of overlapping stashed windows along the same screen edge, using vertical range tolerance.
 /// - Debounced and throttled mouse movement handling to avoid performance issues.
-/// - Automatic focus-shifting to another window when a window is hidden (optional) (see `Defaults[.shiftFocusWhenStashed]`).
+/// - Automatic focus-shifting to another window when a window is hidden (optional) (see `Tome.shiftFocusWhenStashed`).
 ///
 /// ## Constants:
 /// - `mouseMovedDebounceInterval`: The minimum time interval (in seconds) between processing consecutive mouse move events.
@@ -43,16 +43,16 @@ final class StashManager {
 
     /// Should the stashed windows be animated when revealed or hidden?
     private var animate: Bool {
-        Defaults[.animateStashedWindows]
+        Tome.animateStashedWindows
     }
 
     /// How many pixels of the window should be visible when stashed
     var stashedWindowVisiblePadding: CGFloat {
-        Defaults[.stashedWindowVisiblePadding]
+        Tome.stashedWindowVisiblePadding
     }
 
     private var shiftFocusWhenStashed: Bool {
-        Defaults[.shiftFocusWhenStashed]
+        Tome.shiftFocusWhenStashed
     }
 
     /// The time interval to debounce mouse moved events to avoid excessive processing.
@@ -76,11 +76,20 @@ final class StashManager {
     private var mouseMonitor: PassiveEventMonitor?
     private var frontmostAppMonitor: Task<(), Never>?
     private var mouseMovedTask: Task<(), Never>?
+    private var configurationUpdatesTask: Task<(), Never>?
     private var transitionIDs: [CGWindowID: UUID] = [:]
 
     // MARK: - Public methods
 
     func start() {
+        if configurationUpdatesTask == nil {
+            configurationUpdatesTask = Task {
+                for await _ in Tome.updates(\.stashedWindowVisiblePadding) {
+                    await onConfigurationChanged()
+                }
+            }
+        }
+
         Task {
             await store.restore()
         }
@@ -92,6 +101,8 @@ final class StashManager {
 
     /// Cancels all monitoring and restores every stashed window to its initial frame.
     func shutdown() {
+        configurationUpdatesTask?.cancel()
+        configurationUpdatesTask = nil
         mouseMovedTask?.cancel()
         mouseMovedTask = nil
         stopListeningToRevealTriggers()
