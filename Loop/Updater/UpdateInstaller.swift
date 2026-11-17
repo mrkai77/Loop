@@ -97,13 +97,35 @@ actor UpdateInstaller {
             return
         }
 
-        log.notice("Application will now restart. New instance will launch in 0.5 seconds.")
+        let currentPID = ProcessInfo.processInfo.processIdentifier
+        log.notice("Application will now restart. New instance will launch once pid \(currentPID) exits.")
 
-        let appURL = installedAppURL
+        // The waiter has to outlive this process, so it can't run in-process.
+        // $0 is the current pid and $1 is the app path, passed as arguments rather than interpolated.
+        // Nothing on macOS blocks until an unrelated process exits, so poll every 0.1s.
+        // Stop after 10s if this process is stuck quitting; `open -n` still starts a new instance,
+        // and that instance's terminate broadcast force-kills whatever is left.
         let process = Process()
-        process.launchPath = "/bin/sh"
-        process.arguments = ["-c", "sleep 0.5; open \"\(appURL.path)\""]
-        process.launch()
+        process.executableURL = URL(fileURLWithPath: "/bin/sh")
+        process.arguments = [
+            "-c",
+            """
+            deadline=$(($(/bin/date +%s) + 10))
+            while /bin/kill -0 "$0" 2>/dev/null && [ "$(/bin/date +%s)" -lt "$deadline" ]; do
+                /bin/sleep 0.1
+            done
+            exec /usr/bin/open -n "$1"
+            """,
+            String(currentPID),
+            installedAppURL.path
+        ]
+
+        do {
+            try process.run()
+        } catch {
+            log.error("Failed to schedule relaunch: \(error.localizedDescription)")
+            return
+        }
 
         await MainActor.run {
             NSApp.terminate(nil)
