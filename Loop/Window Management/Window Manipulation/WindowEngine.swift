@@ -215,7 +215,7 @@ enum WindowEngine {
 
     // MARK: - Size Constraints
 
-    private static func handleSizeConstrainedWindow(
+    static func handleSizeConstrainedWindow(
         window: Window,
         actualFrame: CGRect,
         targetFrame: CGRect,
@@ -276,7 +276,11 @@ enum WindowEngine {
             frame.origin.y = requestedFrame.midY - actualSize.height / 2
         }
 
-        return frame.pushInside(bounds)
+        frame = frame.pushInside(bounds)
+        // Keep the title bar reachable when an app's minimum size exceeds the display.
+        frame.origin.x = max(bounds.minX, frame.minX)
+        frame.origin.y = max(bounds.minY, frame.minY)
+        return frame
     }
 
     static func shouldAnchorDuringAnimation(
