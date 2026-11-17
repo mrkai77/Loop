@@ -5,13 +5,13 @@
 //  Created by Kai Azim on 2024-04-20.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 final class KeybindsConfigurationModel: ObservableObject {
     @Published var currentEventMonitor: LocalEventMonitor?
-    @Published var selectedKeybinds = Set<WindowAction>()
+    @Published var selectedKeybinds = Set<KeyBinding>()
 }
 
 struct KeybindsConfigurationView: View {
@@ -19,25 +19,31 @@ struct KeybindsConfigurationView: View {
     @EnvironmentObject private var windowModel: SettingsWindowManager
     @StateObject private var model = KeybindsConfigurationModel()
 
-    @Default(.triggerKey) private var triggerKey
-    @Default(.sideDependentTriggerKey) private var sideDependentTriggerKey
-    @Default(.triggerDelay) private var triggerDelay
-    @Default(.cycleModeRestartEnabled) private var cycleModeRestartEnabled
-    @Default(.cycleBackwardsOnShiftPressed) private var cycleBackwardsOnShiftPressed
-    @Default(.doubleClickToTrigger) private var doubleClickToTrigger
-    @Default(.middleClickTriggersLoop) private var middleClickTriggersLoop
-    @Default(.enableTriggerDelayOnMiddleClick) private var enableTriggerDelayOnMiddleClick
-    @Default(.hideOnNoSelectionForKeybinds) private var hideOnNoSelectionForKeybinds
-    @Default(.keybinds) private var keybinds
+    @TomeValue(\.triggerKey) private var triggerKey
+    @TomeValue(\.sideDependentTriggerKey) private var sideDependentTriggerKey
+    @TomeValue(\.triggerDelay) private var triggerDelay
+    @TomeValue(\.cycleModeRestartEnabled) private var cycleModeRestartEnabled
+    @TomeValue(\.cycleBackwardsOnShiftPressed) private var cycleBackwardsOnShiftPressed
+    @TomeValue(\.doubleClickToTrigger) private var doubleClickToTrigger
+    @TomeValue(\.middleClickTriggersLoop) private var middleClickTriggersLoop
+    @TomeValue(\.enableTriggerDelayOnMiddleClick) private var enableTriggerDelayOnMiddleClick
+    @TomeValue(\.hideOnNoSelectionForKeybinds) private var hideOnNoSelectionForKeybinds
+    @TomeValue(\.keyBindings) private var keybinds
+    @TomeValue(\.gestures) private var gestures
+    @TomeValue(\.radialMenuActions) private var radialMenuBindings
+
+    private var graph: ActionTargetEditorGraph {
+        .init(keyBindings: keybinds, gestures: gestures, radialMenuBindings: radialMenuBindings)
+    }
 
     /// If the user has "enabled" the trigger delay.
     private var useTriggerDelay: Bool {
-        Defaults[.triggerDelay] != 0
+        Tome.triggerDelay != .zero
     }
 
     /// Is Shift used in the trigger key?
     private var isShiftUsedByTriggerKey: Bool {
-        triggerKey.map(\.baseModifier).contains(.kVK_Shift)
+        triggerKey.names.map(KeyNames.baseModifier).contains(KeyNames.fixedName(for: .kVK_Shift) ?? "")
     }
 
     private var showMiddleClickTriggerDelayOption: Bool {
@@ -62,7 +68,7 @@ struct KeybindsConfigurationView: View {
 
     private var triggerKeySection: some View {
         LuminareSection(String(localized: "Trigger Key", comment: "Section header shown in settings")) {
-            TriggerKeycorder($triggerKey)
+            TriggerKeycorder($triggerKey.names)
                 .environmentObject(model)
                 .luminareBorderedStates(.normal)
         }
@@ -76,7 +82,10 @@ struct KeybindsConfigurationView: View {
 
             LuminareSlider(
                 "Trigger delay",
-                value: $triggerDelay,
+                value: Binding(
+                    get: { triggerDelay / .seconds(1) },
+                    set: { if let delay = try? Duration.tomeBridge.deserialize(.float($0)) { triggerDelay = delay } }
+                ),
                 in: 0...1,
                 step: 0.1,
                 format: .number.precision(.fractionLength(1...1)),
@@ -121,7 +130,8 @@ struct KeybindsConfigurationView: View {
                 }
 
                 Button(String(localized: "Remove", comment: "Used to remove items from a list"), role: .destructive) {
-                    keybinds.removeAll(where: model.selectedKeybinds.contains)
+                    let ids = Set(model.selectedKeybinds.map(\.id))
+                    keybinds.removeAll { ids.contains($0.id) }
                 }
                 .disabled(model.selectedKeybinds.isEmpty)
                 .keyboardShortcut(.delete)
@@ -146,13 +156,11 @@ struct KeybindsConfigurationView: View {
                 .padding()
             }
             .luminareRoundingBehavior(bottom: true)
-            .onChange(of: model.selectedKeybinds, initial: true) {
-                if model.selectedKeybinds.count == 1, let action = model.selectedKeybinds.first {
-                    windowModel.isPreviewingUserSelection = true
-                    windowModel.setPreviewedAction(to: action)
-                } else {
-                    windowModel.isPreviewingUserSelection = false
-                }
+            .onChange(of: model.selectedKeybinds, initial: true) { windowModel.previewSelection(model.selectedKeybinds, in: keybinds, graph: graph) }
+            .onChange(of: graph) { _ in windowModel.previewSelection(model.selectedKeybinds, in: keybinds, graph: graph) }
+            .onChange(of: keybinds) { updated in
+                let ids = Set(model.selectedKeybinds.map(\.id))
+                model.selectedKeybinds = Set(updated.filter { ids.contains($0.id) })
             }
             .onDisappear {
                 windowModel.isPreviewingUserSelection = false

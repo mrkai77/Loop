@@ -5,22 +5,32 @@
 //  Created by Kai Azim on 2024-05-03.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
 
 struct CycleActionConfigurationView: View {
-    @Binding private var windowAction: WindowAction
+    @Binding private var action: WindowAction
     @Binding private var isPresented: Bool
+    @State private var steps: [EditorStep]
+    @State private var selection: Set<EditorStep> = []
+    private let owner: BindingReference?
 
-    @State private var action: WindowAction // this is so that onChange is called for each property
+    /// Separate from the target's identity, so duplicate references stay editable.
+    private struct EditorStep: Identifiable, Hashable {
+        let id: UUID
+        var target: ActionTarget
+        init(_ target: ActionTarget) { self.id = UUID(); self.target = target }
+    }
 
-    @State private var selectedKeybinds = Set<WindowAction>()
-
-    init(action: Binding<WindowAction>, isPresented: Binding<Bool>) {
-        self._windowAction = action
-        self._isPresented = isPresented
-        self._action = State(initialValue: action.wrappedValue)
+    init(action: Binding<WindowAction>, isPresented: Binding<Bool>, owner: BindingReference? = nil) {
+        _action = action
+        _isPresented = isPresented
+        self.owner = owner
+        if case let .cycle(payload) = action.wrappedValue.kind {
+            _steps = State(initialValue: payload.steps.map(EditorStep.init))
+        } else {
+            _steps = State(initialValue: [])
+        }
     }
 
     var body: some View {
@@ -37,37 +47,36 @@ struct CycleActionConfigurationView: View {
             LuminareSection(outerPadding: 0) {
                 LuminareButtonRow {
                     Button(String(localized: "Add", comment: "Used to add items to a list")) {
-                        if action.cycle == nil {
-                            action.cycle = []
-                        }
-
-                        action.cycle?.insert(.init(.noAction), at: 0)
+                        steps.insert(EditorStep(.windowAction(.init(.noAction))), at: 0)
                     }
 
                     Button(String(localized: "Remove", comment: "Used to remove items from a list"), role: .destructive) {
-                        action.cycle?.removeAll(where: { selectedKeybinds.contains($0) })
+                        let ids = Set(selection.map(\.id))
+                        steps.removeAll { ids.contains($0.id) }
+                        selection = []
                     }
-                    .disabled(selectedKeybinds.isEmpty)
+                    .disabled(selection.isEmpty)
                 }
                 .luminareRoundingBehavior(top: true)
 
                 LuminareList(
-                    items: Binding(
-                        get: {
-                            action.cycle ?? []
-                        },
-                        set: { newValue in
-                            action.cycle = newValue
-                        }
-                    ),
-                    selection: $selectedKeybinds,
+                    items: $steps,
+                    selection: $selection,
                     id: \.id
-                ) { item in
-                    KeybindItemView(
-                        item,
-                        cycleIndex: action.cycle?.firstIndex(of: item.wrappedValue)
-                    )
-                    .environmentObject(KeybindsConfigurationModel())
+                ) { step in
+                    HStack {
+                        ActionTargetEditorView(target: step.target, owner: owner, allowsCycles: false)
+
+                        Spacer()
+
+                        if let index = steps.firstIndex(where: { $0.id == step.wrappedValue.id }) {
+                            Text("\(index)")
+                                .frame(width: 27, height: 27)
+                                .luminareSurface()
+                                .luminareCornerRadius(8)
+                        }
+                    }
+                    .padding(.horizontal, 12)
                 } emptyView: {
                     VStack {
                         Text("Nothing to cycle through")
@@ -81,7 +90,6 @@ struct CycleActionConfigurationView: View {
                 .luminareRoundingBehavior(bottom: true)
                 .luminareListFixedHeight(until: .infinity)
             }
-            .onChange(of: action) { windowAction = $0 }
 
             Button {
                 isPresented = false
@@ -91,10 +99,17 @@ struct CycleActionConfigurationView: View {
             .buttonStyle(.luminare(overrideUseMainStyle: true))
             .luminareCornerRadius(8)
         }
-        .onAppear {
-            if action.cycle == nil {
-                action.cycle = []
-            }
+        .onChange(of: steps) { updated in
+            guard case var .cycle(payload) = action.kind else { return }
+            payload.steps = updated.map(\.target)
+            action.kind = .cycle(payload)
+            let selectedIDs = Set(selection.map(\.id))
+            selection = Set(updated.filter { selectedIDs.contains($0.id) })
+        }
+        .onChange(of: action.kind) { updated in
+            guard case let .cycle(payload) = updated, payload.steps != steps.map(\.target) else { return }
+            steps = payload.steps.map(EditorStep.init)
+            selection = []
         }
     }
 }

@@ -5,7 +5,6 @@
 //  Created by Kai Azim on 2026-04-16.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
 
@@ -13,128 +12,35 @@ struct GestureItemView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
     @Environment(\.luminareSectionHorizontalPadding) private var horizontalPadding
 
-    @Default(.keybinds) private var keybinds
-
-    @State private var gesture: GestureBinding
-    @Binding private var externalGesture: GestureBinding
+    @Binding private var gesture: GestureBinding
     private let hasConflict: Bool
     private let overridesRadialMenu: Bool
 
-    @State private var isActionPickerPresented = false
     @State private var isGestureConfigPresented = false
-    @State private var isConfiguringCustom = false
-    @State private var isConfiguringCycle = false
 
     init(_ gesture: Binding<GestureBinding>, hasConflict: Bool, overridesRadialMenu: Bool) {
-        self.gesture = gesture.wrappedValue
-        self._externalGesture = gesture
+        _gesture = gesture
         self.hasConflict = hasConflict
         self.overridesRadialMenu = overridesRadialMenu
     }
 
-    private var resolvedAction: WindowAction? {
-        switch gesture.action {
-        case .radialMenuActions:
-            nil
-        case let .singleAction(actionType):
-            actionType.resolvedAction
-        }
-    }
-
-    private var isKeybindReference: Bool {
-        if case let .singleAction(actionType) = gesture.action {
-            return actionType.isKeybindReference
-        }
-        return false
-    }
-
-    private var actionTypeBinding: Binding<RadialMenuAction.ActionType> {
-        Binding(
-            get: {
-                if case let .singleAction(actionType) = gesture.action {
-                    return actionType
-                }
-                return .custom(.init(.noAction))
-            },
-            set: { newValue in
-                gesture.action = .singleAction(newValue)
-            }
-        )
-    }
-
-    private var actionBinding: Binding<WindowAction> {
-        Binding(
-            get: {
-                resolvedAction ?? .init(.noAction)
-            },
-            set: { newAction in
-                if case let .singleAction(actionType) = gesture.action {
-                    switch actionType {
-                    case .custom:
-                        gesture.action = .singleAction(.custom(newAction))
-                    case let .keybindReference(id):
-                        if let index = Defaults[.keybinds].firstIndex(where: { $0.id == id }) {
-                            keybinds[index] = newAction
-                        }
-                    }
-                }
-            }
-        )
-    }
-
     var body: some View {
         ZStack {
-            actionSelection
+            actionIndicator
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 12) {
-                if isKeybindReference {
-                    Image(systemName: "keyboard")
-                        .foregroundStyle(.secondary)
-                        .help("This action is linked to a keybind. Changes made to this action will affect both.")
+            gestureConfiguration
+                .luminareToolTip(attachedTo: .topTrailing, hidden: !hasConflict && !overridesRadialMenu) {
+                    Text(
+                        hasConflict
+                            ? String(localized: "Another gesture is set up the same way.", comment: "Tooltip shown on a conflicting gesture in settings")
+                            : String(localized: "Takes priority over the radial menu for this gesture.", comment: "Tooltip shown on a gesture in settings that overrides one direction of a radial menu gesture using the same finger count")
+                    )
+                    .padding(6)
                 }
-
-                gestureConfiguration
-                    .luminareToolTip(attachedTo: .topTrailing, hidden: !hasConflict && !overridesRadialMenu) {
-                        Text(
-                            hasConflict
-                                ? String(localized: "Another gesture is set up the same way.", comment: "Tooltip shown on a conflicting gesture in settings")
-                                : String(localized: "Takes priority over the radial menu for this gesture.", comment: "Tooltip shown on a gesture in settings that overrides one direction of a radial menu gesture using the same finger count")
-                        )
-                        .padding(6)
-                    }
-            }
-            .frame(maxWidth: .infinity, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, 12)
-        .onChange(of: resolvedAction?.direction) { _ in
-            if resolvedAction?.direction.isCustomizable == true {
-                isConfiguringCustom = true
-            }
-            if resolvedAction?.direction == .cycle {
-                isConfiguringCycle = true
-            }
-        }
-        .onChange(of: gesture) { externalGesture = $0 }
-    }
-
-    private var actionSelection: some View {
-        actionIndicator
-            .luminarePopover(
-                isPresented: $isActionPickerPresented,
-                arrowEdge: .top,
-                attachmentAnchor: .topLeading,
-                shouldHideAnchor: true,
-                shouldAnimate: false
-            ) {
-                RadialMenuActionPickerView(selection: actionTypeBinding)
-                    .frame(width: 300, height: 300)
-            }
-            .onChange(of: isActionPickerPresented) { _ in
-                if !isActionPickerPresented {
-                    PickerListEventMonitorManager.shared.removeAllMonitors()
-                }
-            }
     }
 
     private var gestureConfiguration: some View {
@@ -186,112 +92,32 @@ struct GestureItemView: View {
         .luminareModalCornerRadius(24)
     }
 
+    @ViewBuilder
     private var actionIndicator: some View {
-        HStack(spacing: 2) {
-            let opensRadialMenu = gesture.action == .radialMenuActions
-
+        if gesture.kind == .radialMenu {
             // The radial menu can't be changed here, but shares the button so it lines up with other actions
-            Button {
-                if !opensRadialMenu {
-                    isActionPickerPresented.toggle()
-                }
-            } label: {
-                HStack(spacing: 8) {
-                    if opensRadialMenu {
+            HStack(spacing: 2) {
+                Button {} label: {
+                    HStack(spacing: 8) {
                         Image(.loop)
                             .frame(width: 18)
 
                         Text(String(localized: "Radial Menu", comment: "Label shown for a gesture configured to open the radial menu"))
                             .fontWeight(.regular)
                             .lineLimit(1)
-                    } else if let action = resolvedAction {
-                        IconView(action: action)
-
-                        if let info = action.direction.infoText {
-                            Text(action.getName())
-                                .fontWeight(.regular)
-                                .lineLimit(1)
-                                .padding(.trailing, 4)
-                                .luminareToolTip(attachedTo: .topTrailing) {
-                                    Text(info)
-                                        .padding(6)
-                                }
-                        } else {
-                            Text(action.getName())
-                                .fontWeight(.regular)
-                                .lineLimit(1)
-                        }
-                    } else {
-                        // A single action only fails to resolve when its linked keybind was removed
-                        Image(systemName: "bolt.horizontal.fill")
-                            .foregroundStyle(.secondary)
-
-                        Text("Linked keybind not found")
-                            .fontWeight(.regular)
-                            .lineLimit(1)
-                            .foregroundStyle(.secondary)
                     }
+                    .padding(.horizontal, 4)
                 }
-                .padding(.horizontal, 4)
+                .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
+                .luminareRoundingBehavior(top: true, bottom: true)
+                .luminareFilledStates([.hovering, .pressed])
+                .luminareBorderedStates(.hovering)
+                .luminareMinHeight(24)
+                .allowsHitTesting(false)
+                .padding(.leading, -4)
             }
-            .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
-            .luminareRoundingBehavior(top: true, bottom: true)
-            .luminareFilledStates([.hovering, .pressed])
-            .luminareBorderedStates(.hovering)
-            .luminareMinHeight(24)
-            .help(String(localized: "Customize this gesture’s action.", comment: "Help text shown when hovering a gesture's action button"))
-            .allowsHitTesting(!opensRadialMenu)
-            .padding(.leading, -4)
-
-            Group {
-                if let resolvedAction {
-                    if resolvedAction.direction.isCustomizable {
-                        Button {
-                            isConfiguringCustom = true
-                        } label: {
-                            Image(systemName: "slider.horizontal.3")
-                        }
-                        .buttonStyle(.plain)
-                        .luminareModal(isPresented: $isConfiguringCustom) {
-                            if resolvedAction.direction == .custom {
-                                CustomActionConfigurationView(
-                                    action: actionBinding,
-                                    isPresented: $isConfiguringCustom
-                                )
-                                .frame(width: 400)
-                            } else {
-                                StashActionConfigurationView(
-                                    action: actionBinding,
-                                    isPresented: $isConfiguringCustom
-                                )
-                                .frame(width: 400)
-                            }
-                        }
-                        .luminareModalCornerRadius(24)
-                        .help(String(localized: "Customize this action’s custom frame.", comment: "Help text on the slider icon next to a gesture action with a custom frame"))
-                    }
-
-                    if resolvedAction.direction == .cycle {
-                        Button {
-                            isConfiguringCycle = true
-                        } label: {
-                            Image(systemName: "repeat")
-                        }
-                        .buttonStyle(.plain)
-                        .luminareModal(isPresented: $isConfiguringCycle) {
-                            CycleActionConfigurationView(
-                                action: actionBinding,
-                                isPresented: $isConfiguringCycle
-                            )
-                            .frame(width: 400)
-                        }
-                        .luminareModalCornerRadius(24)
-                        .help(String(localized: "Customize what this action cycles through.", comment: "Help text on the cycle icon next to a gesture action that cycles"))
-                    }
-                }
-            }
-            .font(.title3)
-            .foregroundStyle(.secondary)
+        } else {
+            ActionTargetEditorView(target: $gesture.target, owner: gesture.reference)
         }
     }
 }

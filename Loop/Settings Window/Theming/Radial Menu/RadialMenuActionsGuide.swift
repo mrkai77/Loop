@@ -5,22 +5,28 @@
 //  Created by Kai Azim on 2026-01-01.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 struct RadialMenuActionsGuide: View {
     @EnvironmentObject private var windowModel: SettingsWindowManager
     @ObservedObject private var accentColorController: AccentColorController = .shared
     @Environment(\.luminareAnimation) private var luminareAnimation
 
-    @Default(.radialMenuActions) private var radialMenuActions
+    @TomeValue(\.radialMenuActions) private var radialMenuActions
+    @TomeValue(\.keyBindings) private var keyBindings
+    @TomeValue(\.gestures) private var gestures
 
-    private var radialActions: [RadialMenuAction] {
+    private var graph: ActionTargetEditorGraph {
+        .init(keyBindings: keyBindings, gestures: gestures, radialMenuBindings: radialMenuActions)
+    }
+
+    private var radialActions: [RadialMenuBinding] {
         Array(radialMenuActions.dropLast())
     }
 
-    private var centerAction: RadialMenuAction {
+    private var centerAction: RadialMenuBinding {
         radialMenuActions.last ?? .custom(.init(.noAction))
     }
 
@@ -38,12 +44,12 @@ struct RadialMenuActionsGuide: View {
 
     var body: some View {
         ZStack {
-            if let centerResolved = centerAction.resolved {
+            if let centerResolved = graph.resolve(centerAction.target) {
                 actionButton(
                     action: centerResolved,
                     isActive: centerResolved == activeAction
                 ) {
-                    IconView(action: centerResolved)
+                    IconView(action: graph.iconAction(for: centerResolved))
                 }
             } else {
                 actionButton(isActive: false) {
@@ -54,12 +60,12 @@ struct RadialMenuActionsGuide: View {
 
             RadialLayout {
                 ForEach(radialActions, id: \.id) { action in
-                    if let resolved = action.resolved {
+                    if let resolved = graph.resolve(action.target) {
                         actionButton(
                             action: resolved,
                             isActive: resolved == activeAction
                         ) {
-                            IconView(action: resolved)
+                            IconView(action: graph.iconAction(for: resolved))
                         }
                     } else {
                         actionButton(isActive: false) {

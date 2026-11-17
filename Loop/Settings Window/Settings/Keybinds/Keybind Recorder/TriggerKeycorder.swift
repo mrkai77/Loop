@@ -5,9 +5,9 @@
 //  Created by Kai Azim on 2023-09-11.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 struct TriggerKeycorder: View {
     @EnvironmentObject private var model: KeybindsConfigurationModel
@@ -16,10 +16,10 @@ struct TriggerKeycorder: View {
 
     let keyLimit: Int = 5
 
-    @Default(.sideDependentTriggerKey) private var sideDependentTriggerKey
+    @TomeValue(\.sideDependentTriggerKey) private var sideDependentTriggerKey
 
-    @Binding private var validCurrentKey: Set<CGKeyCode>
-    @State private var selectionKey: Set<CGKeyCode>
+    @Binding private var validCurrentKey: Set<String>
+    @State private var selectionKey: Set<String>
 
     @State private var eventMonitor: LocalEventMonitor?
     @State private var shouldShake: Bool = false
@@ -31,9 +31,9 @@ struct TriggerKeycorder: View {
     @State private var triggerKeyIndicatorWidth: CGFloat = 0
     @State private var changeButtonWidth: CGFloat = 0
 
-    private var sortedKeys: [CGKeyCode] {
-        let selectionKey: Set<CGKeyCode> = sideDependentTriggerKey ? selectionKey : selectionKey.baseModifiers
-        return selectionKey.sorted()
+    private var sortedKeys: [String] {
+        let selectionKey: Set<String> = sideDependentTriggerKey ? selectionKey : Set(selectionKey.map(KeyNames.baseModifier))
+        return KeyNames.components(from: selectionKey)
     }
 
     private var shouldShowChangeButton: Bool {
@@ -41,7 +41,7 @@ struct TriggerKeycorder: View {
         return (totalWidth - totalLeadingWidth) < changeButtonWidth
     }
 
-    init(_ key: Binding<Set<CGKeyCode>>) {
+    init(_ key: Binding<Set<String>>) {
         self._validCurrentKey = key
         _selectionKey = State(initialValue: key.wrappedValue)
     }
@@ -142,7 +142,7 @@ struct TriggerKeycorder: View {
             }
 
             let flags = CGEventFlags(cocoaFlags: event.modifierFlags)
-            let keycodes = flags.keyCodes
+            let keycodes = Set(flags.keyCodes.compactMap(KeyNames.fixedName(for:)))
             selectionKey.formUnion(keycodes)
 
             if keycodes.isEmpty, !selectionKey.isEmpty {
@@ -196,16 +196,16 @@ struct TriggerKeycorder: View {
 }
 
 struct TriggerKeycorderKeyView: View {
-    @Default(.sideDependentTriggerKey) private var sideDependentTriggerKey
+    @TomeValue(\.sideDependentTriggerKey) private var sideDependentTriggerKey
     private static let defaultIconName = "exclamationmark.circle.fill"
-    let key: CGKeyCode
+    let key: String
 
     var body: some View {
         HStack(spacing: 4) {
-            let keyImage = Image(systemName: key.modifierSystemImage ?? Self.defaultIconName)
+            let keyImage = Image(systemName: KeyNames.modifierSystemImage(key) ?? Self.defaultIconName)
 
             if sideDependentTriggerKey {
-                let side: String = key.isModifierOnRightSide
+                let side: String = KeyNames.isRightModifier(key)
                     ? String(localized: "Right", comment: "Side of a trigger key")
                     : String(localized: "Left", comment: "Side of a trigger key")
 

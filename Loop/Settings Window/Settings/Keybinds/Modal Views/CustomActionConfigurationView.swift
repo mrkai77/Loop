@@ -5,10 +5,10 @@
 //  Created by Kai Azim on 2024-04-27.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
 
+/// Edits both custom and stash actions.
 struct CustomActionConfigurationView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
 
@@ -18,6 +18,7 @@ struct CustomActionConfigurationView: View {
     @State private var action: WindowAction
     @State private var currentTab: Tab = .position
     @State private var isDeferringExternalCommit = false
+    @State private var positionMemory = ActionPositionMemory()
 
     private enum Tab: LocalizedStringKey, CaseIterable {
         case position = "Position", size = "Size"
@@ -32,16 +33,42 @@ struct CustomActionConfigurationView: View {
         }
     }
 
-    private let anchors: [CustomWindowActionAnchor] = [
-        .topLeft, .top, .topRight, .left, .center, .right, .bottomLeft, .bottom, .bottomRight
-    ]
+    private enum Dimension { case width, height, x, y }
 
-    private var actionUnit: CustomWindowActionUnit {
-        action.unit ?? .percentage
+    private var isStash: Bool {
+        action.direction == .stash
+    }
+
+    private var anchors: [CustomWindowActionAnchor] {
+        isStash
+            ? [.topLeft, .none, .topRight,
+               .left, .none, .right,
+               .bottomLeft, .bottom, .bottomRight]
+            : [.topLeft, .top, .topRight, .left, .center, .right, .bottomLeft, .bottom, .bottomRight]
+    }
+
+    private var sizeModes: [CustomWindowActionSizeMode] {
+        isStash ? [.custom, .preserve] : CustomWindowActionSizeMode.allCases
+    }
+
+    private var defaultAnchor: CustomWindowActionAnchor {
+        isStash ? .topLeft : .center
+    }
+
+    private var usesCoordinates: Bool {
+        if case .coordinates = action.position { true } else { false }
+    }
+
+    private var usesCustomSize: Bool {
+        if case .custom = action.size { true } else { false }
+    }
+
+    private var anchor: CustomWindowActionAnchor? {
+        if case let .anchor(value) = action.position { value } else { nil }
     }
 
     private var showMacOSCenterToggle: Bool {
-        action.anchor ?? .center == .center || action.anchor == .macOSCenter
+        !isStash && (anchor ?? .center == .center || anchor == .macOSCenter)
     }
 
     private let previewController = PreviewController()
@@ -55,7 +82,7 @@ struct CustomActionConfigurationView: View {
 
     var body: some View {
         LuminareForm {
-            ScreenView(isBlurred: action.sizeMode != .custom) {
+            ScreenView(isBlurred: !usesCustomSize) {
                 ActionPreview(action: action)
             }
 
@@ -66,13 +93,18 @@ struct CustomActionConfigurationView: View {
             guard !isDeferringExternalCommit else { return }
             windowAction = newValue
         }
+        .onChange(of: windowAction) { newValue in
+            // Keep the draft while dragging
+            if !isDeferringExternalCommit, action != newValue { action = newValue }
+        }
+        .onDisappear { previewController.close() }
     }
 
     @ViewBuilder
     private func configurationSections() -> some View {
         LuminareSection(outerPadding: 0) {
             LuminareTextField(
-                WindowDirection.custom.name,
+                action.direction.name,
                 text: Binding(
                     get: { action.name ?? "" },
                     set: { action.name = $0 }
@@ -84,7 +116,6 @@ struct CustomActionConfigurationView: View {
 
         LuminareSection(outerPadding: 0) {
             tabPicker()
-            unitToggle()
         }
 
         LuminareSection(outerPadding: 0) {
@@ -92,32 +123,6 @@ struct CustomActionConfigurationView: View {
                 positionConfiguration()
             } else {
                 sizeConfiguration()
-            }
-        }
-        .animation(luminareAnimation, value: action.unit)
-        .onAppear {
-            if action.unit == nil {
-                action.unit = .percentage
-            }
-
-            if action.sizeMode == nil {
-                action.sizeMode = .custom
-            }
-
-            if action.width == nil {
-                action.width = 80
-            }
-
-            if action.height == nil {
-                action.height = 80
-            }
-
-            if action.positionMode == nil {
-                action.positionMode = .generic
-            }
-
-            if action.anchor == nil {
-                action.anchor = .center
             }
         }
     }
@@ -130,24 +135,17 @@ struct CustomActionConfigurationView: View {
         ) { tab in
             HStack(spacing: 6) {
                 tab.image
-                Text(tab.rawValue)
+
+                if tab == .size, isStash {
+                    Text("Unstashed Size")
+                } else {
+                    Text(tab.rawValue)
+                }
             }
             .fixedSize()
         }
         .luminareContentSize(hasFixedHeight: true)
-        .luminareRoundingBehavior(top: true)
-    }
-
-    private func unitToggle() -> some View {
-        LuminareToggle("Use pixels", isOn: Binding(get: { action.unit == .pixels }, set: { action.unit = $0 ? .pixels : .percentage }))
-            .onChange(of: actionUnit) { unit in
-                if unit == .percentage {
-                    if let xPoint = action.xPoint { action.xPoint = max(0, min(100, xPoint)) }
-                    if let yPoint = action.yPoint { action.yPoint = max(0, min(100, yPoint)) }
-                    if let width = action.width { action.width = max(0, min(100, width)) }
-                    if let height = action.height { action.height = max(0, min(100, height)) }
-                }
-            }
+        .luminareRoundingBehavior(top: true, bottom: true)
     }
 
     private func actionButtons() -> some View {
@@ -169,7 +167,7 @@ struct CustomActionConfigurationView: View {
                     },
                     perform: {}
                 )
-                .disabled(action.sizeMode != .custom)
+                .disabled(!usesCustomSize)
 
             Button {
                 isPresented = false
@@ -183,35 +181,37 @@ struct CustomActionConfigurationView: View {
 
     @ViewBuilder
     private func positionConfiguration() -> some View {
-        LuminareToggle(
-            "Use coordinates",
-            isOn: Binding(
-                get: {
-                    action.positionMode == .coordinates
-                },
-                set: { newValue in
-                    withAnimation(luminareAnimation) {
-                        action.positionMode = newValue ? .coordinates : .generic
+        if !isStash {
+            LuminareToggle(
+                "Use coordinates",
+                isOn: Binding(
+                    get: {
+                        usesCoordinates
+                    },
+                    set: { newValue in
+                        withAnimation(luminareAnimation) {
+                            action.position = positionMemory.switched(from: action.position, toCoordinates: newValue)
+                        }
                     }
-                }
+                )
             )
-        )
+        }
 
-        if action.positionMode ?? .generic == .generic {
+        if !usesCoordinates {
             LuminarePicker(
                 elements: anchors,
                 selection: Binding(
                     get: {
                         // since center/macOS center use the same icon on the picker
-                        if action.anchor == .macOSCenter {
+                        if anchor == .macOSCenter {
                             return .center
                         }
 
-                        return action.anchor ?? .center
+                        return anchor ?? defaultAnchor
                     },
                     set: { newValue in
                         withAnimation(luminareAnimation) {
-                            action.anchor = newValue
+                            action.position = .anchor(newValue)
                         }
                     }
                 ),
@@ -221,16 +221,16 @@ struct CustomActionConfigurationView: View {
                     IconView(action: action)
                 }
             }
-            .luminareRoundingBehavior(bottom: !showMacOSCenterToggle)
+            .luminareRoundingBehavior(top: isStash, bottom: !showMacOSCenterToggle)
 
             if showMacOSCenterToggle {
                 LuminareToggle(
                     isOn: Binding(
                         get: {
-                            action.anchor == .macOSCenter
+                            anchor == .macOSCenter
                         },
                         set: {
-                            action.anchor = $0 ? .macOSCenter : .center
+                            action.position = .anchor($0 ? .macOSCenter : .center)
                         }
                     )
                 ) {
@@ -247,59 +247,38 @@ struct CustomActionConfigurationView: View {
                 }
             }
         } else {
-            LuminareSlider(
-                String(localized: "X", comment: "X axis label"),
-                value: Binding(
-                    get: {
-                        action.xPoint ?? 0
-                    },
-                    set: {
-                        action.xPoint = actionUnit.roundIfNeeded($0)
-                    }
-                ),
-                in: actionUnit == .percentage ? 0...100 : 0...Double(screenSize.width),
-                format: .number.precision(actionUnit.fractionLength),
-                clampsUpper: false,
-                suffix: Text(action.unit?.suffix ?? CustomWindowActionUnit.percentage.suffix),
-                onEditingChanged: handleSliderEditingChanged,
-                onEditingCommit: commitSliderChanges
-            )
-
-            LuminareSlider(
-                String(localized: "Y", comment: "Y axis label"),
-                value: Binding(
-                    get: {
-                        action.yPoint ?? 0
-                    },
-                    set: {
-                        action.yPoint = actionUnit.roundIfNeeded($0)
-                    }
-                ),
-                in: actionUnit == .percentage ? 0...100 : 0...Double(screenSize.height),
-                format: .number.precision(actionUnit.fractionLength),
-                clampsUpper: false,
-                suffix: Text(action.unit?.suffix ?? CustomWindowActionUnit.percentage.suffix),
-                onEditingChanged: handleSliderEditingChanged,
-                onEditingCommit: commitSliderChanges
-            )
+            lengthControl(Text(String(localized: "X", comment: "X axis label")), dimension: .x)
+            lengthControl(Text(String(localized: "Y", comment: "Y axis label")), dimension: .y)
         }
     }
 
     @ViewBuilder
     private func sizeConfiguration() -> some View {
         LuminarePicker(
-            elements: CustomWindowActionSizeMode.allCases,
+            elements: sizeModes,
             selection: Binding(
                 get: {
-                    action.sizeMode ?? .custom
+                    switch action.size {
+                    case .custom, nil: .custom
+                    case .preserve: .preserve
+                    case .initial: .initial
+                    }
                 },
                 set: { newValue in
                     withAnimation(luminareAnimation) {
-                        action.sizeMode = newValue
+                        switch newValue {
+                        case .custom:
+                            if !usesCustomSize {
+                                let dimensions = action.customDimensions
+                                action.size = .custom(width: dimensions?.width, height: dimensions?.height)
+                            }
+                        case .preserve: action.size = .preserve
+                        case .initial: action.size = .initial
+                        }
                     }
                 }
             ),
-            columns: 3
+            columns: isStash ? 2 : 3
         ) { mode in
             VStack(spacing: 4) {
                 mode.image
@@ -311,44 +290,53 @@ struct CustomActionConfigurationView: View {
         .luminareContentSize(hasFixedHeight: true)
         .luminareRoundingBehavior(
             top: true,
-            bottom: action.sizeMode != .custom
+            bottom: !usesCustomSize
         )
 
-        if action.sizeMode ?? .custom == .custom {
-            LuminareSlider(
-                "Width",
-                value: Binding(
-                    get: {
-                        action.width ?? 100
-                    },
-                    set: {
-                        action.width = actionUnit.roundIfNeeded($0)
-                    }
-                ),
-                in: actionUnit == .percentage ? 0...100 : 0...Double(screenSize.width),
-                format: .number.precision(actionUnit.fractionLength),
-                clampsUpper: false,
-                suffix: .init(action.unit?.suffix ?? CustomWindowActionUnit.percentage.suffix),
-                onEditingChanged: handleSliderEditingChanged,
-                onEditingCommit: commitSliderChanges
-            )
+        if usesCustomSize {
+            lengthControl(Text("Width"), dimension: .width)
+            lengthControl(Text("Height"), dimension: .height)
+        }
+    }
 
+    private func lengthControl(_ label: Text, dimension: Dimension) -> some View {
+        let length = length(for: dimension) ?? ScreenLength(0)
+        let maximum = dimension == .width || dimension == .x ? screenSize.width : screenSize.height
+
+        return VStack(spacing: 0) {
             LuminareSlider(
-                "Height",
                 value: Binding(
                     get: {
-                        action.height ?? 100
+                        self.length(for: dimension)?.value ?? 0
                     },
                     set: {
-                        action.height = actionUnit.roundIfNeeded($0)
+                        guard $0.isFinite else { return }
+                        let unit = self.length(for: dimension)?.unit ?? .percent
+                        setLength(ScreenLength($0, unit: unit).roundedToDisplayPrecision(), for: dimension)
                     }
                 ),
-                in: actionUnit == .percentage ? 0...100 : 0...Double(screenSize.height),
-                format: .number.precision(actionUnit.fractionLength),
+                in: length.unit == .percent ? 0...100 : 0...Double(maximum),
+                format: length.unit.format,
                 clampsUpper: false,
-                suffix: .init(action.unit?.suffix ?? CustomWindowActionUnit.percentage.suffix),
+                suffix: Text(length.unit == .percent ? "%" : "pt"),
                 onEditingChanged: handleSliderEditingChanged,
                 onEditingCommit: commitSliderChanges
+            ) {
+                label
+            }
+
+            LuminareToggle(
+                "Use screen points",
+                isOn: Binding(
+                    get: {
+                        self.length(for: dimension)?.unit == .points
+                    },
+                    set: { points in
+                        var value = self.length(for: dimension) ?? ScreenLength(0)
+                        value.unit = points ? .points : .percent
+                        setLength(value.roundedToDisplayPrecision(), for: dimension)
+                    }
+                )
             )
         }
     }
@@ -360,5 +348,23 @@ struct CustomActionConfigurationView: View {
     private func commitSliderChanges() {
         isDeferringExternalCommit = false
         windowAction = action
+    }
+
+    private func length(for dimension: Dimension) -> ScreenLength? {
+        switch dimension {
+        case .width: action.customDimensions?.width
+        case .height: action.customDimensions?.height
+        case .x: if case let .coordinates(x, _) = action.position { x } else { nil }
+        case .y: if case let .coordinates(_, y) = action.position { y } else { nil }
+        }
+    }
+
+    private func setLength(_ length: ScreenLength, for dimension: Dimension) {
+        switch dimension {
+        case .width: action.size = .custom(width: length, height: self.length(for: .height))
+        case .height: action.size = .custom(width: self.length(for: .width), height: length)
+        case .x: action.position = .coordinates(x: length, y: self.length(for: .y))
+        case .y: action.position = .coordinates(x: self.length(for: .x), y: length)
+        }
     }
 }

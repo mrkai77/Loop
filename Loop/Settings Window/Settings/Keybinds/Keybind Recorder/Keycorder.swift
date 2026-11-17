@@ -6,9 +6,9 @@
 //
 
 import Carbon.HIToolbox
-import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 struct Keycorder: View {
     @EnvironmentObject private var model: KeybindsConfigurationModel
@@ -16,11 +16,10 @@ struct Keycorder: View {
 
     let keyLimit: Int = 6
 
-    @Default(.triggerKey) private var triggerKey
+    @TomeValue(\.triggerKey) private var triggerKey
 
-    @Binding private var validCurrentKeybind: Set<CGKeyCode>
-    @State private var selectionKeybind: Set<CGKeyCode>
-    @Binding private var direction: WindowDirection
+    @Binding private var validCurrentKeybind: Set<String>
+    @State private var selectionKeybind: Set<String>
     @Binding private var bypassTriggerKey: Bool?
 
     @State private var eventMonitor: LocalEventMonitor?
@@ -32,11 +31,10 @@ struct Keycorder: View {
     @State private var isHovering: Bool = false
     @State private var isActive: Bool = false
 
-    init(_ keybind: Binding<WindowAction>) {
-        self._validCurrentKeybind = keybind.keybind
-        self._direction = keybind.direction
+    init(_ keybind: Binding<KeyBinding>) {
+        self._validCurrentKeybind = keybind.keys.names
         self._bypassTriggerKey = keybind.bypassTriggerKey
-        self._selectionKeybind = State(initialValue: keybind.wrappedValue.keybind)
+        self._selectionKeybind = State(initialValue: keybind.wrappedValue.keys.names)
     }
 
     var body: some View {
@@ -54,17 +52,11 @@ struct Keycorder: View {
             } else {
                 HStack(spacing: 4) {
                     // First show modifiers in order
-                    let sortedKeys = selectionKeybind.sorted { (a: CGKeyCode, b: CGKeyCode) in
-                        if a.isModifier, !b.isModifier { return true }
-                        if !a.isModifier, b.isModifier { return false }
-                        return a < b
-                    }
-
-                    ForEach(sortedKeys, id: \.self) { key in
-                        if let systemImage = key.modifierSystemImage {
+                    ForEach(KeyNames.components(from: selectionKeybind), id: \.self) { key in
+                        if let systemImage = KeyNames.modifierSystemImage(key) {
                             Text("\(Image(systemName: systemImage))")
-                        } else if let humanReadable = key.humanReadable {
-                            Text(humanReadable)
+                        } else {
+                            Text(KeyNames.displayLabel(key))
                         }
                     }
                     .frame(width: 27, height: 27)
@@ -147,8 +139,8 @@ struct Keycorder: View {
     /// Handles key presses and updates the current keybind
     func handleKeyDown(with event: NSEvent) {
         // Get current selected keys that aren't modifiers
-        let currentKeys = selectionKeybind + [event.keyCode]
-            .map { $0.baseKey(isFnPressed: fnKeyState.isPressed) }
+        let pressedKey = KeyboardLayout.shared.name(forKeyCode: event.keyCode.baseKey(isFnPressed: fnKeyState.isPressed))
+        let currentKeys = selectionKeybind.union([pressedKey])
 
         let flags = fnKeyState.filteredFlags(
             CGEventFlags(
@@ -157,17 +149,14 @@ struct Keycorder: View {
             )
         )
 
+        let modifiers = Set(flags.keyCodes.compactMap(KeyNames.fixedName(for:)))
         let validModifiers = if bypassTriggerKey == true {
-            flags.keyCodes
+            modifiers
         } else {
-            flags.keyCodes.filter {
-                !Defaults[.triggerKey]
-                    .map(\.baseModifier)
-                    .contains($0)
-            }
+            modifiers.subtracting(Tome.triggerKey.names.map(KeyNames.baseModifier))
         }
 
-        let finalKeys = Set(currentKeys + validModifiers)
+        let finalKeys = currentKeys.union(validModifiers)
 
         shouldError = false
 
@@ -209,7 +198,7 @@ struct Keycorder: View {
 
         // Validate keybind requirements when in bypass mode
         if bypassTriggerKey == true,
-           selectionKeybind.filter(\.isModifier).isEmpty {
+           selectionKeybind.filter(KeyNames.isModifier).isEmpty {
             errorMessage = "Include at least one modifier key."
             shake()
             shouldError = true
@@ -218,23 +207,24 @@ struct Keycorder: View {
 
         let effectiveSelection = bypassTriggerKey == true
             ? selectionKeybind
-            : triggerKey.union(selectionKeybind)
+            : triggerKey.names.union(selectionKeybind)
 
-        for keybind in Defaults[.keybinds] {
+        for keybind in Tome.keyBindings {
             let effectiveExisting = keybind.bypassTriggerKey == true
-                ? keybind.keybind
-                : triggerKey.union(keybind.keybind)
+                ? keybind.keys.names
+                : triggerKey.names.union(keybind.keys.names)
 
             guard effectiveSelection == effectiveExisting else { continue }
 
-            if let name = keybind.name, !name.isEmpty {
+            let action = ActionTargetEditorGraph.current.resolve(keybind.target)
+            if let name = action?.name, !name.isEmpty {
                 errorMessage = "That keybind is already being used by \(name)."
-            } else if keybind.direction == .custom {
+            } else if action?.direction == .custom {
                 errorMessage = "That keybind is already being used by another custom keybind."
-            } else if keybind.direction == .stash {
+            } else if action?.direction == .stash {
                 errorMessage = "That keybind is already being used by another stash keybind."
             } else {
-                errorMessage = "That keybind is already being used by \(keybind.direction.name.lowercased())."
+                errorMessage = "That keybind is already being used by \(action?.getName().lowercased() ?? "action")."
             }
 
             shake()

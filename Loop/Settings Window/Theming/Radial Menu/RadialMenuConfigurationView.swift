@@ -5,20 +5,27 @@
 //  Created by Kai Azim on 2024-04-19.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 struct RadialMenuConfigurationView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
     @EnvironmentObject private var windowModel: SettingsWindowManager
 
-    @Default(.radialMenuVisibility) private var radialMenuVisibility
-    @Default(.radialMenuCornerRadius) private var radialMenuCornerRadius
-    @Default(.radialMenuThickness) private var radialMenuThickness
-    @Default(.enableRadialMenuCustomization) private var enableRadialMenuCustomization
-    @Default(.radialMenuActions) private var radialMenuActions
-    @State private var selectedRadialMenuActions: Set<RadialMenuAction> = []
+    @TomeValue(\.radialMenuVisibility) private var radialMenuVisibility
+    @TomeValue(\.radialMenuCornerRadius) private var radialMenuCornerRadius
+    @TomeValue(\.radialMenuThickness) private var radialMenuThickness
+    @TomeValue(\.enableRadialMenuCustomization) private var enableRadialMenuCustomization
+    @TomeValue(\.radialMenuActions) private var radialMenuActions
+    @TomeValue(\.keyBindings) private var keyBindings
+    @TomeValue(\.gestures) private var gestures
+
+    private var graph: ActionTargetEditorGraph {
+        .init(keyBindings: keyBindings, gestures: gestures, radialMenuBindings: radialMenuActions)
+    }
+
+    @State private var selectedRadialMenuActions: Set<RadialMenuBinding> = []
 
     var body: some View {
         LuminareForm {
@@ -70,7 +77,8 @@ struct RadialMenuConfigurationView: View {
                         }
 
                         Button(String(localized: "Remove", comment: "Used to remove items from a list"), role: .destructive) {
-                            radialMenuActions.removeAll(where: selectedRadialMenuActions.contains)
+                            let ids = Set(selectedRadialMenuActions.map(\.id))
+                            radialMenuActions.removeAll { ids.contains($0.id) }
                         }
                         .disabled(selectedRadialMenuActions.isEmpty)
                         .keyboardShortcut(.delete)
@@ -99,7 +107,12 @@ struct RadialMenuConfigurationView: View {
                     }
                     .luminareRoundingBehavior(bottom: true)
                     .onChange(of: selectedRadialMenuActions, perform: userSelectionChanged)
+                    .onChange(of: graph) { _ in userSelectionChanged(selectedRadialMenuActions) }
                     .onChange(of: windowModel.previewedParentAction ?? windowModel.previewedAction, perform: previewedActionChanged)
+                    .onChange(of: radialMenuActions) { updated in
+                        let ids = Set(selectedRadialMenuActions.map(\.id))
+                        selectedRadialMenuActions = Set(updated.filter { ids.contains($0.id) })
+                    }
                     .onDisappear {
                         windowModel.isPreviewingUserSelection = false
                     }
@@ -108,7 +121,7 @@ struct RadialMenuConfigurationView: View {
         }
     }
 
-    private func moveAction(_ action: RadialMenuAction, down: Bool) {
+    private func moveAction(_ action: RadialMenuBinding, down: Bool) {
         guard
             let index = radialMenuActions.firstIndex(where: { $0.id == action.id })
         else { return }
@@ -122,8 +135,10 @@ struct RadialMenuConfigurationView: View {
         )
     }
 
-    private func userSelectionChanged(_ newValue: Set<RadialMenuAction>) {
-        if newValue.count == 1, let resolved = newValue.first?.resolved {
+    private func userSelectionChanged(_ newValue: Set<RadialMenuBinding>) {
+        if newValue.count == 1, let selected = newValue.first,
+           let current = radialMenuActions.first(where: { $0.id == selected.id }),
+           let resolved = graph.resolve(current.target) {
             windowModel.isPreviewingUserSelection = true
             windowModel.setPreviewedAction(to: resolved)
         } else {
@@ -136,7 +151,7 @@ struct RadialMenuConfigurationView: View {
             return
         }
 
-        if let match = radialMenuActions.first(where: { $0.associatedActionId == newAction.id }) {
+        if let match = radialMenuActions.first(where: { graph.resolve($0.target)?.id == newAction.id }) {
             selectedRadialMenuActions = [match]
         } else {
             selectedRadialMenuActions = []

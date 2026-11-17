@@ -29,16 +29,7 @@ struct GestureConfigurationView: View {
     private var kindBinding: Binding<GestureBinding.Kind> {
         Binding(
             get: { gesture.kind ?? .radialMenu },
-            set: { newKind in
-                let oldKind = gesture.kind
-                gesture.kind = newKind
-
-                if newKind == .radialMenu {
-                    gesture.action = .radialMenuActions
-                } else if oldKind == .radialMenu {
-                    gesture.action = .singleAction(.custom(.init(.noAction)))
-                }
-            }
+            set: { gesture.kind = $0 }
         )
     }
 

@@ -5,9 +5,9 @@
 //  Created by Kai Azim on 2026-04-16.
 //
 
-import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 final class GesturesConfigurationModel: ObservableObject {
     @Published var selectedGestures = Set<GestureBinding>()
@@ -18,8 +18,14 @@ struct GesturesConfigurationView: View {
     @EnvironmentObject private var windowModel: SettingsWindowManager
     @StateObject private var model = GesturesConfigurationModel()
 
-    @Default(.enableGestures) private var enableGestures
-    @Default(.gestures) private var gestures
+    @TomeValue(\.enableGestures) private var enableGestures
+    @TomeValue(\.gestures) private var gestures
+    @TomeValue(\.keyBindings) private var keyBindings
+    @TomeValue(\.radialMenuActions) private var radialMenuBindings
+
+    private var graph: ActionTargetEditorGraph {
+        .init(keyBindings: keyBindings, gestures: gestures, radialMenuBindings: radialMenuBindings)
+    }
 
     private var conflictingGestureIDs: Set<UUID> {
         GestureBinding.conflictingIDs(in: gestures)
@@ -86,15 +92,11 @@ struct GesturesConfigurationView: View {
                 .padding()
             }
             .luminareRoundingBehavior(bottom: true)
-            .onChange(of: model.selectedGestures, initial: true) {
-                if model.selectedGestures.count == 1,
-                   case let .singleAction(actionType) = model.selectedGestures.first?.action,
-                   let action = actionType.resolvedAction {
-                    windowModel.isPreviewingUserSelection = true
-                    windowModel.setPreviewedAction(to: action)
-                } else {
-                    windowModel.isPreviewingUserSelection = false
-                }
+            .onChange(of: model.selectedGestures, initial: true) { windowModel.previewSelection(model.selectedGestures, in: gestures, graph: graph) }
+            .onChange(of: graph) { _ in windowModel.previewSelection(model.selectedGestures, in: gestures, graph: graph) }
+            .onChange(of: gestures) { updated in
+                let ids = Set(model.selectedGestures.map(\.id))
+                model.selectedGestures = Set(updated.filter { ids.contains($0.id) })
             }
             .onDisappear {
                 windowModel.isPreviewingUserSelection = false
