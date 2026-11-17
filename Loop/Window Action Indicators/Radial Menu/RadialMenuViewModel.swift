@@ -7,6 +7,7 @@
 
 import Defaults
 import SwiftUI
+import Tome
 
 /// This class is in charge of managing the state of the radial menu, including the current action, angle, and colors.
 /// By keeping the state separate, we are able to use the same `RadialMenuView` both in the app's settings, as well as in actual usage.
@@ -35,24 +36,24 @@ final class RadialMenuViewModel: ObservableObject {
         parentAction ?? currentAction
     }
 
-    private var radialMenuActions: [RadialMenuAction] {
-        RadialMenuAction.userConfiguredActions
+    private var radialMenuActions: [RadialMenuBinding] {
+        WindowActionCache.shared.radialMenuBindings
     }
 
-    private var directionalRadialMenuActions: [RadialMenuAction] {
+    private var directionalRadialMenuActions: [RadialMenuBinding] {
         radialMenuActions.dropLast()
     }
 
-    private var centerRadialMenuAction: RadialMenuAction? {
+    private var centerRadialMenuAction: RadialMenuBinding? {
         radialMenuActions.last
     }
 
     /// Directional swipe gestures act like slots, pointing the radial menu the way the fingers moved
     private func directionalGestureAngle(for action: WindowAction) -> Angle? {
-        guard Defaults[.enableGestures] else { return nil }
+        guard Tome.enableGestures else { return nil }
 
-        return Defaults[.gestures].lazy.compactMap { gesture -> Angle? in
-            guard case let .singleAction(actionType) = gesture.action, actionType.id == action.id else { return nil }
+        return Tome.gestures.lazy.compactMap { gesture -> Angle? in
+            guard WindowActionCache.shared.resolve(gestureID: gesture.id)?.id == action.id else { return nil }
             return gesture.kind?.radialMenuAngle
         }.first
     }
@@ -95,7 +96,7 @@ final class RadialMenuViewModel: ObservableObject {
     }
 
     func setIsShown(_ newState: Bool, animationDuration: TimeInterval) {
-        let animationDuration = Defaults[.animationConfiguration].animateRadialMenuAppearance ? animationDuration : 0.0
+        let animationDuration = Tome.animationConfiguration.animateRadialMenuAppearance ? animationDuration : 0.0
 
         guard animationDuration != 0 else {
             isShown = newState
@@ -131,7 +132,7 @@ final class RadialMenuViewModel: ObservableObject {
 
         let closestAngle = Angle.degrees(angle).angleDifference(to: targetAngle)
         let shouldAnimate = shouldAnimateTransition(closestAngle: closestAngle)
-        let animation = Defaults[.animationConfiguration].radialMenuAngle
+        let animation = Tome.animationConfiguration.radialMenuAngle
 
         withAnimation(shouldAnimate ? animation : .linear(duration: 0)) {
             angle += closestAngle.degrees

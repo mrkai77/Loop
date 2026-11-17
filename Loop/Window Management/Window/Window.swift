@@ -8,6 +8,7 @@
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
 
 enum WindowError: LocalizedError {
     case sheetWindow
@@ -311,7 +312,7 @@ final class Window {
     var isAppExcluded: Bool {
         if let nsRunningApplication,
            let path = nsRunningApplication.bundleURL {
-            return Defaults[.excludedApps].contains(path)
+            return Tome.excludedApps.contains(path)
         }
         return false
     }

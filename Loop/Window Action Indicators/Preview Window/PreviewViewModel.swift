@@ -8,6 +8,7 @@
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
 
 @Loggable
 @MainActor
@@ -23,7 +24,7 @@ final class PreviewViewModel: ObservableObject {
     }
 
     func setIsShown(_ newState: Bool) {
-        withAnimation(Defaults[.animationConfiguration].previewWindow) {
+        withAnimation(Tome.animationConfiguration.previewWindow) {
             isShown = newState
         }
     }
@@ -68,7 +69,7 @@ final class PreviewViewModel: ObservableObject {
         else if isCurrentlyHidden, shouldBecomeVisible {
             if !isScreenSwitch {
                 let startingFrame = computeStartingFrame(
-                    for: Defaults[.previewStartingPosition],
+                    for: Tome.previewStartingPosition,
                     targetFrame: paddedFrame,
                     context: context
                 )
@@ -90,7 +91,7 @@ final class PreviewViewModel: ObservableObject {
             computedFrame = newComputedFrame
             isShown = newShownState
         } else {
-            withAnimation(Defaults[.animationConfiguration].previewWindow) {
+            withAnimation(Tome.animationConfiguration.previewWindow) {
                 computedFrame = newComputedFrame
                 isShown = newShownState
             }
@@ -143,7 +144,7 @@ final class PreviewViewModel: ObservableObject {
     private static func getCornerRadius(for window: Window) -> RectangleCornerRadii? {
         var cornerRadii: RectangleCornerRadii? = nil
 
-        if Defaults[.previewUseWindowCornerRadius],
+        if Tome.previewUseWindowCornerRadius,
            let radii = SkyLightToolBelt.getCornerRadii(windowID: window.cgWindowID),
            radii != .init(topLeading: 0, bottomLeading: 0, bottomTrailing: 0, topTrailing: 0) {
             cornerRadii = radii

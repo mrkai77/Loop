@@ -9,6 +9,7 @@ import Defaults
 import Luminare
 import Scribe
 import SwiftUI
+import Tome
 
 @Loggable
 @MainActor
@@ -28,8 +29,8 @@ final class Updater: ObservableObject {
 
     private(set) var shouldAutoPresentUpdateWindow: Bool = false
     private var windowController: NSWindowController?
-    private var includeDevelopmentVersions: Bool { Defaults[.includeDevelopmentVersions] }
-    private var automaticallyUpdate: Bool { Defaults[.automaticallyUpdate] }
+    private var includeDevelopmentVersions: Bool { Tome.includeDevelopmentVersions }
+    private var automaticallyUpdate: Bool { Tome.automaticallyUpdate }
 
     private var updateFetcherTask: Task<(), Never>?
     private var updateCheckerTask: Task<(), Never>?
@@ -73,7 +74,7 @@ final class Updater: ObservableObject {
         if ProcessInfo.processInfo.isEnvironmentFlagEnabled("LOOP_SKIP_UPDATE_CHECK") {
             return false
         }
-        return Defaults[.updatesEnabled]
+        return Tome.updatesEnabled
     }
 
     private func updateStateChanged() {
@@ -133,7 +134,7 @@ final class Updater: ObservableObject {
 
     private func makeIncludeDevelopmentVersionsObserver() -> Task<(), Never>? {
         Task {
-            for await _ in Defaults.updates(.includeDevelopmentVersions, initial: false) {
+            for await _ in Tome.updates(\.includeDevelopmentVersions) {
                 guard !Task.isCancelled else { break }
                 await fetchLatestInfo()
             }
@@ -142,7 +143,7 @@ final class Updater: ObservableObject {
 
     private func makeUpdatesEnabledObserver() -> Task<(), Never>? {
         Task {
-            for await _ in Defaults.updates(.updatesEnabled) {
+            for await _ in Tome.updates(\.updatesEnabled) {
                 guard !Task.isCancelled else { break }
 
                 updatesEnabled = Updater.checkIfUpdatesEnabled()

@@ -8,6 +8,7 @@
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
 
 /// In charge of processing and storing an up-to-date version of the user's accent color(s), according to their settings.
 /// Automatically refreshes when the user updates the following preferences: `accentColorMode`, `customAccentColor`, `useGradient` and `gradientColor`.
@@ -24,11 +25,11 @@ final class AccentColorController: ObservableObject {
 
     private init() {
         self.observationTask = Task { [weak self] in
-            let updates = Defaults.updates(
-                .accentColorMode,
-                .customAccentColor,
-                .useGradient,
-                .gradientColor
+            let updates = Tome.updates(
+                \.accentColorMode,
+                \.customAccentColor,
+                \.useGradient,
+                \.gradientColor
             )
 
             for await _ in updates {
@@ -48,20 +49,20 @@ final class AccentColorController: ObservableObject {
     }
 
     func refresh(ignoreThrottle: Bool = false) async {
-        switch Defaults[.accentColorMode] {
+        switch Tome.accentColorMode {
         case .system:
             log.info("Refreshing accent color based on system accent setting")
             color1 = Color.accentColor
-            color2 = Defaults[.useGradient] ? Color(nsColor: NSColor.controlAccentColor.blended(withFraction: 0.5, of: .black)!) : Color.accentColor
+            color2 = Tome.useGradient ? Color(nsColor: NSColor.controlAccentColor.blended(withFraction: 0.5, of: .black)!) : Color.accentColor
         case .wallpaper:
             log.info("Refreshing accent color based on wallpaper analysis")
             let colors = await wallpaperProcessor.fetchLatest(ignoreThrottle: ignoreThrottle)
             color1 = colors.primary
-            color2 = Defaults[.useGradient] ? colors.secondary : colors.primary
+            color2 = Tome.useGradient ? colors.secondary : colors.primary
         case .custom:
             log.info("Refreshing accent color based on custom selection")
-            color1 = Defaults[.customAccentColor]
-            color2 = Defaults[.useGradient] ? Defaults[.gradientColor] : Defaults[.customAccentColor]
+            color1 = Tome.customAccentColor
+            color2 = Tome.useGradient ? Tome.gradientColor : Tome.customAccentColor
         }
 
         Defaults[.lastUsedAccentColor1] = color1

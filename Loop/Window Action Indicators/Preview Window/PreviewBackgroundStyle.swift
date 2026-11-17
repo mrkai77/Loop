@@ -5,11 +5,11 @@
 //  Created by Kai Azim on 2026-09-30.
 //
 
-import Defaults
 import Foundation
+import Tome
 
 /// How the preview window's background is drawn.
-enum PreviewBackgroundStyle: String, Defaults.Serializable, CaseIterable {
+enum PreviewBackgroundStyle: String, CaseIterable, Tome.Serializable {
     /// A translucent black fill, like the system's window tiling preview.
     case system
 

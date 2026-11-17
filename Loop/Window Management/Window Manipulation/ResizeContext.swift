@@ -46,6 +46,7 @@ final class ResizeContext {
     private(set) var cachedTargetFrame: ComputedFrame = .zero
     private var needsRecompute: Bool = false
     private var cycleActionCoordinator = CycleActionCoordinator()
+    private(set) var sourceBinding: KeyBinding?
     var lastAppliedFrame: CGRect?
 
     init(
@@ -134,7 +135,8 @@ final class ResizeContext {
     func proposeCycleAction(
         in cycleAction: WindowAction,
         restartAtBeginningWhenInterrupted: Bool,
-        mode: CycleActionCoordinator.SelectionMode
+        mode: CycleActionCoordinator.SelectionMode,
+        sourceBinding: KeyBinding? = nil
     ) -> CycleActionCoordinator.Proposal? {
         cycleActionCoordinator.proposeAction(
             for: window?.cgWindowID ?? 0,
@@ -143,7 +145,9 @@ final class ResizeContext {
             currentParentAction: parentAction,
             recordedAction: resolvedRecord?.currentAction,
             restartAtBeginningWhenInterrupted: restartAtBeginningWhenInterrupted,
-            mode: mode
+            mode: mode,
+            currentBinding: self.sourceBinding,
+            cycleBinding: sourceBinding
         )
     }
 
@@ -160,15 +164,17 @@ final class ResizeContext {
 
     func setAction(
         to newAction: WindowAction,
-        parent newParentAction: WindowAction?
+        parent newParentAction: WindowAction?,
+        sourceBinding: KeyBinding? = nil
     ) {
+        // Mouse, gesture and radial menu changes keep the keybind that opened the session
+        let binding = sourceBinding ?? self.sourceBinding
         cycleActionCoordinator.recordActionTransition(
-            from: action,
-            currentParentAction: parentAction,
-            to: newAction,
-            newParentAction: newParentAction
+            currentBinding: self.sourceBinding,
+            newBinding: binding
         )
 
+        self.sourceBinding = binding
         action = newAction
         parentAction = newParentAction
         needsRecompute = true

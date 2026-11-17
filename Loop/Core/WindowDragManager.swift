@@ -8,6 +8,7 @@
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
 
 @Loggable
 @MainActor
@@ -36,8 +37,8 @@ final class WindowDragManager {
 
     /// This is to avoid running global drag logic unless a feature actually depends on it.
     private var shouldMonitorDragActions: Bool {
-        Defaults[.windowSnapping] ||
-            Defaults[.restoreWindowFrameOnDrag] ||
+        Tome.windowSnapping ||
+            Tome.restoreWindowFrameOnDrag ||
             !Defaults[.stashManagerStashedWindows].isEmpty
     }
 
@@ -59,7 +60,7 @@ final class WindowDragManager {
         // macOS 15 added its own setting for this, which also covers fast drags that the cursor warp can't catch
         if #available(macOS 15, *) {
             missionControlSyncTask = Task {
-                for await suppress in Defaults.updates(.suppressMissionControlOnTopDrag) {
+                for await suppress in Tome.updates(\.suppressMissionControlOnTopDrag) {
                     guard !Task.isCancelled else { return }
 
                     if SystemWindowManager.MissionControl.enteredByTopWindowDrag == suppress {
@@ -125,15 +126,15 @@ final class WindowDragManager {
                let initialFrame = initialWindowFrame,
                hasWindowResized(window.frame, initialFrame) {
                 if hasWindowMoved(window.frame, initialFrame) {
-                    if Defaults[.restoreWindowFrameOnDrag] {
+                    if Tome.restoreWindowFrameOnDrag {
                         await restoreInitialWindowSize(window)
                     }
 
-                    if Defaults[.windowSnapping] {
+                    if Tome.windowSnapping {
                         // Only warp cursor away from top edge if top snap area is enabled.
                         // On macOS 15+, the Dock’s own setting is synced instead (see `addObservers`)
                         if #unavailable(macOS 15),
-                           Defaults[.suppressMissionControlOnTopDrag],
+                           Tome.suppressMissionControlOnTopDrag,
                            let frame = NSScreen.main?.displayBounds,
                            let mouseLocation = CGEvent.mouseLocation,
                            mouseLocation.y == frame.minY {
@@ -152,7 +153,7 @@ final class WindowDragManager {
     }
 
     private func leftMouseUp(_: CGEvent) {
-        guard Defaults[.windowSnapping] else {
+        guard Tome.windowSnapping else {
             return
         }
 
@@ -268,7 +269,7 @@ final class WindowDragManager {
         let mainScreen = NSScreen.screens[0]
         let screenFrame = screen.frame.flipY(screen: mainScreen)
 
-        let inset = Defaults[.snapThreshold]
+        let inset = Tome.snapThreshold
         let topInset = max(screen.menubarHeight / 2, inset)
         var ignoredFrame = screenFrame
 
@@ -304,7 +305,7 @@ final class WindowDragManager {
                 }
 
                 // Haptic feedback
-                if newDirection != .noAction, Defaults[.hapticFeedback] {
+                if newDirection != .noAction, Tome.hapticFeedback {
                     NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
                 }
             }

@@ -7,6 +7,7 @@
 
 import AppKit
 import Defaults
+import Tome
 
 @MainActor
 final class WindowActionIndicatorService {
@@ -26,11 +27,11 @@ final class WindowActionIndicatorService {
             return
         }
 
-        if Defaults[.previewVisibility] {
+        if Tome.previewVisibility {
             previewController.open(context: context)
         }
 
-        if Defaults[.radialMenuVisibility] {
+        if Tome.radialMenuVisibility {
             radialMenuController.open(context: context)
         }
     }

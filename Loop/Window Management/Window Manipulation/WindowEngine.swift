@@ -8,6 +8,7 @@
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
 
 /// Handles the low-level resize operations for windows.
 /// Use `WindowActionEngine.apply()` as the main entry point for executing window actions.
@@ -55,17 +56,17 @@ enum WindowEngine {
         }
 
         let useSystemWM: Bool = if #available(macOS 15, *) {
-            Defaults[.useSystemWindowManagerWhenAvailable]
+            Tome.useSystemWindowManagerWhenAvailable
         } else {
             false
         }
 
-        if Defaults[.focusWindowOnResize] || useSystemWM {
+        if Tome.focusWindowOnResize || useSystemWM {
             await window.focus()
         }
 
         // Without the preview, windows resize live with the cursor, so moving it would fight the user
-        if Defaults[.moveCursorWithWindow], Defaults[.previewVisibility] {
+        if Tome.moveCursorWithWindow, Tome.previewVisibility {
             CGWarpMouseCursorPosition(targetFrame.center)
         }
 
@@ -169,11 +170,11 @@ enum WindowEngine {
     ) -> Bool {
         if resolvedProperties?.isEnhancedUserInterface ?? window.enhancedUserInterface { return false }
         // When integrated with the macOS window manager, follow its animation setting, including for screen changes
-        if #available(macOS 15, *), Defaults[.useSystemWindowManagerWhenAvailable] {
+        if #available(macOS 15, *), Tome.useSystemWindowManagerWhenAvailable {
             return SystemWindowManager.MoveAndResize.enableAnimations
         }
-        if !Defaults[.animateWindowResizes] { return false }
-        if ProcessInfo.processInfo.isLowPowerModeEnabled, !Defaults[.ignoreLowPowerMode] { return false }
+        if !Tome.animateWindowResizes { return false }
+        if ProcessInfo.processInfo.isLowPowerModeEnabled, !Tome.animateInLowPowerMode { return false }
         return true
     }
 

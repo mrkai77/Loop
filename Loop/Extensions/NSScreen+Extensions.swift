@@ -5,8 +5,8 @@
 //  Created by Kai Azim on 2023-06-14.
 //
 
-import Defaults
 import SwiftUI
+import Tome
 
 extension NSScreen {
     var displayID: CGDirectDisplayID? {
@@ -66,14 +66,14 @@ extension NSScreen {
     var safeScreenFrame: NSRect {
         var frame = visibleFrame
 
-        if Defaults[.respectStageManager],
+        if Tome.respectStageManager,
            SystemWindowManager.StageManager.enabled,
            SystemWindowManager.StageManager.shown {
             if SystemWindowManager.StageManager.position == .leading {
-                frame.origin.x += Defaults[.stageStripSize]
+                frame.origin.x += Tome.stageStripSize
             }
 
-            frame.size.width -= Defaults[.stageStripSize]
+            frame.size.width -= Tome.stageStripSize
         }
 
         return frame

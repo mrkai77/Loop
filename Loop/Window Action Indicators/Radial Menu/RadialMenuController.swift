@@ -8,6 +8,7 @@
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
 
 @Loggable
 @MainActor
@@ -52,7 +53,7 @@ final class RadialMenuController: WindowActionIndicator {
         panel.contentView = NSHostingView(rootView: RadialMenuView(viewModel: viewModel))
 
         // Position the panel
-        if Defaults[.lockRadialMenuToCenter], let screen = NSScreen.main {
+        if Tome.lockRadialMenuToCenter, let screen = NSScreen.main {
             // Position at the center of the screen
             let screenFrame = screen.frame
             panel.setFrameOrigin(

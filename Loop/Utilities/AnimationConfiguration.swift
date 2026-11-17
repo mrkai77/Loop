@@ -5,17 +5,17 @@
 //  Created by Kai Azim on 2023-10-27.
 //
 
-import Defaults
 import SwiftUI
+import Tome
 
-enum AnimationConfiguration: Int, Defaults.Serializable, CaseIterable, Identifiable {
+enum AnimationConfiguration: String, Codable, CaseIterable, Identifiable, Tome.Serializable {
     var id: Self { self }
 
-    case fluid = 0
-    case relaxed = 1
-    case snappy = 2
-    case brisk = 3
-    case instant = 4
+    case fluid
+    case relaxed
+    case snappy
+    case brisk
+    case instant
 
     var name: LocalizedStringKey {
         switch self {

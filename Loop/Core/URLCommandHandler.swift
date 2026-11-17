@@ -81,7 +81,6 @@
  open "loop://keybind/nonexistent" -> Returns available keybinds
  */
 
-import Defaults
 import Foundation
 import Scribe
 import SwiftUI
@@ -276,7 +275,7 @@ final class URLCommandHandler {
             writeToOutput("No direction specified")
             writeToOutput("Available directions:")
             writeToOutput("  Basic: left, right, top, bottom")
-            writeToOutput("  Full names: \(WindowDirection.allCases.map { $0.rawValue.lowercased() }.joined(separator: ", "))")
+            writeToOutput("  Full names: \(WindowDirection.allCases.map(\.rawValue).joined(separator: ", "))")
             return
         }
 
@@ -294,17 +293,7 @@ final class URLCommandHandler {
             return
         }
 
-        let direction: WindowDirection? = WindowDirection.allCases.first { $0.rawValue.lowercased() == directionStr } ?? {
-            switch directionStr {
-            case "left": return WindowDirection.leftHalf
-            case "right": return WindowDirection.rightHalf
-            case "top": return WindowDirection.topHalf
-            case "bottom": return WindowDirection.bottomHalf
-            default:
-                let withoutHalf = directionStr.replacingOccurrences(of: "half", with: "")
-                return WindowDirection.allCases.first { $0.rawValue.lowercased() == withoutHalf }
-            }
-        }()
+        let direction = Self.direction(forDirectionCommand: directionStr)
 
         if let direction {
             executeWindowAction(direction)
@@ -312,7 +301,27 @@ final class URLCommandHandler {
             writeToOutput("Invalid direction: \(directionStr)")
             writeToOutput("Available directions:")
             writeToOutput("  Basic: left, right, top, bottom")
-            writeToOutput("  Full names: \(WindowDirection.allCases.map { $0.rawValue.lowercased() }.joined(separator: ", "))")
+            writeToOutput("  Full names: \(WindowDirection.allCases.map(\.rawValue).joined(separator: ", "))")
+        }
+    }
+
+    /// Accepts the raw value with or without hyphens, in any case, as well as `noaction`.
+    static func direction(named input: String) -> WindowDirection? {
+        let compact = input.lowercased().replacingOccurrences(of: "-", with: "")
+        if compact == "noaction" { return .noAction }
+        return WindowDirection.allCases.first { $0.rawValue.replacingOccurrences(of: "-", with: "") == compact }
+    }
+
+    /// Also accepts `left`, `right`, `top` and `bottom` for the halves.
+    static func direction(forDirectionCommand input: String) -> WindowDirection? {
+        if let direction = direction(named: input) { return direction }
+
+        switch input.lowercased() {
+        case "left": return .leftHalf
+        case "right": return .rightHalf
+        case "top": return .topHalf
+        case "bottom": return .bottomHalf
+        default: return direction(named: input.lowercased().replacingOccurrences(of: "half", with: ""))
         }
     }
 
@@ -379,7 +388,7 @@ final class URLCommandHandler {
         }
 
         // First check for custom actions by name
-        let customKeybinds = Defaults[.keybinds].filter { $0.direction.isCustomizable && $0.name != nil }
+        let customKeybinds = WindowActionCache.shared.keyBindingActions.filter { $0.direction.isCustomizable && $0.name != nil }
         if let customAction = customKeybinds.first(where: { ($0.name?.lowercased() ?? "") == actionStr }) {
             writeToOutput("Executing custom action: \(customAction.name ?? "unnamed")")
 
@@ -399,7 +408,7 @@ final class URLCommandHandler {
         } else if actionStr == "list" {
             // For list command, just show the actions without the invalid message
             printAvailableActions()
-        } else if let direction = WindowDirection.allCases.first(where: { $0.rawValue.lowercased() == actionStr }),
+        } else if let direction = Self.direction(named: actionStr),
                   let window = findTargetWindow(from: WindowUtility.windowList()),
                   let screen = NSScreen.main {
             writeToOutput("Executing action: \(direction.rawValue)")
@@ -415,7 +424,7 @@ final class URLCommandHandler {
         var items: [String] = []
 
         // Get any custom keybinds with names and custom direction
-        let customKeybinds = Defaults[.keybinds].filter { $0.direction == .custom && $0.name?.isEmpty == false }
+        let customKeybinds = WindowActionCache.shared.keyBindingActions.filter { $0.direction == .custom && $0.name?.isEmpty == false }
         if !customKeybinds.isEmpty {
             items.append("Custom Actions:")
             items.append(contentsOf: customKeybinds.compactMap { keybind in
@@ -426,7 +435,7 @@ final class URLCommandHandler {
         }
 
         // Get any stash keybinds with names and custom direction
-        let stashKeybinds = Defaults[.keybinds].filter { $0.direction == .stash && $0.name?.isEmpty == false }
+        let stashKeybinds = WindowActionCache.shared.keyBindingActions.filter { $0.direction == .stash && $0.name?.isEmpty == false }
         if !stashKeybinds.isEmpty {
             items.append("Stash Actions:")
             items.append(contentsOf: stashKeybinds.compactMap { keybind in
@@ -453,7 +462,7 @@ final class URLCommandHandler {
         for (title, actions) in categories {
             if !actions.isEmpty {
                 items.append("\(title):")
-                items.append(contentsOf: actions.map { "  • loop://action/\($0.rawValue.lowercased())" })
+                items.append(contentsOf: actions.map { "  • loop://action/\($0.rawValue)" })
                 items.append("")
             }
         }
@@ -474,7 +483,7 @@ final class URLCommandHandler {
             return
         }
 
-        let keybinds = Defaults[.keybinds]
+        let keybinds = WindowActionCache.shared.keyBindingActions
 
         if keybindName.lowercased() == "list" {
             writeToOutput("[URLHandler] Available keybinds:")
@@ -511,7 +520,7 @@ final class URLCommandHandler {
         case "actions":
             items.append("Available Actions:")
             // Get any custom keybinds with names and custom direction
-            let customKeybinds = Defaults[.keybinds].filter { $0.direction == .custom && $0.name?.isEmpty == false }
+            let customKeybinds = WindowActionCache.shared.keyBindingActions.filter { $0.direction == .custom && $0.name?.isEmpty == false }
             if !customKeybinds.isEmpty {
                 items.append("\nCustom Actions:")
                 items.append(contentsOf: customKeybinds.compactMap { keybind in
@@ -521,7 +530,7 @@ final class URLCommandHandler {
             }
 
             // Get any stash keybinds with names and custom direction
-            let stashKeybinds = Defaults[.keybinds].filter { $0.direction == .stash && $0.name?.isEmpty == false }
+            let stashKeybinds = WindowActionCache.shared.keyBindingActions.filter { $0.direction == .stash && $0.name?.isEmpty == false }
             if !stashKeybinds.isEmpty {
                 items.append("\nStash Actions:")
                 items.append(contentsOf: stashKeybinds.compactMap { keybind in
@@ -547,13 +556,13 @@ final class URLCommandHandler {
             for (title, actions) in categories {
                 if !actions.isEmpty {
                     items.append("\n\(title):")
-                    items.append(contentsOf: actions.map { "  • loop://action/\($0.rawValue.lowercased())" })
+                    items.append(contentsOf: actions.map { "  • loop://action/\($0.rawValue)" })
                 }
             }
 
         case "keybinds":
             items.append("Available Keybinds:")
-            items.append(contentsOf: Defaults[.keybinds].compactMap { keybind in
+            items.append(contentsOf: WindowActionCache.shared.keyBindingActions.compactMap { keybind in
                 guard let name = keybind.name else { return nil }
                 return "  • loop://keybind/\(name)"
             })
@@ -562,7 +571,7 @@ final class URLCommandHandler {
             items.append("Available Commands:")
 
             items.append("\nDirection Commands:")
-            items.append(contentsOf: WindowDirection.allCases.map { "  • loop://direction/\($0.rawValue.lowercased())" })
+            items.append(contentsOf: WindowDirection.allCases.map { "  • loop://direction/\($0.rawValue)" })
 
             items.append("\nScreen Commands:")
             items.append("  • loop://screen/next")
@@ -570,7 +579,7 @@ final class URLCommandHandler {
 
             items.append("\nActions:")
             // Get any custom keybinds with names and custom direction
-            let customKeybinds = Defaults[.keybinds].filter { $0.direction == .custom && $0.name?.isEmpty == false }
+            let customKeybinds = WindowActionCache.shared.keyBindingActions.filter { $0.direction == .custom && $0.name?.isEmpty == false }
             if !customKeybinds.isEmpty {
                 items.append("\nCustom Actions:")
                 items.append(contentsOf: customKeybinds.compactMap { keybind in
@@ -580,7 +589,7 @@ final class URLCommandHandler {
             }
 
             // Get any stash keybinds with names and custom direction
-            let stashKeybinds = Defaults[.keybinds].filter { $0.direction == .stash && $0.name?.isEmpty == false }
+            let stashKeybinds = WindowActionCache.shared.keyBindingActions.filter { $0.direction == .stash && $0.name?.isEmpty == false }
             if !stashKeybinds.isEmpty {
                 items.append("\nStash Actions:")
                 items.append(contentsOf: stashKeybinds.compactMap { keybind in
@@ -590,7 +599,7 @@ final class URLCommandHandler {
             }
 
             items.append("\nKeybind Commands:")
-            items.append(contentsOf: Defaults[.keybinds].compactMap { keybind in
+            items.append(contentsOf: WindowActionCache.shared.keyBindingActions.compactMap { keybind in
                 guard let name = keybind.name else { return nil }
                 return "  • loop://keybind/\(name)"
             })

@@ -5,17 +5,17 @@
 //  Created by Anand Hegde on 2026-09-20.
 //
 
-import Defaults
 import SwiftUI
+import Tome
 
 /// The order in which "Next/Previous Screen" walks through the user's screens.
-enum ScreenOrder: Int, Defaults.Serializable, CaseIterable, Identifiable {
+enum ScreenOrder: String, Codable, CaseIterable, Identifiable, Tome.Serializable {
     /// Row by row from top to bottom, and each row from left to right.
-    case zShaped = 0
+    case zShaped = "z-shaped"
 
     /// Around the arrangement, starting from the screen at the top left. "Previous screen"
     /// walks it counterclockwise.
-    case clockwise = 1
+    case clockwise
 
     var id: Self { self }
 

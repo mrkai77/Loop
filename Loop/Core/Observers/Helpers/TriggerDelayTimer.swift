@@ -7,18 +7,20 @@
 
 import Defaults
 import Foundation
+import Tome
 
 /// A utility class that delays triggering an action until a specified amount of time has passed.
 ///
 /// It is used to defer the execution of a callback (in this case, opening Loop) by a user-configurable
-/// number of seconds, as defined by the user’s `Defaults[.triggerDelay]` setting.
+/// duration, as defined by the user's `Tome.triggerDelay` setting.
 /// When using keybinds, you may also want to update the starting action without restarting the timer.
 /// In that case, use the `updateStartingAction` method.
 final class TriggerDelayTimer {
     private var triggerDelayTimer: Task<(), Never>?
     private var startingAction: WindowAction = .init(.noSelection)
     private let openCallback: (WindowAction) -> ()
-    private var triggerDelay: CGFloat { Defaults[.triggerDelay] }
+    /// Clamped, since a hand-edited value can be negative or huge.
+    private var triggerDelay: Duration { min(max(Tome.triggerDelay, .zero), .seconds(86400)) }
 
     /// Indicates whether the delay timer is currently active.
     var isActive: Bool { triggerDelayTimer != nil }
@@ -43,7 +45,7 @@ final class TriggerDelayTimer {
         cancel() // Ensure no previous timer is active
 
         triggerDelayTimer = Task { @MainActor in
-            try? await Task.sleep(for: .seconds(triggerDelay))
+            try? await Task.sleep(for: triggerDelay)
             guard !Task.isCancelled else { return }
 
             openCallback(startingAction)

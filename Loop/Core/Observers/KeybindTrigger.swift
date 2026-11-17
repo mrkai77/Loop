@@ -8,6 +8,7 @@
 import Cocoa
 import Defaults
 import Scribe
+import Tome
 
 /// Monitors `keyDown`, `keyUp`, and `flagsChanged` events using an ActiveEventMonitor, invoking Loop’s open and close callbacks as needed.
 /// Additionally, this class manages keybind action retrieval and updates Loop based on those actions.
@@ -35,9 +36,9 @@ final class KeybindTrigger {
     /// Will be set to `false` if the mouse has been moved by LoopManager.
     var canPassthroughNextSpecialEvent = true
 
-    private var useTriggerDelay: Bool { Defaults[.triggerDelay] > 0.1 }
-    private var doubleClickToTrigger: Bool { Defaults[.doubleClickToTrigger] }
-    private var sideDependentTriggerKey: Bool { Defaults[.sideDependentTriggerKey] }
+    private var useTriggerDelay: Bool { Tome.triggerDelay > .milliseconds(100) }
+    private var doubleClickToTrigger: Bool { Tome.doubleClickToTrigger }
+    private var sideDependentTriggerKey: Bool { Tome.sideDependentTriggerKey }
     private lazy var triggerDelayTimer = TriggerDelayTimer(openCallback: openCallback)
 
     private lazy var doubleClickTimer = DoubleClickTimer { [weak self] action in
@@ -166,6 +167,7 @@ final class KeybindTrigger {
         flags: CGEventFlags,
         isLoopOpen: Bool
     ) -> KeybindResolver.ResolvedHandling {
+        let triggerKeys = Tome.triggerKey.keyCodes()
         let decision = KeybindResolver.resolve(
             .init(
                 eventType: type,
@@ -173,8 +175,9 @@ final class KeybindTrigger {
                 pressedKeys: pressedKeys,
                 modifierKeys: flags.keyCodes,
                 trigger: .init(
-                    keys: Defaults[.triggerKey],
-                    isSideDependent: sideDependentTriggerKey
+                    keys: triggerKeys ?? [],
+                    isSideDependent: sideDependentTriggerKey,
+                    isResolved: triggerKeys != nil
                 ),
                 isLoopOpen: isLoopOpen,
                 actionsByKeybind: windowActionCache.actionsByKeybind,

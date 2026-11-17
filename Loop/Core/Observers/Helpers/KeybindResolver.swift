@@ -18,6 +18,8 @@ enum KeybindResolver {
     struct TriggerConfiguration {
         let keys: Set<CGKeyCode>
         let isSideDependent: Bool
+        /// `false` when the trigger key names a key the current layout lacks.
+        var isResolved = true
 
         var normalizedKeys: Set<CGKeyCode> {
             isSideDependent ? keys : keys.baseModifiers
@@ -88,7 +90,7 @@ enum KeybindResolver {
             : input.modifierKeys.baseModifiers
         let allPressedKeys = input.pressedKeys.union(modifierKeys)
         let triggerKeys = input.trigger.normalizedKeys
-        let containsTrigger = allPressedKeys.isSuperset(of: triggerKeys)
+        let containsTrigger = input.trigger.isResolved && allPressedKeys.isSuperset(of: triggerKeys)
         let actionKeys = allPressedKeys.subtracting(triggerKeys).baseModifiers
         let allPressedKeysBaseModifiers = allPressedKeys.baseModifiers
 

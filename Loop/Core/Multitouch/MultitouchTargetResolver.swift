@@ -8,6 +8,7 @@
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
 
 struct MultitouchGestureActivationContext {
     let targetWindow: Window?
@@ -85,7 +86,7 @@ final class MultitouchTargetResolver {
 
         let window: Window?
         let startedInTitlebar: Bool
-        if Defaults[.resizeWindowUnderCursor] {
+        if Tome.targetWindow == .underCursor {
             window = WindowUtility.windowAtPosition(cursorPosition)
             startedInTitlebar = window.map { isInTitlebar(cursorPosition, of: $0) } ?? false
         } else {
@@ -103,7 +104,7 @@ final class MultitouchTargetResolver {
     }
 
     private func isInTitlebar(_ cursorPosition: CGPoint, of window: Window) -> Bool {
-        let minimumTitlebarHeight = Defaults[.gestureTitlebarHeight]
+        let minimumTitlebarHeight = Tome.gestureTitlebarHeight
         let titlebarHeight: CGFloat = if #available(macOS 26, *) {
             if #unavailable(macOS 27),
                let cornerRadius = SkyLightToolBelt.getCornerRadii(windowID: window.cgWindowID)?.topLeading {

@@ -9,6 +9,7 @@ import Defaults
 import os
 import Scribe
 import SwiftUI
+import Tome
 
 @Loggable
 @MainActor
@@ -20,7 +21,7 @@ final class LoopManager {
     /// Initialized when Loop opens with a target window and screen.
     private(set) var resizeContext: ResizeContext = .init()
 
-    private let windowActionCache = WindowActionCache()
+    private let windowActionCache = WindowActionCache.shared
     private let indicatorService = WindowActionIndicatorService()
     private let updater = Updater.shared
 
@@ -64,7 +65,7 @@ final class LoopManager {
             Task {
                 try? await self?.openLoop(
                     startingAction: action,
-                    hideIndicatorOnNoSelection: Defaults[.hideOnNoSelectionForKeybinds]
+                    hideIndicatorOnNoSelection: Tome.hideOnNoSelectionForKeybinds
                 )
             }
         },
@@ -83,7 +84,7 @@ final class LoopManager {
             Task {
                 try? await self?.openLoop(
                     startingAction: action,
-                    hideIndicatorOnNoSelection: Defaults[.hideOnNoSelectionForKeybinds]
+                    hideIndicatorOnNoSelection: Tome.hideOnNoSelectionForKeybinds
                 )
             }
         },
@@ -102,7 +103,7 @@ final class LoopManager {
             return try await openLoop(
                 startingAction: action,
                 window: window,
-                hideIndicatorOnNoSelection: Defaults[.hideOnNoSelectionForGestures]
+                hideIndicatorOnNoSelection: Tome.hideOnNoSelectionForGestures
             )
         },
         closeCallback: { [weak self] forceClose in
@@ -173,7 +174,7 @@ final class LoopManager {
                 if status {
                     await keybindTrigger.start()
                     middleClickTrigger.start()
-                    if Defaults[.enableGestures] {
+                    if Tome.enableGestures {
                         multitouchTrigger.start()
                     }
                 } else {
@@ -185,7 +186,7 @@ final class LoopManager {
         }
 
         gestureToggleTask = Task(priority: .userInitiated) { [weak self] in
-            for await enabled in Defaults.updates(.enableGestures, initial: false) {
+            for await enabled in Tome.updates(\.enableGestures) {
                 guard let self, !Task.isCancelled else { break }
 
                 if enabled, AccessibilityManager.shared.isGranted {
@@ -289,7 +290,7 @@ extension LoopManager {
             throw LoopManagerError.appExcluded
         }
 
-        guard (window?.fullscreen ?? false && Defaults[.ignoreFullscreen]) == false else {
+        guard (window?.fullscreen ?? false && Tome.ignoreFullscreen) == false else {
             throw LoopManagerError.fullscreenWindow
         }
 
@@ -333,7 +334,7 @@ extension LoopManager {
             return .cancelled
         }
 
-        if !Defaults[.disableCursorInteraction] {
+        if Tome.selectActionsWithCursor {
             mouseInteractionObserver.start(initialMousePosition: resizeContext.initialMousePosition)
         }
 
@@ -369,7 +370,7 @@ extension LoopManager {
         if !forceClose {
             // If the preview was disabled, the window will already be in the specified action's frame.
             // So only resize the window if the preview is enabled.
-            if Defaults[.previewVisibility],
+            if Tome.previewVisibility,
                !resizeContext.action.direction.willFocusWindow {
                 Task {
                     _ = try? await WindowActionEngine.shared.apply(context: resizeContext)
@@ -563,16 +564,11 @@ extension LoopManager {
 
                         setResizeAction(
                             to: .init(
-                                .custom,
-                                keybind: [],
-                                name: screenSwitchingCustomActionName,
-                                unit: .percentage,
-                                width: proportionalSize.width * 100,
-                                height: proportionalSize.height * 100,
-                                xPoint: proportionalSize.minX * 100,
-                                yPoint: proportionalSize.minY * 100,
-                                positionMode: .coordinates,
-                                sizeMode: .custom
+                                kind: .custom(.init(
+                                    name: screenSwitchingCustomActionName,
+                                    size: .custom(width: ScreenLength(proportionalSize.width * 100), height: ScreenLength(proportionalSize.height * 100)),
+                                    position: .coordinates(x: ScreenLength(proportionalSize.minX * 100), y: ScreenLength(proportionalSize.minY * 100))
+                                ))
                             ),
                             parent: nil
                         )
@@ -588,7 +584,7 @@ extension LoopManager {
             if let parent = newParentAction {
                 setResizeAction(to: newAction, parent: newParentAction)
                 await changeAction(parent, triggeredFromScreenChange: true)
-            } else if !Defaults[.previewVisibility] {
+            } else if !Tome.previewVisibility {
                 if !disableHapticFeedback {
                     performHapticFeedback()
                 }
@@ -610,7 +606,7 @@ extension LoopManager {
 
             let previousActionWasNoOp = resizeContext.action.direction.isNoOp
             setResizeAction(to: newAction, parent: newParentAction)
-            if !Defaults[.previewVisibility], !previousActionWasNoOp {
+            if !Tome.previewVisibility, !previousActionWasNoOp {
                 await resizeContext.refreshResolvedState()
             }
             indicatorService.openAndUpdate(context: resizeContext, hideOnNoSelection: hideIndicatorOnNoSelection)
@@ -636,7 +632,7 @@ extension LoopManager {
                         log.info("Focusing window: \(newTargetWindow)")
                         await newTargetWindow.focus()
                     }
-                } else if !Defaults[.previewVisibility] {
+                } else if !Tome.previewVisibility {
                     _ = try? await WindowActionEngine.shared.apply(context: originatingContext)
                 }
             }
@@ -651,13 +647,12 @@ extension LoopManager {
         resumeProgress: Bool,
         reverse: Bool
     ) -> CycleActionCoordinator.Proposal? {
-        // Allow cycling backwards only if:
-        // - Shift is not part of the action's keybind (eligibleForReverseCycle)
-        // - Shift is not part of the trigger key
-        // - The user has enabled the setting
-        let allowReverseCycle = action.eligibleForReverseCycle
-            && Defaults[.triggerKey].contains(.kVK_Shift) == false
-            && Defaults[.cycleBackwardsOnShiftPressed]
+        let sourceBinding = windowActionCache.keyBinding(for: action)
+        let allowReverseCycle = CycleActionCoordinator.allowsShiftReverseCycle(
+            sourceBinding: sourceBinding,
+            triggerKeys: Tome.triggerKey,
+            enabled: Tome.cycleBackwardsOnShiftPressed
+        )
 
         let mode: CycleActionCoordinator.SelectionMode = if canAdvance {
             reverse || (allowReverseCycle && keybindTrigger.effectiveEventFlags.contains(.maskShift))
@@ -671,19 +666,20 @@ extension LoopManager {
 
         return resizeContext.proposeCycleAction(
             in: action,
-            restartAtBeginningWhenInterrupted: Defaults[.cycleModeRestartEnabled],
-            mode: mode
+            restartAtBeginningWhenInterrupted: Tome.cycleModeRestartEnabled,
+            mode: mode,
+            sourceBinding: sourceBinding
         )
     }
 
     private func performHapticFeedback() {
-        if Defaults[.hapticFeedback] {
+        if Tome.hapticFeedback {
             NSHapticFeedbackManager.defaultPerformer.perform(.alignment, performanceTime: .now)
         }
     }
 
     private func setResizeAction(to newAction: WindowAction, parent newParentAction: WindowAction?) {
-        resizeContext.setAction(to: newAction, parent: newParentAction)
+        resizeContext.setAction(to: newAction, parent: newParentAction, sourceBinding: windowActionCache.keyBinding(for: newParentAction ?? newAction))
         hasParentCycleActionMirror.withLock { $0 = newParentAction != nil }
     }
 
@@ -696,7 +692,7 @@ extension LoopManager {
     ///   - window: The window to be resized, if any.
     /// - Returns: The screen the window should be on after the action.
     private func resolveAndStoreTargetScreen(action: WindowAction, window: Window?) -> NSScreen? {
-        var targetScreen = Defaults[.useScreenWithCursor] ? NSScreen.screenWithMouse : NSScreen.main
+        var targetScreen = Tome.useScreenWithCursor ? NSScreen.screenWithMouse : NSScreen.main
 
         if action.direction.willChangeScreen,
            let window,

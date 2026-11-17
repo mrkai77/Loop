@@ -8,6 +8,7 @@
 import Defaults
 import Luminare
 import SwiftUI
+import Tome
 
 struct RadialMenuView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
@@ -17,9 +18,9 @@ struct RadialMenuView: View {
     @ObservedObject private var viewModel: RadialMenuViewModel
     private let radialMenuSize: CGFloat = 100
 
-    @Default(.radialMenuCornerRadius) private var radialMenuCornerRadius
-    @Default(.radialMenuThickness) private var radialMenuThickness
-    @Default(.animationConfiguration) private var animationConfiguration
+    @TomeValue(\.radialMenuCornerRadius) private var radialMenuCornerRadius
+    @TomeValue(\.radialMenuThickness) private var radialMenuThickness
+    @TomeValue(\.animationConfiguration) private var animationConfiguration
 
     init(viewModel: RadialMenuViewModel) {
         self.viewModel = viewModel

@@ -9,6 +9,7 @@ import Defaults
 import Luminare
 import Scribe
 import SwiftUI
+import Tome
 import UserNotifications
 
 @Loggable(style: .static)
@@ -71,7 +72,7 @@ enum IconManager {
     }
 
     static func checkIfUnlockedNewIcon() {
-        guard Defaults[.notificationWhenIconUnlocked] else { return }
+        guard Tome.notificationWhenIconUnlocked else { return }
 
         for icon in Icon.all where icon.unlockTime == Defaults[.timesLooped] {
             let content = UNMutableNotificationContent()

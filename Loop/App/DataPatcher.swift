@@ -21,11 +21,11 @@ enum DataPatcher {
             let processWallpaper: Bool = Defaults[.processWallpaper]
 
             if useSystemAccentColor {
-                Defaults[.accentColorMode] = .system
+                Defaults[LegacyDefaults.accentColorMode] = .system
             } else if processWallpaper {
-                Defaults[.accentColorMode] = .wallpaper
+                Defaults[LegacyDefaults.accentColorMode] = .wallpaper
             } else {
-                Defaults[.accentColorMode] = .custom
+                Defaults[LegacyDefaults.accentColorMode] = .custom
             }
 
             Defaults.reset(.useSystemAccentColor)
@@ -43,23 +43,23 @@ enum DataPatcher {
 
         runPatchIfNeeded(patch: .splitRadialMenuPresentationPolicies, initialPatches: initialPatches) {
             let hideOnNoSelection = Defaults[.hideOnNoSelection] || Defaults[.hideUntilDirectionIsChosen]
-            Defaults[.hideOnNoSelectionForKeybinds] = hideOnNoSelection
-            Defaults[.hideOnNoSelectionForGestures] = hideOnNoSelection
+            Defaults[LegacyDefaults.hideOnNoSelectionForKeybinds] = hideOnNoSelection
+            Defaults[LegacyDefaults.hideOnNoSelectionForGestures] = hideOnNoSelection
             Defaults.reset(.hideOnNoSelection)
             Defaults.reset(.hideUntilDirectionIsChosen)
         }
 
         runPatchIfNeeded(patch: .keepCustomizedPreviewBackground, initialPatches: initialPatches) {
             // Users who changed the blur or accent opacity keep the custom background
-            let blurKey = Defaults.Keys.previewBackgroundEnableBlur
-            let accentKey = Defaults.Keys.previewBackgroundAccentOpacity
+            let blurKey = LegacyDefaults.previewBackgroundEnableBlur
+            let accentKey = LegacyDefaults.previewBackgroundAccentOpacity
             let customizedBlur = UserDefaults.standard.object(forKey: blurKey.name) != nil
                 && Defaults[blurKey] != blurKey.defaultValue
             let customizedAccent = UserDefaults.standard.object(forKey: accentKey.name) != nil
                 && Defaults[accentKey] != accentKey.defaultValue
 
             if customizedBlur || customizedAccent {
-                Defaults[.previewBackgroundStyle] = .custom
+                Defaults[LegacyDefaults.previewBackgroundStyle] = .custom
             }
         }
     }

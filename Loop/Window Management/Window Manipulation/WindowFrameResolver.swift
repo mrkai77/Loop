@@ -8,6 +8,7 @@
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
 
 @Loggable(style: .static)
 enum WindowFrameResolver {
@@ -268,63 +269,45 @@ extension WindowFrameResolver {
     private static func calculateCustomFrame(for action: WindowAction, bounds: CGRect, record: WindowRecords.ResolvedRecord?, windowProperties: Window.ResolvedProperties?) -> CGRect {
         var result = CGRect(origin: bounds.origin, size: .zero)
 
-        // Size Calculation
+        // Points are scaled to the preview canvas only without a live window
+        let previewScreenSize: CGSize? = windowProperties == nil
+            ? (NSScreen.main ?? NSScreen.screens.first)?.frame.size ?? bounds.size
+            : nil
 
-        if let sizeMode = action.sizeMode, sizeMode == .preserveSize, let windowProperties {
-            result.size = windowProperties.frame.size
-
-        } else if let sizeMode = action.sizeMode, sizeMode == .initialSize, windowProperties != nil {
-            if let initialFrame = record?.initialFrame {
-                result.size = initialFrame.size
-            }
-
-        } else { // sizeMode would be custom
-            switch action.unit {
-            case .pixels:
-                if windowProperties == nil {
-                    let mainScreen = NSScreen.main ?? NSScreen.screens[0]
-                    result.size.width = (CGFloat(action.width ?? .zero) / mainScreen.frame.width) * bounds.width
-                    result.size.height = (CGFloat(action.height ?? .zero) / mainScreen.frame.height) * bounds.height
-                } else {
-                    result.size.width = action.width ?? .zero
-                    result.size.height = action.height ?? .zero
+        func resolveLength(_ length: ScreenLength?, available: CGFloat, previewExtent: CGFloat?) -> CGFloat {
+            guard let length else { return .zero }
+            switch length.unit {
+            case .percent: return available * (length.value / 100)
+            case .points:
+                if let previewExtent, previewExtent > 0 {
+                    return (length.value / previewExtent) * available
                 }
-            default:
-                if let width = action.width {
-                    result.size.width = bounds.width * (width / 100.0)
-                }
-
-                if let height = action.height {
-                    result.size.height = bounds.height * (height / 100.0)
-                }
+                return length.value
             }
         }
 
-        // Position Calculation
+        if action.size == .preserve, let windowProperties {
+            result.size = windowProperties.frame.size
+        } else if action.size == .initial, windowProperties != nil {
+            result.size = record?.initialFrame?.size ?? .zero
+        } else {
+            let dimensions = action.customDimensions
+            result.size.width = resolveLength(dimensions?.width, available: bounds.width, previewExtent: previewScreenSize?.width)
+            result.size.height = resolveLength(dimensions?.height, available: bounds.height, previewExtent: previewScreenSize?.height)
+        }
 
-        if let positionMode = action.positionMode, positionMode == .coordinates {
-            switch action.unit {
-            case .pixels:
-                if windowProperties == nil {
-                    let mainScreen = NSScreen.main ?? NSScreen.screens[0]
-                    result.origin.x = (CGFloat(action.xPoint ?? .zero) / mainScreen.frame.width) * bounds.width
-                    result.origin.y = (CGFloat(action.yPoint ?? .zero) / mainScreen.frame.height) * bounds.height
-                } else {
-                    // Note that bounds are ignored deliberately here
-                    result.origin.x += action.xPoint ?? .zero
-                    result.origin.y += action.yPoint ?? .zero
-                }
-            default:
-                if let xPoint = action.xPoint {
-                    result.origin.x += bounds.width * (xPoint / 100.0)
-                }
-
-                if let yPoint = action.yPoint {
-                    result.origin.y += bounds.height * (yPoint / 100.0)
-                }
+        if case let .coordinates(x, y) = action.position {
+            if let x {
+                let value = resolveLength(x, available: bounds.width, previewExtent: previewScreenSize?.width)
+                // Note that bounds are ignored deliberately here for point previews
+                result.origin.x = x.unit == .points && windowProperties == nil ? value : bounds.minX + value
             }
-        } else { // positionMode would be generic
-            switch action.anchor {
+            if let y {
+                let value = resolveLength(y, available: bounds.height, previewExtent: previewScreenSize?.height)
+                result.origin.y = y.unit == .points && windowProperties == nil ? value : bounds.minY + value
+            }
+        } else if case let .anchor(anchor) = action.position {
+            switch anchor {
             case .top:
                 result.origin.x = bounds.midX - result.width / 2
             case .topRight:
@@ -586,9 +569,9 @@ extension WindowFrameResolver {
         sidesToAdjust: Edge.Set?
     ) -> CGRect {
         let direction = action.direction
-        let step = Defaults[.sizeIncrement] * ((direction == .larger || direction == .scaleUp || direction.willGrow) ? -1 : 1)
+        let step = Tome.sizeIncrement * ((direction == .larger || direction == .scaleUp || direction.willGrow) ? -1 : 1)
 
-        let previewPadding = Defaults[.previewPadding]
+        let previewPadding = Tome.previewPadding
         let minSize = CGSize(
             width: previewPadding + 100,
             height: previewPadding + 100
@@ -672,13 +655,13 @@ extension WindowFrameResolver {
         var result = frameToResizeFrom
 
         if direction == .moveUp {
-            result.origin.y -= Defaults[.sizeIncrement]
+            result.origin.y -= Tome.sizeIncrement
         } else if direction == .moveDown {
-            result.origin.y += Defaults[.sizeIncrement]
+            result.origin.y += Tome.sizeIncrement
         } else if direction == .moveRight {
-            result.origin.x += Defaults[.sizeIncrement]
+            result.origin.x += Tome.sizeIncrement
         } else if direction == .moveLeft {
-            result.origin.x -= Defaults[.sizeIncrement]
+            result.origin.x -= Tome.sizeIncrement
         }
 
         return result

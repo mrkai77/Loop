@@ -8,10 +8,11 @@
 import SwiftUI
 
 extension Binding where Value == CGFloat {
+    /// Rounds writes to hundredths to avoid storing float noise.
     var doubleBinding: Binding<Double> {
         Binding<Double>(
             get: { Double(wrappedValue) },
-            set: { wrappedValue = CGFloat($0) }
+            set: { wrappedValue = CGFloat(($0 * 100).rounded() / 100) }
         )
     }
 }

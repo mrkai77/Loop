@@ -5,10 +5,10 @@
 //  Created by Kai Azim on 2025-09-07.
 //
 
-import Defaults
 import SwiftUI
+import Tome
 
-enum AccentColorOption: Int, Codable, Defaults.Serializable, CaseIterable {
+enum AccentColorOption: String, Codable, CaseIterable, Tome.Serializable {
     case system
     case wallpaper
     case custom

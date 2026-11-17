@@ -8,6 +8,7 @@
 import AppKit
 import Defaults
 import Scribe
+import Tome
 
 /// This enum is in charge of fetching windows in the user's workspace, which will be used by Loop.
 @Loggable(style: .static)
@@ -17,7 +18,7 @@ enum WindowUtility {
     static func userDefinedTargetWindow() -> Window? {
         var result: Window?
 
-        if Defaults[.resizeWindowUnderCursor] {
+        if Tome.targetWindow == .underCursor {
             log.info("Getting window at cursor...")
 
             if let mouseLocation = CGEvent.mouseLocation,

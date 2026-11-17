@@ -7,6 +7,7 @@
 
 import Defaults
 import SwiftUI
+import Tome
 
 enum ScreenUtility {
     private static var navigationUtility = DirectionalNavigationUtility<NSScreen>(
@@ -95,7 +96,7 @@ enum ScreenUtility {
 
     /// Sorts all NSScreens in an order such that the next/previous screen are in positional order.
     private static func getOrderedScreens() -> [NSScreen] {
-        Defaults[.screenOrder].sorted(NSScreen.screens) { $0.frame }
+        Tome.screenOrder.sorted(NSScreen.screens) { $0.frame }
     }
 
     // MARK: Directional Screens

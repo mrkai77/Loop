@@ -7,6 +7,7 @@
 
 import AppKit
 import Defaults
+import Tome
 
 /// Reads middle-click events using a PassiveEventMonitor, and triggers Loop open/close callbacks, when appropriate.
 final class MiddleClickTrigger {
@@ -18,9 +19,9 @@ final class MiddleClickTrigger {
     private var monitor: PassiveEventMonitor?
 
     // Defaults
-    private var middleClickTriggersLoop: Bool { Defaults[.middleClickTriggersLoop] }
-    private var useTriggerDelay: Bool { Defaults[.enableTriggerDelayOnMiddleClick] && Defaults[.triggerDelay] > 0.1 }
-    private var doubleClickToTrigger: Bool { Defaults[.doubleClickToTrigger] }
+    private var middleClickTriggersLoop: Bool { Tome.middleClickTriggersLoop }
+    private var useTriggerDelay: Bool { Tome.enableTriggerDelayOnMiddleClick && Tome.triggerDelay > .milliseconds(100) }
+    private var doubleClickToTrigger: Bool { Tome.doubleClickToTrigger }
 
     private lazy var triggerDelayTimer = TriggerDelayTimer(openCallback: openCallback)
     private lazy var doubleClickTimer = DoubleClickTimer { [weak self] action in

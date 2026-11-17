@@ -10,6 +10,7 @@ import Defaults
 import Scribe
 import Subsurface
 import SwiftUI
+import Tome
 
 @Loggable
 @MainActor
@@ -41,16 +42,13 @@ final class MultitouchTrigger {
     let targetResolver = MultitouchTargetResolver()
 
     private var gesturesObservationTask: Task<(), Never>?
-    private var radialMenuActionsObservationTask: Task<(), Never>?
     private var isStarted = false
 
     let swipeStepSize: CGFloat = 0.15
     /// Later pinch repeats are this far apart. The first action fires sooner.
     let magnifyStepSize: CGFloat = 0.2
 
-    var radialMenuActions = RadialMenuAction.userConfiguredActions
-
-    private static let failedToResolveKeybindAction: WindowAction = .init(.noAction)
+    var radialMenuActions: [RadialMenuBinding] { windowActionCache.radialMenuBindings }
 
     init(
         windowActionCache: WindowActionCache,
@@ -71,20 +69,12 @@ final class MultitouchTrigger {
         isStarted = true
 
         rebuildRecognizers()
-        radialMenuActions = RadialMenuAction.userConfiguredActions
 
         gesturesObservationTask = Task { [weak self] in
             // Watch keybinds too, so gestures referencing a deleted keybind stay in sync.
-            for await _ in Defaults.updates(.gestures, .keybinds, initial: false) {
+            for await _ in Tome.updates(\.gestures, \.keyBindings, initial: false) {
                 guard !Task.isCancelled, let self else { break }
                 rebuildRecognizers()
-            }
-        }
-
-        radialMenuActionsObservationTask = Task { [weak self] in
-            for await _ in Defaults.updates(.enableRadialMenuCustomization, .radialMenuActions, initial: false) {
-                guard !Task.isCancelled, let self else { break }
-                radialMenuActions = RadialMenuAction.userConfiguredActions
             }
         }
     }
@@ -95,8 +85,6 @@ final class MultitouchTrigger {
 
         gesturesObservationTask?.cancel()
         gesturesObservationTask = nil
-        radialMenuActionsObservationTask?.cancel()
-        radialMenuActionsObservationTask = nil
 
         stopGestureMonitors()
         #if DEBUG
@@ -122,14 +110,14 @@ final class MultitouchTrigger {
             return
         }
 
-        systemGestureFilter.start(claiming: SystemGestureFilter.claims(for: Defaults[.gestures]))
+        systemGestureFilter.start(claiming: SystemGestureFilter.claims(for: Tome.gestures))
     }
 
     private func rebuildRecognizers() {
         #if DEBUG
             closeDebugOverlay(force: true)
         #endif
-        handleStopResults(recognizerRegistry.rebuild(with: Defaults[.gestures]))
+        handleStopResults(recognizerRegistry.rebuild(with: Tome.gestures))
         // Stopping the monitor finishes the contact streams of recognizers the rebuild keeps.
         if recognizerRegistry.hasRecognizers {
             gestureMonitor.start()
@@ -320,7 +308,7 @@ final class MultitouchTrigger {
                 return
             }
 
-            let center: CGPoint = if Defaults[.lockRadialMenuToCenter], let screen = NSScreen.main {
+            let center: CGPoint = if Tome.lockRadialMenuToCenter, let screen = NSScreen.main {
                 CGPoint(x: screen.frame.midX, y: screen.frame.midY)
             } else {
                 NSEvent.mouseLocation
@@ -487,29 +475,20 @@ extension MultitouchTrigger {
 
     func triggerRadialMenuAction(
         at index: Int,
-        from actions: ArraySlice<RadialMenuAction>,
+        from actions: ArraySlice<RadialMenuBinding>,
         reverse: Bool = false,
         canAdvanceCycle: Bool = true
     ) {
         guard actions.indices.contains(index) else { return }
         let action = actions[index]
 
-        let resolvedAction: WindowAction = switch action.type {
-        case let .custom(windowAction):
-            windowAction
-        case let .keybindReference(id):
-            resolveKeybindReference(id)
-        }
+        let resolvedAction = windowActionCache.resolve(radialMenuBindingID: action.id) ?? .init(.noAction)
 
         changeAction(resolvedAction, reverse: reverse, canAdvanceCycle: canAdvanceCycle)
     }
 
     func resolvedWindowAction(from gesture: GestureBinding) -> WindowAction? {
-        guard case let .singleAction(actionType) = gesture.action else { return nil }
-        switch actionType {
-        case let .custom(action): return action
-        case let .keybindReference(id): return resolveKeybindReference(id)
-        }
+        windowActionCache.resolve(gestureID: gesture.id)
     }
 
     func triggerSingleAction(from gesture: GestureBinding, reverse: Bool = false, canAdvanceCycle: Bool = true) {
@@ -524,13 +503,5 @@ extension MultitouchTrigger {
            resolvedWindowAction(from: gesture)?.allowsRapidRepeat == true {
             targetResolver.rememberRepeatableWindow(window, allowsRapidRepeat: true)
         }
-    }
-
-    private func resolveKeybindReference(_ id: UUID) -> WindowAction {
-        if let cached = windowActionCache.actionsByIdentifier[id] {
-            return cached
-        }
-        log.warn("Gesture references keybind \(id) that no longer exists")
-        return Self.failedToResolveKeybindAction
     }
 }

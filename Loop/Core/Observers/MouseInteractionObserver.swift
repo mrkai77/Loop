@@ -8,6 +8,7 @@
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
 
 @Loggable
 final class MouseInteractionObserver {
@@ -34,11 +35,9 @@ final class MouseInteractionObserver {
     private var initialMousePosition: CGPoint = .zero
     private var latestMousePosition: CGPoint = .zero
 
-    private var radialMenuActions: [RadialMenuAction] {
-        RadialMenuAction.userConfiguredActions
+    private var radialMenuActions: [RadialMenuBinding] {
+        windowActionCache.radialMenuBindings
     }
-
-    private static let failedToResolveKeybindAction: WindowAction = .init(.noAction) // This helps to keep a stable ID
 
     init(
         windowActionCache: WindowActionCache,
@@ -135,10 +134,10 @@ final class MouseInteractionObserver {
             previousAngleToMouse = angleToMouse
             previousDistanceToMouse = distanceToMouse
 
-            var newAction: RadialMenuAction? = nil
+            var newAction: RadialMenuBinding? = nil
 
             // If mouse over 50 points away, select half or quarter positions
-            if distanceToMouse > Self.directionalActionDistance - Defaults[.radialMenuThickness] {
+            if distanceToMouse > Self.directionalActionDistance - Tome.radialMenuThickness {
                 guard radialMenuActions.count > 1 else {
                     newAction = radialMenuActions.first
                     return
@@ -153,23 +152,17 @@ final class MouseInteractionObserver {
                 newAction = radialMenuActions.last
             }
 
-            let resolvedAction: WindowAction? = switch newAction?.type {
-            case let .custom(windowAction):
-                windowAction
-            case let .keybindReference(id):
-                windowActionCache.actionsByIdentifier[id] ?? Self.failedToResolveKeybindAction
-            case nil:
-                .init(.noSelection)
-            }
+            let resolvedAction = newAction.map { windowActionCache.resolve(radialMenuBindingID: $0.id) ?? .init(.noAction) }
+                ?? .init(.noSelection)
 
-            if let resolvedAction, resolvedAction.allowsRapidRepeat {
+            if resolvedAction.allowsRapidRepeat {
                 if pendingRepeatableAction?.id != resolvedAction.id {
                     changeAction(resolvedAction)
                 }
                 pendingRepeatableAction = resolvedAction
             } else {
                 pendingRepeatableAction = nil
-                changeAction(resolvedAction ?? .init(.noSelection))
+                changeAction(resolvedAction)
             }
         }
     }

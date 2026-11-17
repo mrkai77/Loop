@@ -7,19 +7,20 @@
 
 import Defaults
 import SwiftUI
+import Tome
 
 struct PreviewView: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
     @ObservedObject private var accentColorController: AccentColorController = .shared
     @ObservedObject private var viewModel: PreviewViewModel
 
-    @Default(.previewPadding) private var previewPadding
-    @Default(.previewCornerRadius) private var previewCornerRadius
-    @Default(.previewUseWindowCornerRadius) private var previewUseWindowCornerRadius
-    @Default(.previewBorderThickness) private var previewBorderThickness
-    @Default(.previewBackgroundStyle) private var previewBackgroundStyle
-    @Default(.previewBackgroundEnableBlur) private var previewEnableBlur
-    @Default(.previewBackgroundAccentOpacity) private var previewBackgroundAccentOpacity
+    @TomeValue(\.previewPadding) private var previewPadding
+    @TomeValue(\.previewCornerRadius) private var previewCornerRadius
+    @TomeValue(\.previewUseWindowCornerRadius) private var previewUseWindowCornerRadius
+    @TomeValue(\.previewBorderThickness) private var previewBorderThickness
+    @TomeValue(\.previewBackgroundStyle) private var previewBackgroundStyle
+    @TomeValue(\.previewBackgroundEnableBlur) private var previewEnableBlur
+    @TomeValue(\.previewBackgroundAccentOpacity) private var previewBackgroundAccentOpacity
 
     init(viewModel: PreviewViewModel) {
         self.viewModel = viewModel
