@@ -9,76 +9,6 @@ import Defaults
 import Scribe
 import SwiftUI
 
-// MARK: - Saved Keybinds Format
-
-/// Struct to represent the JSON contents of a Loop keybinds file.
-struct SavedKeybindsFormat: Codable {
-    let version: String?
-    let triggerKey: Set<CGKeyCode>?
-    let actions: [SavedWindowActionFormat]
-
-    static func generateFromDefaults() -> SavedKeybindsFormat {
-        SavedKeybindsFormat(
-            version: Bundle.main.appVersion,
-            triggerKey: Defaults[.triggerKey],
-            actions: Defaults[.keybinds].map { SavedWindowActionFormat($0) }
-        )
-    }
-}
-
-// MARK: - SavedWindowActionFormat
-
-/// Struct to define the format of saved window actions.
-struct SavedWindowActionFormat: Codable {
-    let direction: WindowDirection
-    let keybind: Set<CGKeyCode>
-    let name: String?
-    let unit: CustomWindowActionUnit?
-    let anchor: CustomWindowActionAnchor?
-    let sizeMode: CustomWindowActionSizeMode?
-    let width: Double?
-    let height: Double?
-    let positionMode: CustomWindowActionPositionMode?
-    let xPoint: Double?
-    let yPoint: Double?
-    let cycle: [SavedWindowActionFormat]?
-
-    /// Initialize from a WindowAction.
-    init(_ action: WindowAction) {
-        self.direction = action.direction
-        self.keybind = action.keybind
-        self.name = action.name
-        self.unit = action.unit
-        self.anchor = action.anchor
-        self.sizeMode = action.sizeMode
-        self.width = action.width
-        self.height = action.height
-        self.positionMode = action.positionMode
-        self.xPoint = action.xPoint
-        self.yPoint = action.yPoint
-        self.cycle = action.cycle?.map { SavedWindowActionFormat($0) }
-    }
-
-    /// Converts the saved format back into a usable WindowAction object.
-    func convertToWindowAction() -> WindowAction {
-        WindowAction(
-            direction,
-            keybind: keybind,
-            name: name,
-            unit: unit,
-            anchor: anchor,
-            width: width,
-            height: height,
-            xPoint: xPoint,
-            yPoint: yPoint,
-            positionMode: positionMode,
-            sizeMode: sizeMode,
-            cycle: cycle?.map { $0.convertToWindowAction()
-            }
-        )
-    }
-}
-
 // MARK: - Migrator
 
 enum MigratorError: LocalizedError {
@@ -133,7 +63,7 @@ enum Migrator {
         }
 
         let directoryURL = try await getSaveDirectoryURL()
-        let keybinds = SavedKeybindsFormat.generateFromDefaults()
+        let keybinds = LegacyKeybindsFile.generateFromDefaults()
         try await saveKeybinds(keybinds, in: directoryURL)
 
         onSuccess()
@@ -191,7 +121,7 @@ private extension Migrator {
     }
 
     /// Saves the keybinds in the specified directory URL.
-    private static func saveKeybinds(_ keybinds: SavedKeybindsFormat, in directoryURL: URL) async throws {
+    private static func saveKeybinds(_ keybinds: LegacyKeybindsFile, in directoryURL: URL) async throws {
         let encoder = JSONEncoder()
         encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
 
@@ -345,29 +275,29 @@ private extension Migrator {
     }
 
     /// Tries to import Loop's keybinds format.
-    static func importLoopKeybinds(from data: Data) throws -> SavedKeybindsFormat {
+    static func importLoopKeybinds(from data: Data) throws -> LegacyKeybindsFile {
         let decoder = JSONDecoder()
-        let keybinds = try decoder.decode(SavedKeybindsFormat.self, from: data)
+        let keybinds = try decoder.decode(LegacyKeybindsFile.self, from: data)
         return keybinds
     }
 
     /// Tries to import Loop's old (pre 1.2.0) keybinds format.
-    static func importLoopLegacyKeybinds(from data: Data) throws -> SavedKeybindsFormat {
+    static func importLoopLegacyKeybinds(from data: Data) throws -> LegacyKeybindsFile {
         let decoder = JSONDecoder()
-        let keybinds = try decoder.decode([SavedWindowActionFormat].self, from: data)
-        return SavedKeybindsFormat(version: nil, triggerKey: nil, actions: keybinds)
+        let keybinds = try decoder.decode([LegacyWindowAction].self, from: data)
+        return LegacyKeybindsFile(version: nil, triggerKey: nil, actions: keybinds)
     }
 
     /// Tries to import Rectangle's keybinds format.
-    static func importRectangleKeybinds(from data: Data) throws -> SavedKeybindsFormat {
+    static func importRectangleKeybinds(from data: Data) throws -> LegacyKeybindsFile {
         let keybinds = try RectangleTranslationLayer.importKeybinds(from: data)
-        return SavedKeybindsFormat(version: nil, triggerKey: nil, actions: keybinds)
+        return LegacyKeybindsFile(version: nil, triggerKey: nil, actions: keybinds)
     }
 
     // MARK: Saving Imports
 
     /// Updates the app's defaults with the imported keybinds.
-    static func updateDefaults(with savedData: SavedKeybindsFormat, onSuccess: () -> ()) async {
+    static func updateDefaults(with savedData: LegacyKeybindsFile, onSuccess: () -> ()) async {
         if let triggerKey = savedData.triggerKey {
             Defaults[.triggerKey] = triggerKey
         }

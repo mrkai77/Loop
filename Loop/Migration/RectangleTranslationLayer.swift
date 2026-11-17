@@ -45,11 +45,11 @@ enum RectangleTranslationLayer {
     /// Imports the keybinds from a JSON string.
     /// - Parameter jsonString: The JSON string to import the keybinds from.
     /// - Returns: An array of WindowAction instances corresponding to the keybinds.
-    static func importKeybinds(from data: Data) throws -> [SavedWindowActionFormat] {
+    static func importKeybinds(from data: Data) throws -> [LegacyWindowAction] {
         let rectangleConfig = try JSONDecoder().decode(RectangleConfig.self, from: data)
 
         // Converts the Rectangle shortcuts into Loop's WindowActions.
-        let windowActions: [SavedWindowActionFormat] = rectangleConfig.shortcuts.compactMap { direction, shortcut in
+        let windowActions: [LegacyWindowAction] = rectangleConfig.shortcuts.compactMap { direction, shortcut in
             guard
                 let loopDirection = directionMapping[direction],
                 !direction.contains("Todo")
@@ -57,7 +57,7 @@ enum RectangleTranslationLayer {
                 return nil
             }
 
-            return SavedWindowActionFormat(.init(
+            return LegacyWindowAction(.init(
                 loopDirection,
                 keybind: Set([CGKeyCode(shortcut.keyCode)]), // Converts the integer keyCode to CGKeyCode.
                 name: direction.capitalized.replacingOccurrences(of: " ", with: "") + "Cycle"
