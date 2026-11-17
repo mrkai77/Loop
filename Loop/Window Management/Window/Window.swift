@@ -278,8 +278,10 @@ final class Window {
     @MainActor
     func focus() async {
         // When the app is already frontmost, the steps below alone may not move focus from its key window to
-        // another one of its windows (such as Finder's Quick Look panel), so hand activation over first.
+        // one of its non-standard windows (such as Finder's Quick Look panel), so hand activation over first.
+        // Standard windows don't need this, and skipping it avoids a visible flicker.
         if NSWorkspace.shared.frontmostApplication?.processIdentifier == pid,
+           subrole != .standardWindow,
            let focusedWindowID = focusedWindowIDInApp,
            focusedWindowID != cgWindowID {
             SkyLightToolBelt.setWindowActive(windowID: focusedWindowID, pid: pid, isActive: false)
