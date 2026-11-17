@@ -193,12 +193,30 @@ enum WindowEngine {
             try await window.setFrameAnimated(targetFrame, bounds: bounds, resolvedProperties: resolvedProperties)
             actualFrame = window.frame
         } else {
-            await window.setFrame(targetFrame, sizeFirst: willChangeScreens, resolvedProperties: resolvedProperties)
+            // Shrink before moving, and size first on a screen change. The retry measures the
+            // size the window actually has, so a miss does not move the window at its old size.
+            await window.setFrame(
+                targetFrame,
+                sizeFirst: shouldSizeFirst(
+                    to: targetFrame.size,
+                    from: window.size,
+                    willChangeScreens: willChangeScreens
+                ),
+                resolvedProperties: resolvedProperties
+            )
             try Task.checkCancellation()
 
             var frameAfterResize = window.frame
             if !frameAfterResize.approximatelyEqual(to: targetFrame) {
-                await window.setFrame(targetFrame, resolvedProperties: resolvedProperties)
+                await window.setFrame(
+                    targetFrame,
+                    sizeFirst: shouldSizeFirst(
+                        to: targetFrame.size,
+                        from: frameAfterResize.size,
+                        willChangeScreens: willChangeScreens
+                    ),
+                    resolvedProperties: resolvedProperties
+                )
                 try Task.checkCancellation()
                 frameAfterResize = window.frame
             }
@@ -246,6 +264,42 @@ enum WindowEngine {
 
         window.setPosition(correctedFrame.origin)
         return correctedFrame
+    }
+
+    /// Size before moving when `targetSize` is narrower or shorter than `currentSize`.
+    /// Growing on the same screen stays position-first so the window expands from the aimed-at edge.
+    /// A screen change always sizes first.
+    static func shouldSizeFirst(
+        to targetSize: CGSize,
+        from currentSize: CGSize,
+        willChangeScreens: Bool = false
+    ) -> Bool {
+        sizeBeforeMove(target: targetSize, current: currentSize, sizeFirst: willChangeScreens) != nil
+    }
+
+    /// The size to apply before changing the window's origin, when one is needed.
+    ///
+    /// A shrinking axis is reduced in place. Growth on the other axis waits until after the move,
+    /// so the window is never slid across the screen at its old, larger size. When `sizeFirst` is
+    /// set and nothing is shrinking, the full target size is applied first. That is the screen-change
+    /// path, including a window that only grows.
+    static func sizeBeforeMove(
+        target: CGSize,
+        current: CGSize,
+        sizeFirst: Bool
+    ) -> CGSize? {
+        let shrinksWidth = target.width < current.width
+        let shrinksHeight = target.height < current.height
+        if shrinksWidth || shrinksHeight {
+            return CGSize(
+                width: min(current.width, target.width),
+                height: min(current.height, target.height)
+            )
+        }
+        if sizeFirst {
+            return target
+        }
+        return nil
     }
 
     static func anchoredFrame(
