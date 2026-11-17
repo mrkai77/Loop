@@ -271,22 +271,27 @@ struct LegacyKeybindsFile: Codable {
     let triggerKey: Set<CGKeyCode>?
     let actions: [LegacyWindowAction]
 
-    static func generateFromDefaults() -> LegacyKeybindsFile {
-        LegacyKeybindsFile(
-            version: Bundle.main.appVersion,
-            triggerKey: Defaults[.triggerKey],
-            actions: Defaults[.keybinds].map { LegacyWindowAction($0) }
-        )
+    func validated() throws -> Self {
+        guard !actions.contains(where: \.hasNestedCycle) else {
+            throw MigratorError.invalidKeybinds("A cycle can't contain another cycle")
+        }
+        return self
     }
 }
 
 // MARK: - Legacy Window Action
 
 struct LegacyWindowAction: Codable {
+    let bypassTriggerKey: Bool?
+    let configID: String?
     let direction: WindowDirection
     let keybind: Set<CGKeyCode>
     let name: String?
     let unit: CustomWindowActionUnit?
+    let widthUnit: CustomWindowActionUnit?
+    let heightUnit: CustomWindowActionUnit?
+    let xUnit: CustomWindowActionUnit?
+    let yUnit: CustomWindowActionUnit?
     let anchor: CustomWindowActionAnchor?
     let sizeMode: CustomWindowActionSizeMode?
     let width: Double?
@@ -296,36 +301,103 @@ struct LegacyWindowAction: Codable {
     let yPoint: Double?
     let cycle: [LegacyWindowAction]?
 
-    init(_ action: WindowAction) {
+    let id: UUID?
+
+    var hasNestedCycle: Bool {
+        direction == .cycle && cycle?.contains { $0.direction == .cycle } == true
+    }
+
+    init(_ binding: KeyBinding) {
+        let action: WindowAction = if case let .windowAction(value) = binding.target { value } else { WindowAction(.noAction) }
+        self.init(action: action, id: binding.id, keybind: Set(binding.keys.names.compactMap { KeyboardLayout.shared.keyCode(forName: $0) }), bypassTriggerKey: binding.bypassTriggerKey, configID: binding.configID)
+    }
+
+    init(action: WindowAction, id: UUID, keybind: Set<CGKeyCode> = [], bypassTriggerKey: Bool? = nil, configID: String? = nil) {
+        self.id = id
+        self.bypassTriggerKey = bypassTriggerKey
+        self.configID = configID
         self.direction = action.direction
-        self.keybind = action.keybind
+        self.keybind = keybind
         self.name = action.name
-        self.unit = action.unit
-        self.anchor = action.anchor
-        self.sizeMode = action.sizeMode
-        self.width = action.width
-        self.height = action.height
-        self.positionMode = action.positionMode
-        self.xPoint = action.xPoint
-        self.yPoint = action.yPoint
-        self.cycle = action.cycle?.map { LegacyWindowAction($0) }
+        let dimensions = action.customDimensions
+        self.width = dimensions?.width?.value
+        self.height = dimensions?.height?.value
+        switch action.size {
+        case .custom: self.sizeMode = .custom
+        case .preserve: self.sizeMode = .preserve
+        case .initial: self.sizeMode = .initial
+        case nil: self.sizeMode = nil
+        }
+        func legacyUnit(_ length: ScreenLength?) -> CustomWindowActionUnit? {
+            length.map { $0.unit == .points ? .pixels : .percentage }
+        }
+        self.widthUnit = legacyUnit(dimensions?.width)
+        self.heightUnit = legacyUnit(dimensions?.height)
+        let firstLength: ScreenLength?
+        switch action.position {
+        case let .anchor(value):
+            self.anchor = value
+            self.positionMode = .generic
+            self.xPoint = nil
+            self.yPoint = nil
+            self.xUnit = nil
+            self.yUnit = nil
+            firstLength = dimensions?.width ?? dimensions?.height
+        case let .coordinates(x, y):
+            self.anchor = nil
+            self.positionMode = .coordinates
+            self.xPoint = x?.value
+            self.yPoint = y?.value
+            self.xUnit = legacyUnit(x)
+            self.yUnit = legacyUnit(y)
+            firstLength = dimensions?.width ?? dimensions?.height ?? x ?? y
+        case nil:
+            self.anchor = nil
+            self.positionMode = nil
+            self.xPoint = nil
+            self.yPoint = nil
+            self.xUnit = nil
+            self.yUnit = nil
+            firstLength = nil
+        }
+        self.unit = firstLength.map { $0.unit == .points ? .pixels : .percentage }
+        if case let .cycle(payload) = action.kind {
+            self.cycle = payload.steps.compactMap { if case let .windowAction(action) = $0 { LegacyWindowAction(action: action, id: action.id) } else { nil } }
+        } else { self.cycle = nil }
     }
 
     func convertToWindowAction() -> WindowAction {
-        WindowAction(
-            direction,
-            keybind: keybind,
-            name: name,
-            unit: unit,
-            anchor: anchor,
-            width: width,
-            height: height,
-            xPoint: xPoint,
-            yPoint: yPoint,
-            positionMode: positionMode,
-            sizeMode: sizeMode,
-            cycle: cycle?.map { $0.convertToWindowAction()
+        var action = WindowAction(direction)
+        if let id { action = action.withRuntimeID(id) }
+        action.name = name
+        if direction == .cycle {
+            let steps = (cycle ?? []).filter { step in
+                if step.direction == .cycle { Migrator.log.warn("Dropped a cycle nested in the cycle \(name ?? "Cycle")") }
+                return step.direction != .cycle
             }
-        )
+            action.kind = .cycle(.init(name: name, steps: steps.map { .windowAction($0.convertToWindowAction()) }))
+        } else if direction == .custom || direction == .stash {
+            func length(_ value: Double?, _ dimensionUnit: CustomWindowActionUnit?) -> ScreenLength? {
+                value.flatMap { value in
+                    let lengthUnit: ScreenLength.Unit = (dimensionUnit ?? unit) == .pixels ? .points : .percent
+                    return ScreenLength(value, unit: lengthUnit)
+                }
+            }
+            let widthLength = length(width, widthUnit)
+            let heightLength = length(height, heightUnit)
+            switch sizeMode ?? .custom {
+            case .custom: action.size = .custom(width: widthLength, height: heightLength)
+            case .preserve: action.size = .preserve
+            case .initial: action.size = .initial
+            }
+            action.customDimensions = .init(width: widthLength, height: heightLength)
+            if positionMode == .coordinates { action.position = .coordinates(x: length(xPoint, xUnit) ?? (unit == .pixels ? ScreenLength(0, unit: .points) : nil), y: length(yPoint, yUnit) ?? (unit == .pixels ? ScreenLength(0, unit: .points) : nil)) }
+            else { action.position = .anchor(anchor ?? .none) }
+        }
+        return action
+    }
+
+    func convertToKeyBinding() -> KeyBinding {
+        KeyBinding(id: id ?? UUID(), configID: configID, keys: KeyCombination(keyCodes: keybind), bypassTriggerKey: bypassTriggerKey, target: .windowAction(convertToWindowAction()))
     }
 }

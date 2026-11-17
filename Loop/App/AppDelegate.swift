@@ -9,6 +9,7 @@ import Darwin
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
 import UserNotifications
 
 @Loggable
@@ -26,19 +27,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_: Notification) {
+        // Hosted tests must not migrate the user's configuration
+        guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else { return }
         configureLogging()
         DefaultsiCloudSyncRegistrar.register()
+        DataPatcher.run()
+
+        // Must run before anything reads settings
+        guard ConfigurationManager.shared.start() else { return }
 
         // Register before broadcasting so other instances can receive the signal
         registerTerminateObserver()
 
-        let dataPatcherTask = Task { @MainActor in
-            await Defaults.iCloud.waitForSyncCompletion()
-            DataPatcher.run()
-        }
-
         // Show settings window only if not launched as login item AND startHidden is disabled
-        if !launchedAsLoginItem, !Defaults[.startHidden] {
+        if !launchedAsLoginItem, !Tome.startHidden {
             SettingsWindowManager.shared.show()
         } else {
             // Closing also hides the dock icon if needed.
@@ -61,8 +63,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Wait for other instances to fully exit before installing event taps to prevent conflicts
         Task { @MainActor in
-            await dataPatcherTask.value
-
             let stalePIDs = broadcastTerminateToOtherInstances()
             await waitForInstancesToExit(pids: stalePIDs, timeout: .seconds(3))
             LoopManager.shared.start()
@@ -171,6 +171,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
         SettingsWindowManager.shared.show()
         return true
+    }
+
+    func applicationWillTerminate(_: Notification) {
+        ConfigurationManager.shared.stop()
     }
 
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {

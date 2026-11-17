@@ -8,25 +8,21 @@
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
+import UniformTypeIdentifiers
 
 // MARK: - Migrator
 
 enum MigratorError: LocalizedError {
-    case keybindsEmpty
-    case failedToConvertToString
-    case mainWindowNotAvailableForPanel
     case fileSelectionCancelled
     case directorySelectionCancelled
     case failedToReadFile
+    case invalidKeybinds(String)
 
     var errorDescription: String? {
         switch self {
-        case .keybindsEmpty:
-            "Keybinds are empty."
-        case .failedToConvertToString:
-            "Failed to convert keybinds to string."
-        case .mainWindowNotAvailableForPanel:
-            "Main window not available for panel."
+        case let .invalidKeybinds(reason):
+            reason
         case .fileSelectionCancelled:
             "File selection was cancelled."
         case .directorySelectionCancelled:
@@ -44,67 +40,70 @@ enum Migrator {
         FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first
     }
 
-    /// Presents a prompt to export current keybinds to a JSON file.
+    static func exportConfiguration() throws -> String {
+        let issues = Tome.issues
+        guard issues.isEmpty else { throw Tome.ValidationError(issues: issues) }
+        return Tome.serializedDocument
+    }
+
     static func exportPrompt(onSuccess: () -> ()) async throws {
-        // Check if there are any keybinds to export.
-        guard !Defaults[.keybinds].isEmpty else {
-            await showAlert(
-                String(
-                    localized: "No Keybinds Have Been Set",
-                    comment: "Title for an alert shown when the user tries to export keybinds but none exist."
-                ),
-                informativeText: String(
-                    localized: "You can't export something that doesn't exist!",
-                    comment: "Description for an alert shown when the user tries to export keybinds but none exist."
-                )
-            )
-
-            throw MigratorError.keybindsEmpty
-        }
-
-        let directoryURL = try await getSaveDirectoryURL()
-        let keybinds = LegacyKeybindsFile.generateFromDefaults()
-        try await saveKeybinds(keybinds, in: directoryURL)
-
+        let destination = try await getSaveDirectoryURL()
+        try exportConfiguration().write(to: destination, atomically: true, encoding: .utf8)
         onSuccess()
     }
 
-    /// Presents a prompt to import keybinds from a JSON file.
     static func importPrompt(onSuccess: () -> ()) async throws {
         let fileURL = try await getKeybindsFileURL()
-        let jsonString = try String(contentsOf: fileURL)
-
+        let source = try String(contentsOf: fileURL, encoding: .utf8)
         do {
-            try await importKeybinds(from: jsonString, onSuccess: onSuccess)
-        } catch {
-            if case MigratorError.failedToReadFile = error {
-                await showAlert(
-                    .init(
-                        localized: "Error reading keybinds alert title",
-                        defaultValue: "Couldn’t Import Keybinds"
-                    ),
-                    informativeText: .init(
-                        localized: "Error reading keybinds alert description",
-                        defaultValue: "Make sure the file you selected is in the correct format."
-                    )
+            if fileURL.pathExtension.lowercased() == "toml" {
+                let issues = validateConfiguration(source)
+                guard issues.isEmpty else { throw Tome.ValidationError(issues: issues) }
+                let response = await showAlert(
+                    String(localized: "Replace Configuration?"),
+                    informativeText: String(localized: "This replaces all Loop configuration. Settings missing from this file return to their defaults."),
+                    buttons: [String(localized: "Replace"), String(localized: "Cancel")]
                 )
+                if try importConfiguration(source, confirmed: response == .alertFirstButtonReturn) {
+                    Defaults[.lastMigratorURL] = fileURL.deletingLastPathComponent()
+                    onSuccess()
+                }
             } else {
-                throw error
+                let saved = try decodeJSON(Data(source.utf8))
+                let decision = await showAlertForImportDecision()
+                if try applyJSON(saved, decision: decision) {
+                    Defaults[.lastMigratorURL] = fileURL.deletingLastPathComponent()
+                    onSuccess()
+                }
             }
+        } catch {
+            await showAlert(String(localized: "Couldn’t Import Configuration"), informativeText: error.localizedDescription)
+            throw error
         }
+    }
+
+    static func validateConfiguration(_ source: String) -> [Tome.Issue] {
+        Tome.validate(document: source)
+    }
+
+    @discardableResult
+    static func importConfiguration(_ source: String, confirmed: Bool) throws -> Bool {
+        guard confirmed else { return false }
+        try Tome.replaceDocument(with: source)
+        return true
     }
 }
 
 // MARK: Migrator + Export
 
+@MainActor
 private extension Migrator {
-    /// Presents a save panel to select a directory for exporting keybinds.
-    @MainActor
     static func getSaveDirectoryURL() async throws -> URL {
         let savePanel = NSSavePanel()
         savePanel.directoryURL = Defaults[.lastMigratorURL] ?? documentsDirectory
-        savePanel.title = .init(localized: "Export Keybinds")
-        savePanel.nameFieldStringValue = "Loop Keybinds.json"
+        savePanel.title = .init(localized: "Export Configuration")
+        savePanel.nameFieldStringValue = "Loop Configuration.toml"
+        savePanel.allowedContentTypes = [UTType(filenameExtension: "toml") ?? .plainText]
         savePanel.canCreateDirectories = true
         savePanel.showsTagField = false
 
@@ -119,108 +118,18 @@ private extension Migrator {
 
         return selectedFileURL
     }
-
-    /// Saves the keybinds in the specified directory URL.
-    private static func saveKeybinds(_ keybinds: LegacyKeybindsFile, in directoryURL: URL) async throws {
-        let encoder = JSONEncoder()
-        encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
-
-        // Convert to a dictionary we can manipulate before final encoding
-        var rootDict = try JSONSerialization.jsonObject(
-            with: encoder.encode(keybinds),
-            options: [.mutableContainers]
-        ) as! [String: Any]
-
-        // Process trigger key if present
-        if var triggerKey = rootDict["triggerKey"] as? [CGKeyCode] {
-            triggerKey.sort()
-            rootDict["triggerKey"] = triggerKey
-        }
-
-        // Process actions array
-        if var actions = rootDict["actions"] as? [[String: Any]] {
-            // First ensure all keybind arrays are sorted
-            for i in 0 ..< actions.count {
-                // Sort the keybind array in each action
-                if var keybind = actions[i]["keybind"] as? [CGKeyCode] {
-                    keybind.sort()
-                    actions[i]["keybind"] = keybind
-                }
-
-                // Handle nested cycle actions if present
-                if var cycle = actions[i]["cycle"] as? [[String: Any]] {
-                    // For each action in the cycle
-                    for j in 0 ..< cycle.count {
-                        // Sort the keybind array in each cycle action
-                        if var cycleKeybind = cycle[j]["keybind"] as? [CGKeyCode] {
-                            cycleKeybind.sort()
-                            cycle[j]["keybind"] = cycleKeybind
-                        }
-                    }
-                    actions[i]["cycle"] = cycle
-                }
-            }
-
-            // Sort the actions array by direction and keybind for a consistent ordering
-            actions.sort { first, second -> Bool in
-                // First compare by direction
-                let firstDir = first["direction"] as? String ?? ""
-                let secondDir = second["direction"] as? String ?? ""
-
-                if firstDir != secondDir {
-                    return firstDir < secondDir
-                }
-
-                // If directions are equal, compare by name (if present)
-                let firstName = first["name"] as? String ?? ""
-                let secondName = second["name"] as? String ?? ""
-
-                if firstName != secondName {
-                    return firstName < secondName
-                }
-
-                // If names are equal or empty, compare by keybind
-                let firstKeybind = first["keybind"] as? [CGKeyCode] ?? []
-                let secondKeybind = second["keybind"] as? [CGKeyCode] ?? []
-
-                // Convert keybinds to strings for comparison
-                let firstKeyStr = firstKeybind.map { String($0) }.joined(separator: "-")
-                let secondKeyStr = secondKeybind.map { String($0) }.joined(separator: "-")
-
-                return firstKeyStr < secondKeyStr
-            }
-
-            rootDict["actions"] = actions
-        }
-
-        // Convert back to JSON data with our sorted arrays
-        let sortedData = try JSONSerialization.data(
-            withJSONObject: rootDict,
-            options: [.prettyPrinted, .sortedKeys]
-        )
-
-        guard let json = String(data: sortedData, encoding: .utf8) else {
-            throw MigratorError.failedToConvertToString
-        }
-
-        try json.write(
-            to: directoryURL,
-            atomically: true,
-            encoding: .utf8
-        )
-    }
 }
 
 // MARK: Migrator + Import
 
-private extension Migrator {
+extension Migrator {
     /// Presents a file picker to select a keybinds file.
     @MainActor
     static func getKeybindsFileURL() async throws -> URL {
         let openPanel = NSOpenPanel()
         openPanel.directoryURL = Defaults[.lastMigratorURL] ?? documentsDirectory
-        openPanel.title = .init(localized: "Choose a Keybinds File")
-        openPanel.allowedContentTypes = [.json]
+        openPanel.title = .init(localized: "Choose a Configuration or Keybinds File")
+        openPanel.allowedContentTypes = [UTType(filenameExtension: "toml") ?? .plainText, .json]
         openPanel.canChooseFiles = true
         openPanel.canChooseDirectories = false
         openPanel.allowsMultipleSelection = false
@@ -231,46 +140,15 @@ private extension Migrator {
             throw MigratorError.fileSelectionCancelled
         }
 
-        // Save the last used directory for future imports
-        Defaults[.lastMigratorURL] = selectedFileURL.deletingLastPathComponent()
-
         return selectedFileURL
     }
 
-    /// Imports keybinds from a JSON string.
-    private static func importKeybinds(from jsonString: String, onSuccess: () -> ()) async throws {
-        guard let data = jsonString.data(using: .utf8) else {
-            throw MigratorError.failedToReadFile
+    static func decodeJSON(_ data: Data) throws -> LegacyKeybindsFile {
+        for importer in [importLoopKeybinds, importLoopLegacyKeybinds, importRectangleKeybinds] {
+            do { return try importer(data) }
+            catch let error as MigratorError { throw error }
+            catch {}
         }
-
-        // First, try to import the general Loop keybinds format.
-        do {
-            let savedData = try importLoopKeybinds(from: data)
-            await updateDefaults(with: savedData, onSuccess: onSuccess)
-            return
-        } catch {
-            log.error("Error importing Loop keybinds: \(error)")
-        }
-
-        // If that fails, try to import the old Loop (pre 1.2.0) keybinds format.
-        do {
-            let savedData = try importLoopLegacyKeybinds(from: data)
-            await updateDefaults(with: savedData, onSuccess: onSuccess)
-            return
-        } catch {
-            log.error("Error importing Loop (pre 1.2.0) keybinds: \(error)")
-        }
-
-        // If that fails, try to import the Rectangle keybinds format.
-        do {
-            let savedData = try importRectangleKeybinds(from: data)
-            await updateDefaults(with: savedData, onSuccess: onSuccess)
-            return
-        } catch {
-            log.error("Error importing Rectangle keybinds: \(error)")
-        }
-
-        // If all attempts fail, show an error alert.
         throw MigratorError.failedToReadFile
     }
 
@@ -278,14 +156,14 @@ private extension Migrator {
     static func importLoopKeybinds(from data: Data) throws -> LegacyKeybindsFile {
         let decoder = JSONDecoder()
         let keybinds = try decoder.decode(LegacyKeybindsFile.self, from: data)
-        return keybinds
+        return try keybinds.validated()
     }
 
     /// Tries to import Loop's old (pre 1.2.0) keybinds format.
     static func importLoopLegacyKeybinds(from data: Data) throws -> LegacyKeybindsFile {
         let decoder = JSONDecoder()
         let keybinds = try decoder.decode([LegacyWindowAction].self, from: data)
-        return LegacyKeybindsFile(version: nil, triggerKey: nil, actions: keybinds)
+        return try LegacyKeybindsFile(version: nil, triggerKey: nil, actions: keybinds).validated()
     }
 
     /// Tries to import Rectangle's keybinds format.
@@ -296,36 +174,30 @@ private extension Migrator {
 
     // MARK: Saving Imports
 
-    /// Updates the app's defaults with the imported keybinds.
-    static func updateDefaults(with savedData: LegacyKeybindsFile, onSuccess: () -> ()) async {
-        if let triggerKey = savedData.triggerKey {
-            Defaults[.triggerKey] = triggerKey
+    /// The decision is resolved before any mutation, including the trigger key.
+    @discardableResult
+    static func applyJSON(_ saved: LegacyKeybindsFile, decision: ImportDecision) throws -> Bool {
+        guard decision != .cancel else { return false }
+        _ = try saved.validated()
+        let imported = saved.actions.map { $0.convertToKeyBinding() }
+        var actions = decision == .erase ? [] : Tome.keyBindings
+        struct Identity: Hashable {
+            var keys: KeyCombination
+            var name: String?
         }
-
-        if Defaults[.keybinds].isEmpty {
-            Defaults[.keybinds] = savedData.actions.map { $0.convertToWindowAction() }
-            onSuccess()
-        } else {
-            let result = await showAlertForImportDecision()
-
-            switch result {
-            case .merge:
-                let newKeybinds = savedData.actions
-                    .map { $0.convertToWindowAction() }
-                    .filter { newKeybind in
-                        !Defaults[.keybinds].contains { $0.keybind == newKeybind.keybind && $0.name == newKeybind.name }
-                    }
-
-                Defaults[.keybinds].append(contentsOf: newKeybinds)
-                onSuccess()
-            case .erase:
-                Defaults[.keybinds] = savedData.actions.map { $0.convertToWindowAction() }
-                onSuccess()
-            case .cancel:
-                // No action needed, no notification should be posted
-                break
-            }
+        func identity(of binding: KeyBinding) -> Identity? {
+            guard case let .windowAction(action) = binding.target else { return nil }
+            return Identity(keys: binding.keys, name: action.name)
         }
+        let existing = Set(actions.compactMap(identity(of:)))
+        actions.append(contentsOf: imported.filter { action in
+            decision == .erase || identity(of: action).map { !existing.contains($0) } ?? true
+        })
+        _ = try actions.encodeTOML()
+        if let trigger = saved.triggerKey { _ = try KeyCombination.tomeBridge.serialize(KeyCombination(keyCodes: trigger)) }
+        try Tome.standard.set(actions, for: \.keyBindings)
+        if let trigger = saved.triggerKey { try Tome.standard.set(KeyCombination(keyCodes: trigger), for: \.triggerKey) }
+        return true
     }
 
     /// Presents a decision alert for how to handle imported keybinds.

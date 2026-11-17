@@ -42,28 +42,28 @@ enum RectangleTranslationLayer {
         "topRight": .topRightQuarter
     ]
 
-    /// Imports the keybinds from a JSON string.
-    /// - Parameter jsonString: The JSON string to import the keybinds from.
-    /// - Returns: An array of WindowAction instances corresponding to the keybinds.
-    static func importKeybinds(from data: Data) throws -> [LegacyWindowAction] {
+    /// Imports the keybinds from Rectangle's exported JSON.
+    /// Shortcuts without a matching Loop action are skipped. The rest bypass the trigger key, as in Rectangle.
+    static func importKeybinds(from data: Data) throws -> [KeyBinding] {
         let rectangleConfig = try JSONDecoder().decode(RectangleConfig.self, from: data)
 
-        // Converts the Rectangle shortcuts into Loop's WindowActions.
-        let windowActions: [LegacyWindowAction] = rectangleConfig.shortcuts.compactMap { direction, shortcut in
+        return rectangleConfig.shortcuts.compactMap { direction, shortcut -> KeyBinding? in
             guard
                 let loopDirection = directionMapping[direction],
-                !direction.contains("Todo")
+                !direction.contains("Todo"),
+                let keyCode = CGKeyCode(exactly: shortcut.keyCode)
             else {
                 return nil
             }
 
-            return LegacyWindowAction(.init(
-                loopDirection,
-                keybind: Set([CGKeyCode(shortcut.keyCode)]), // Converts the integer keyCode to CGKeyCode.
-                name: direction.capitalized.replacingOccurrences(of: " ", with: "") + "Cycle"
-            ))
-        }
+            var keys: Set<CGKeyCode> = [keyCode]
+            let flags = NSEvent.ModifierFlags(rawValue: UInt(bitPattern: shortcut.modifierFlags))
+            if flags.contains(.command) { keys.insert(.kVK_Command) }
+            if flags.contains(.option) { keys.insert(.kVK_Option) }
+            if flags.contains(.control) { keys.insert(.kVK_Control) }
+            if flags.contains(.shift) { keys.insert(.kVK_Shift) }
 
-        return windowActions
+            return KeyBinding(keys: KeyCombination(keyCodes: keys), bypassTriggerKey: true, target: .windowAction(WindowAction(loopDirection)))
+        }
     }
 }
