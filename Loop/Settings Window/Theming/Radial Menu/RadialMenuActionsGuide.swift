@@ -14,12 +14,12 @@ struct RadialMenuActionsGuide: View {
     @ObservedObject private var accentColorController: AccentColorController = .shared
     @Environment(\.luminareAnimation) private var luminareAnimation
 
-    @TomeValue(\.radialMenuActions) private var radialMenuActions
+    @TomeValue(\.radialMenuBindings) private var radialMenuActions
     @TomeValue(\.keyBindings) private var keyBindings
-    @TomeValue(\.gestures) private var gestures
+    @TomeValue(\.gestureBindings) private var gestures
 
     private var graph: ActionTargetEditorGraph {
-        .init(keyBindings: keyBindings, gestures: gestures, radialMenuBindings: radialMenuActions)
+        .init(keyBindings: keyBindings, gestureBindings: gestures, radialMenuBindings: radialMenuActions)
     }
 
     private var radialActions: [RadialMenuBinding] {
@@ -44,7 +44,7 @@ struct RadialMenuActionsGuide: View {
 
     var body: some View {
         ZStack {
-            if let centerResolved = graph.resolve(centerAction.target) {
+            if let centerResolved = graph.previewAction(for: centerAction.target) {
                 actionButton(
                     action: centerResolved,
                     isActive: centerResolved == activeAction
@@ -60,7 +60,7 @@ struct RadialMenuActionsGuide: View {
 
             RadialLayout {
                 ForEach(radialActions, id: \.id) { action in
-                    if let resolved = graph.resolve(action.target) {
+                    if let resolved = graph.previewAction(for: action.target) {
                         actionButton(
                             action: resolved,
                             isActive: resolved == activeAction

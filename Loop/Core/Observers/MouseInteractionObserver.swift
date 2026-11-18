@@ -152,7 +152,7 @@ final class MouseInteractionObserver {
                 newAction = radialMenuActions.last
             }
 
-            let resolvedAction = newAction.map { windowActionCache.resolve(radialMenuBindingID: $0.id) ?? .init(.noAction) }
+            let resolvedAction = newAction.map { windowActionCache.resolve(.radialMenu, id: $0.id) ?? .init(.noAction) }
                 ?? .init(.noSelection)
 
             if resolvedAction.allowsRapidRepeat {

@@ -8,6 +8,7 @@
 import SwiftUI
 import Tome
 
+/// Settings stored in config.toml. App state stays in Defaults.
 @TomeCatalog
 extension TomeValues {
     // Icon
@@ -24,7 +25,7 @@ extension TomeValues {
     @TomeEntry("radial-menu.enabled") var radialMenuVisibility = true
     @TomeEntry("radial-menu.corner-radius") var radialMenuCornerRadius: CGFloat = 50
     @TomeEntry("radial-menu.thickness") var radialMenuThickness: CGFloat = 22
-    @TomeEntry("radial-menu.bindings") var radialMenuActions: [RadialMenuBinding] = RadialMenuBinding.defaultRadialMenuActions
+    @TomeEntry("radial-menu.bindings") var radialMenuBindings: [RadialMenuBinding] = RadialMenuBinding.defaults
 
     // Preview
     @TomeEntry("preview.enabled") var previewVisibility = true
@@ -62,11 +63,11 @@ extension TomeValues {
     @TomeEntry("trigger.middle-click-uses-delay") var enableTriggerDelayOnMiddleClick = false
     @TomeEntry("cycles.always-start-from-first") var cycleModeRestartEnabled = false
     @TomeEntry("cycles.backward-with-shift") var cycleBackwardsOnShiftPressed = true
-    @TomeEntry("key.bindings") var keyBindings: [KeyBinding] = KeyBinding.defaultKeybinds
+    @TomeEntry("key.bindings") var keyBindings: [KeyBinding] = KeyBinding.defaults
 
     // Gestures
     @TomeEntry("gestures.enabled") var enableGestures = false
-    @TomeEntry("gestures.bindings") var gestures: [GestureBinding] = GestureBinding.defaults
+    @TomeEntry("gestures.bindings") var gestureBindings: [GestureBinding] = GestureBinding.defaults
 
     // Advanced
     @TomeEntry("integrate-with-system-window-manager") var useSystemWindowManagerWhenAvailable = false

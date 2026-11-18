@@ -11,43 +11,30 @@ import TOML
 /// References invoke a destination's target, never its physical input.
 indirect enum ActionTarget: Codable, Hashable, Identifiable, Sendable {
     case windowAction(WindowAction)
-    case keyBinding(String)
-    case gestureBinding(String)
-    case radialMenuBinding(String)
-    case radialMenuMode
+    case reference(BindingReference)
 
     var id: String {
         switch self {
         case let .windowAction(action): "action:" + action.id.uuidString
-        case let .keyBinding(id): "key:" + id
-        case let .gestureBinding(id): "gesture:" + id
-        case let .radialMenuBinding(id): "radial-menu:" + id
-        case .radialMenuMode: "radialMenuMode"
+        case let .reference(reference): reference.configurationString
         }
     }
 
     var isReference: Bool {
-        switch self {
-        case .keyBinding, .gestureBinding, .radialMenuBinding: true
-        case .windowAction, .radialMenuMode: false
-        }
+        if case .reference = self { true } else { false }
     }
 }
 
 // MARK: - Configuration
 
+/// Written as fields of its owner's table, so a binding decodes its own fields and then this from the same decoder.
 extension ActionTarget {
     enum CodingKeys: String, CodingKey, CaseIterable {
         case action, name, size, position, cycle
     }
 
+    /// A gesture opens the radial menu with `kind = "radial-menu"`, never as an action.
     static let radialMenuMarker = "radial-menu"
-
-    private static let references: [(prefix: String, label: String, target: (String) -> ActionTarget)] = [
-        ("key:", "key binding", ActionTarget.keyBinding),
-        ("gesture:", "gesture", ActionTarget.gestureBinding),
-        ("radial-menu:", "radial menu item", ActionTarget.radialMenuBinding),
-    ]
 
     static func isPresent(in decoder: Decoder) throws -> Bool {
         try decoder.container(keyedBy: CodingKeys.self).contains(.action)
@@ -56,10 +43,10 @@ extension ActionTarget {
     init(from decoder: Decoder) throws {
         let table = try decoder.container(keyedBy: CodingKeys.self)
         let raw = try table.decode(String.self, forKey: .action)
-        if let reference = Self.references.first(where: { raw.hasPrefix($0.prefix) }) {
-            let id = String(raw.dropFirst(reference.prefix.count))
-            try ConfigurationIdentity.validate(id, as: "\(reference.label) id")
-            self = reference.target(id)
+        if let kind = BindingKind.allCases.first(where: { raw.hasPrefix($0.referencePrefix) }) {
+            let id = String(raw.dropFirst(kind.referencePrefix.count))
+            try ConfigurationIdentity.validate(id, as: "\(kind.label) id")
+            self = .reference(BindingReference(kind, id))
             return
         }
         self = try Self.decodeAction(raw, from: table)
@@ -77,16 +64,8 @@ extension ActionTarget {
         let name = try table.decodeIfPresent(String.self, forKey: .name)
         if direction == .cycle {
             let steps = try table.decodeIfPresent([ActionTarget].self, forKey: .cycle) ?? []
-            let isInvalidStep: (ActionTarget) -> Bool = {
-                switch $0 {
-                case let .windowAction(step): step.direction == .cycle
-                case .radialMenuMode: true
-                default: false
-                }
-            }
-            if let invalid = steps.first(where: isInvalidStep) {
-                let found = invalid == .radialMenuMode ? radialMenuMarker : WindowDirection.cycle.rawValue
-                throw DecodingError.dataCorruptedError(forKey: .cycle, in: table, debugDescription: "A cycle step can't be a cycle or the radial menu, found \(ConfigurationMessage.quoted(found))")
+            guard steps.allSatisfy(\.isValidCycleStep) else {
+                throw DecodingError.dataCorruptedError(forKey: .cycle, in: table, debugDescription: invalidCycleStepMessage)
             }
             action.kind = .cycle(CycleAction(name: name, steps: steps))
         } else {
@@ -100,37 +79,29 @@ extension ActionTarget {
         return .windowAction(action)
     }
 
+    /// A reference to a cycle is caught when references resolve.
+    private var isValidCycleStep: Bool {
+        if case let .windowAction(step) = self { step.direction != .cycle } else { true }
+    }
+
+    private static let invalidCycleStepMessage = "A cycle step can't be a cycle, found \(ConfigurationMessage.quoted(WindowDirection.cycle.rawValue))"
+
     func encode(to encoder: Encoder) throws {
         var table = encoder.container(keyedBy: CodingKeys.self)
         switch self {
         case let .windowAction(action): try Self.encode(action, into: &table)
-        case let .keyBinding(id): try Self.encodeReference("key:", id, into: &table)
-        case let .gestureBinding(id): try Self.encodeReference("gesture:", id, into: &table)
-        case let .radialMenuBinding(id): try Self.encodeReference("radial-menu:", id, into: &table)
-        case .radialMenuMode:
-            throw EncodingError.invalidValue(self, .init(codingPath: encoder.codingPath, debugDescription: "The radial menu is a gesture kind, not an action"))
+        case let .reference(reference):
+            try ConfigurationIdentity.validate(reference.id, as: "\(reference.kind.label) id")
+            try table.encode(reference.configurationString, forKey: .action)
         }
-    }
-
-    private static func encodeReference(_ prefix: String, _ id: String, into table: inout KeyedEncodingContainer<CodingKeys>) throws {
-        let label = references.first { $0.prefix == prefix }!.label
-        try ConfigurationIdentity.validate(id, as: "\(label) id")
-        try table.encode(prefix + id, forKey: .action)
     }
 
     private static func encode(_ action: WindowAction, into table: inout KeyedEncodingContainer<CodingKeys>) throws {
         try table.encode(action.direction.rawValue, forKey: .action)
         if let name = action.name, !name.isEmpty { try table.encode(name, forKey: .name) }
         if case let .cycle(cycle) = action.kind {
-            let invalid = cycle.steps.contains {
-                switch $0 {
-                case let .windowAction(step): step.direction == .cycle
-                case .radialMenuMode: true
-                default: false
-                }
-            }
-            guard !invalid else {
-                throw EncodingError.invalidValue(cycle, .init(codingPath: table.codingPath, debugDescription: "A cycle step can't be a cycle or the radial menu"))
+            guard cycle.steps.allSatisfy(\.isValidCycleStep) else {
+                throw EncodingError.invalidValue(cycle, .init(codingPath: table.codingPath, debugDescription: invalidCycleStepMessage))
             }
             try table.encode(TOMLInlineArray(wrappedValue: cycle.steps), forKey: .cycle)
         }

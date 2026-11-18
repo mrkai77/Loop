@@ -17,12 +17,12 @@ struct RadialMenuConfigurationView: View {
     @TomeValue(\.radialMenuCornerRadius) private var radialMenuCornerRadius
     @TomeValue(\.radialMenuThickness) private var radialMenuThickness
     @TomeValue(\.enableRadialMenuCustomization) private var enableRadialMenuCustomization
-    @TomeValue(\.radialMenuActions) private var radialMenuActions
+    @TomeValue(\.radialMenuBindings) private var radialMenuActions
     @TomeValue(\.keyBindings) private var keyBindings
-    @TomeValue(\.gestures) private var gestures
+    @TomeValue(\.gestureBindings) private var gestures
 
     private var graph: ActionTargetEditorGraph {
-        .init(keyBindings: keyBindings, gestures: gestures, radialMenuBindings: radialMenuActions)
+        .init(keyBindings: keyBindings, gestureBindings: gestures, radialMenuBindings: radialMenuActions)
     }
 
     @State private var selectedRadialMenuActions: Set<RadialMenuBinding> = []
@@ -138,7 +138,7 @@ struct RadialMenuConfigurationView: View {
     private func userSelectionChanged(_ newValue: Set<RadialMenuBinding>) {
         if newValue.count == 1, let selected = newValue.first,
            let current = radialMenuActions.first(where: { $0.id == selected.id }),
-           let resolved = graph.resolve(current.target) {
+           let resolved = graph.previewAction(for: current.target) {
             windowModel.isPreviewingUserSelection = true
             windowModel.setPreviewedAction(to: resolved)
         } else {

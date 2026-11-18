@@ -8,13 +8,15 @@
 import CoreGraphics
 import Defaults
 import Foundation
-import TOML
 import Tome
+import TOML
 
 extension ConfigMigrator {
-    static func reconnectStashRecords(document: TOMLDocument, suite: UserDefaults) {
-        let stashKey = Defaults.Key<[CGWindowID: WindowAction]>("stashManagerStashed", default: [:], suite: suite)
-        let records = Defaults[stashKey]
+    /// Rewrites legacy stash records to use the identities from `identified()`.
+    /// Rewritten records no longer decode as legacy ones, so running this again is safe.
+    static func migrateStashRecords(document: TOMLDocument, suite: UserDefaults) {
+        let stashKey = key(.stashManagerStashedWindows, in: suite)
+        let records = Defaults[Defaults.Key<[CGWindowID: LegacyWindowAction]>(stashKey.name, default: [:], suite: suite)]
         guard !records.isEmpty else { return }
         var mapping: [UUID: UUID] = [:]
         func pair(_ old: ActionTarget, _ new: ActionTarget) {
@@ -24,19 +26,19 @@ extension ConfigMigrator {
                   oldCycle.steps.count == newCycle.steps.count else { return }
             zip(oldCycle.steps, newCycle.steps).forEach(pair)
         }
-        func pairAll<Binding: ConfigurationIdentifiable>(_ legacy: [ActionTarget], as _: Binding.Type, at path: [String]) {
-            guard let value = document.value(at: path), let migrated = try? [Binding].decodeTOML(value).identified(), migrated.count == legacy.count else { return }
-            zip(legacy, migrated.map(\.target)).forEach(pair)
+        func pairAll<Legacy: LegacyBinding>(_: Legacy.Type) {
+            let legacy = legacyValue(Legacy.defaultsKey, suite: suite).compactMap { $0.migrated(names: [:]) }
+            guard let value = document.value(at: Tome.path(of: Legacy.settingsKeyPath)),
+                  let migrated = try? [Legacy.Binding].decodeTOML(value).identified(),
+                  migrated.count == legacy.count else { return }
+            zip(legacy.map(\.target), migrated.map(\.target)).forEach(pair)
         }
-        let direct: (LegacyRadialMenuAction.ActionType) -> ActionTarget = {
-            if case let .custom(saved) = $0 { .windowAction(saved.convertToWindowAction()) } else { .keyBinding("") }
+        pairAll(LegacyWindowAction.self)
+        pairAll(LegacyRadialMenuAction.self)
+        pairAll(LegacyGestureBinding.self)
+        Defaults[stashKey] = records.mapValues { record in
+            let action = record.convertToWindowAction()
+            return mapping[action.id].map(action.withRuntimeID) ?? action
         }
-        pairAll(legacyValue(LegacyDefaults.keybinds, suite: suite).filter { $0.direction != .noSelection }.map { $0.convertToKeyBinding().target }, as: KeyBinding.self, at: ["key", "bindings"])
-        pairAll(legacyValue(LegacyDefaults.radialMenuActions, suite: suite).map { direct($0.type) }, as: RadialMenuBinding.self, at: ["radial-menu", "bindings"])
-        pairAll(legacyValue(LegacyDefaults.gestures, suite: suite).map { gesture in
-            if case let .singleAction(type) = gesture.action { direct(type) } else { .radialMenuMode }
-        }, as: GestureBinding.self, at: ["gestures", "bindings"])
-        let reconnected = records.mapValues { action in mapping[action.id].map(action.withRuntimeID) ?? action }
-        if reconnected != records { Defaults[stashKey] = reconnected }
     }
 }

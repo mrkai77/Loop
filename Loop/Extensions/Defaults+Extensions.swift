@@ -6,9 +6,11 @@
 //
 // NOTE: While iCloud is enabled, its service is currently disabled to make GitHub actions work.
 
+// These configuration keys are only read by the migration. Settings live in config.toml.
 import Defaults
 import Scribe
 import SwiftUI
+import Tome
 
 enum LegacyDefaults {
     static let showDockIcon = Defaults.Key<Bool>("showDockIcon", default: false)
@@ -20,7 +22,7 @@ enum LegacyDefaults {
     static let radialMenuVisibility = Defaults.Key<Bool>("radialMenuVisibility", default: true)
     static let radialMenuCornerRadius = Defaults.Key<CGFloat>("radialMenuCornerRadius", default: 50)
     static let radialMenuThickness = Defaults.Key<CGFloat>("radialMenuThickness", default: 22)
-    static let radialMenuActions = Defaults.Key<[LegacyRadialMenuAction]>("radialMenuActions", default: RadialMenuBinding.defaultRadialMenuActions.map(LegacyRadialMenuAction.init))
+    static let radialMenuActions = Defaults.Key<[LegacyRadialMenuAction]>("radialMenuActions", default: [])
     static let previewVisibility = Defaults.Key<Bool>("previewVisibility", default: true)
     static let previewPadding = Defaults.Key<CGFloat>("previewPadding", default: 10)
     static let previewCornerRadius = Defaults.Key<CGFloat>("previewCornerRadius", default: 10)
@@ -51,9 +53,9 @@ enum LegacyDefaults {
     static let middleClickTriggersLoop = Defaults.Key<Bool>("middleClickTriggersLoop", default: false)
     static let enableTriggerDelayOnMiddleClick = Defaults.Key<Bool>("enableTriggerDelayOnMiddleClick", default: false)
     static let cycleBackwardsOnShiftPressed = Defaults.Key<Bool>("cycleBackwardsOnShiftPressed", default: true)
-    static let keybinds = Defaults.Key<[LegacyWindowAction]>("keybinds", default: KeyBinding.defaultKeybinds.map(LegacyWindowAction.init))
+    static let keybinds = Defaults.Key<[LegacyWindowAction]>("keybinds", default: [])
     static let enableGestures = Defaults.Key<Bool>("enableGestures", default: false)
-    static let gestures = Defaults.Key<[LegacyGestureBinding]>("gestures", default: GestureBinding.defaults.map(LegacyGestureBinding.init))
+    static let gestures = Defaults.Key<[LegacyGestureBinding]>("gestures", default: [])
     static let useSystemWindowManagerWhenAvailable = Defaults.Key<Bool>("useSystemWindowManagerWhenAvailable", default: false)
     static let animateWindowResizes = Defaults.Key<Bool>("animateWindowResizes", default: false)
     static let disableCursorInteraction = Defaults.Key<Bool>("disableCursorInteraction", default: false)
@@ -85,6 +87,7 @@ enum LegacyDefaults {
     static let gestureTitlebarHeight = Defaults.Key<CGFloat>("gestureTitlebarHeight", default: 50)
 }
 
+/// App state that stays in Defaults.
 extension Defaults.Keys {
     static let currentIcon = Defaults.Key<String>("currentIcon", default: "AppIcon-Classic")
     static let timesLooped = Defaults.Key<Int>("timesLooped", default: 0)
@@ -96,7 +99,9 @@ extension Defaults.Keys {
     static let lastUsedAccentColor2 = Defaults.Key<Color>("lastUsedAccentColor2", default: .black)
     static let patchesApplied = Defaults.Key<DataPatcher.Patches>("patchesApplied", default: [])
     static let showSettingsInspector = Defaults.Key<Bool>("showSettingsInspector", default: true)
-    static let configMigrationVersion = Defaults.Key<Int>("configMigrationVersion", default: 0)
+    static let migratedToConfigFile = Defaults.Key<Bool>("migratedToConfigFile", default: false)
+    /// Lets the file of an interrupted migration be recognized.
+    static let configMigrationPendingDigest = Defaults.Key<String?>("configMigrationPendingDigest", default: nil)
 }
 
 @Loggable(style: .static)
@@ -111,6 +116,7 @@ enum DefaultsiCloudSyncRegistrar {
     }
 
     private static func updateiCloudSync(enabled: Bool) {
+        // Remove configuration keys registered by older versions
         Defaults.iCloud.removeAll()
         guard enabled else { return }
         Defaults.iCloud.add(.currentIcon)
@@ -118,53 +124,85 @@ enum DefaultsiCloudSyncRegistrar {
     }
 }
 
-extension LegacyWindowAction: Defaults.Serializable {}
+/// Read-only: legacy values are only read by the migration.
+struct LegacyJSONBridge<Value: Decodable>: Defaults.Bridge {
+    func serialize(_: Value?) -> String? { nil }
 
-struct LegacyRadialMenuAction: Codable, Defaults.Serializable {
+    func deserialize(_ object: String?) -> Value? {
+        object.flatMap { try? JSONDecoder().decode(Value.self, from: Data($0.utf8)) }
+    }
+}
+
+/// A binding in its legacy Defaults format.
+protocol LegacyBinding: Decodable, Defaults.Serializable {
+    associatedtype Binding: ActionBinding
+
+    static var defaultsKey: Defaults.Key<[Self]> { get }
+    static var settingsKeyPath: WritableKeyPath<TomeValues, [Binding]> { get }
+
+    /// `nil` drops the entry. `names` maps legacy keybind ids to their written `id`.
+    func migrated(names: [UUID: String]) -> Binding?
+}
+
+extension LegacyBinding {
+    static var bridge: LegacyJSONBridge<Self> { .init() }
+}
+
+extension LegacyWindowAction: LegacyBinding {
+    static var defaultsKey: Defaults.Key<[LegacyWindowAction]> { LegacyDefaults.keybinds }
+    static var settingsKeyPath: WritableKeyPath<TomeValues, [KeyBinding]> { \.keyBindings }
+
+    func migrated(names _: [UUID: String]) -> KeyBinding? {
+        direction.current == .noSelection ? nil : convertToKeyBinding()
+    }
+}
+
+struct LegacyRadialMenuAction: LegacyBinding {
     var id: UUID
     var type: ActionType
-    enum ActionType: Codable {
+    enum ActionType: Decodable {
         case custom(LegacyWindowAction)
         case keybindReference(UUID)
         func target(names: [UUID: String]) -> ActionTarget {
             switch self {
             case let .custom(action): .windowAction(action.convertToWindowAction())
-            case let .keybindReference(id): .keyBinding(names[id] ?? "missing-" + id.uuidString.lowercased())
+            case let .keybindReference(id): .reference(BindingReference(.key, names[id] ?? "missing-" + id.uuidString.lowercased()))
             }
         }
     }
 
-    init(id: UUID = UUID(), type: ActionType) { self.id = id; self.type = type }
-    static func keybindReference(_ id: UUID) -> Self { Self(type: .keybindReference(id)) }
-    init(_ binding: RadialMenuBinding) {
-        self.id = binding.id
-        if case let .windowAction(action) = binding.target { self.type = .custom(LegacyWindowAction(KeyBinding(target: .windowAction(action)))) }
-        else { self.type = .custom(LegacyWindowAction(KeyBinding(.noAction))) }
+    static var defaultsKey: Defaults.Key<[LegacyRadialMenuAction]> { LegacyDefaults.radialMenuActions }
+    static var settingsKeyPath: WritableKeyPath<TomeValues, [RadialMenuBinding]> { \.radialMenuBindings }
+
+    func migrated(names: [UUID: String]) -> RadialMenuBinding? {
+        RadialMenuBinding(id: id, target: type.target(names: names))
     }
 }
 
-struct LegacyGestureBinding: Codable, Defaults.Serializable {
+struct LegacyGestureBinding: LegacyBinding {
     var id: UUID
     var fingerCount: Int
     var kind: LegacyGestureKind?
     var action: Action
     var activationZone: LegacyActivationZone
-    enum Action: Codable {
+    enum Action: Decodable {
         case radialMenuActions
         case singleAction(LegacyRadialMenuAction.ActionType)
     }
 
-    init(id: UUID = UUID(), fingerCount: Int = 2, kind: LegacyGestureKind? = nil, action: Action, activationZone: LegacyActivationZone = .titlebar) {
-        self.id = id; self.fingerCount = fingerCount; self.kind = kind; self.action = action; self.activationZone = activationZone
-    }
+    static var defaultsKey: Defaults.Key<[LegacyGestureBinding]> { LegacyDefaults.gestures }
+    static var settingsKeyPath: WritableKeyPath<TomeValues, [GestureBinding]> { \.gestureBindings }
 
-    init(_ binding: GestureBinding) {
-        self.id = binding.id; self.fingerCount = binding.fingerCount; self.kind = binding.kind.map(LegacyGestureKind.init); self.activationZone = LegacyActivationZone(binding.activationZone)
-        self.action = binding.target == .radialMenuMode ? .radialMenuActions : .singleAction(LegacyRadialMenuAction(binding: binding).type)
+    /// A radial-menu gesture keeps the default target, which it never runs.
+    func migrated(names: [UUID: String]) -> GestureBinding? {
+        var gesture = GestureBinding(id: id, fingerCount: fingerCount, kind: kind?.current, activationZone: activationZone.current)
+        if case let .singleAction(type) = action { gesture.target = type.target(names: names) }
+        return gesture
     }
 }
 
-enum LegacyGestureKind: Codable, Hashable {
+/// Stored as an enum with empty payloads, such as `{"swipeLeft": {}}`.
+enum LegacyGestureKind: Decodable {
     case radialMenu, swipeUp, swipeDown, swipeLeft, swipeRight, magnifyOut, magnifyIn
 
     var current: GestureBinding.Kind {
@@ -178,30 +216,12 @@ enum LegacyGestureKind: Codable, Hashable {
         case .magnifyIn: .magnifyIn
         }
     }
-
-    init(_ kind: GestureBinding.Kind) {
-        switch kind {
-        case .radialMenu: self = .radialMenu
-        case .swipeUp: self = .swipeUp
-        case .swipeDown: self = .swipeDown
-        case .swipeLeft: self = .swipeLeft
-        case .swipeRight: self = .swipeRight
-        case .magnifyOut: self = .magnifyOut
-        case .magnifyIn: self = .magnifyIn
-        }
-    }
 }
 
-enum LegacyActivationZone: String, Codable {
+enum LegacyActivationZone: String, Decodable {
     case titlebar, anywhere
 
     var current: GestureBinding.ActivationZone { self == .titlebar ? .titlebar : .anywhere }
-
-    init(_ zone: GestureBinding.ActivationZone) { self = zone == .titlebar ? .titlebar : .anywhere }
-}
-
-private extension LegacyRadialMenuAction {
-    init(binding: GestureBinding) { self.init(RadialMenuBinding(id: binding.id, target: binding.target)) }
 }
 
 enum LegacyPreviewBackgroundStyle: String, Defaults.Serializable {
@@ -266,11 +286,12 @@ struct LegacyPaddingConfiguration: Codable, Defaults.Serializable {
 
 // MARK: - Legacy Keybinds File
 
-struct LegacyKeybindsFile: Codable {
+struct LegacyKeybindsFile: Decodable {
     let version: String?
     let triggerKey: Set<CGKeyCode>?
     let actions: [LegacyWindowAction]
 
+    /// Rejects nested cycles. The Defaults migration drops them instead.
     func validated() throws -> Self {
         guard !actions.contains(where: \.hasNestedCycle) else {
             throw MigratorError.invalidKeybinds("A cycle can't contain another cycle")
@@ -281,17 +302,14 @@ struct LegacyKeybindsFile: Codable {
 
 // MARK: - Legacy Window Action
 
-struct LegacyWindowAction: Codable {
-    let bypassTriggerKey: Bool?
-    let configID: String?
-    let direction: WindowDirection
+/// The legacy `WindowAction` format, also used by stash records and keybinds files.
+struct LegacyWindowAction: Decodable {
+    let id: UUID?
+    let direction: Direction
     let keybind: Set<CGKeyCode>
+    let bypassTriggerKey: Bool?
     let name: String?
     let unit: CustomWindowActionUnit?
-    let widthUnit: CustomWindowActionUnit?
-    let heightUnit: CustomWindowActionUnit?
-    let xUnit: CustomWindowActionUnit?
-    let yUnit: CustomWindowActionUnit?
     let anchor: CustomWindowActionAnchor?
     let sizeMode: CustomWindowActionSizeMode?
     let width: Double?
@@ -301,103 +319,66 @@ struct LegacyWindowAction: Codable {
     let yPoint: Double?
     let cycle: [LegacyWindowAction]?
 
-    let id: UUID?
+    /// Stored as the capitalized case name, such as `LeftHalf`.
+    struct Direction: Decodable {
+        let current: WindowDirection
+
+        private static let byName = Dictionary(uniqueKeysWithValues: WindowDirection.allCases.map { direction in
+            let name = switch direction {
+            case .noAction: "NoAction"
+            case .macOSCenter: "MacOSCenter"
+            default: direction.rawValue.split(separator: "-").map { $0.prefix(1).uppercased() + $0.dropFirst() }.joined()
+            }
+            return (name, direction)
+        })
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.singleValueContainer()
+            let name = try container.decode(String.self)
+            guard let direction = Self.byName[name] else {
+                throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown window direction \(ConfigurationMessage.quoted(name))")
+            }
+            self.current = direction
+        }
+    }
 
     var hasNestedCycle: Bool {
-        direction == .cycle && cycle?.contains { $0.direction == .cycle } == true
-    }
-
-    init(_ binding: KeyBinding) {
-        let action: WindowAction = if case let .windowAction(value) = binding.target { value } else { WindowAction(.noAction) }
-        self.init(action: action, id: binding.id, keybind: Set(binding.keys.names.compactMap { KeyboardLayout.shared.keyCode(forName: $0) }), bypassTriggerKey: binding.bypassTriggerKey, configID: binding.configID)
-    }
-
-    init(action: WindowAction, id: UUID, keybind: Set<CGKeyCode> = [], bypassTriggerKey: Bool? = nil, configID: String? = nil) {
-        self.id = id
-        self.bypassTriggerKey = bypassTriggerKey
-        self.configID = configID
-        self.direction = action.direction
-        self.keybind = keybind
-        self.name = action.name
-        let dimensions = action.customDimensions
-        self.width = dimensions?.width?.value
-        self.height = dimensions?.height?.value
-        switch action.size {
-        case .custom: self.sizeMode = .custom
-        case .preserve: self.sizeMode = .preserve
-        case .initial: self.sizeMode = .initial
-        case nil: self.sizeMode = nil
-        }
-        func legacyUnit(_ length: ScreenLength?) -> CustomWindowActionUnit? {
-            length.map { $0.unit == .points ? .pixels : .percentage }
-        }
-        self.widthUnit = legacyUnit(dimensions?.width)
-        self.heightUnit = legacyUnit(dimensions?.height)
-        let firstLength: ScreenLength?
-        switch action.position {
-        case let .anchor(value):
-            self.anchor = value
-            self.positionMode = .generic
-            self.xPoint = nil
-            self.yPoint = nil
-            self.xUnit = nil
-            self.yUnit = nil
-            firstLength = dimensions?.width ?? dimensions?.height
-        case let .coordinates(x, y):
-            self.anchor = nil
-            self.positionMode = .coordinates
-            self.xPoint = x?.value
-            self.yPoint = y?.value
-            self.xUnit = legacyUnit(x)
-            self.yUnit = legacyUnit(y)
-            firstLength = dimensions?.width ?? dimensions?.height ?? x ?? y
-        case nil:
-            self.anchor = nil
-            self.positionMode = nil
-            self.xPoint = nil
-            self.yPoint = nil
-            self.xUnit = nil
-            self.yUnit = nil
-            firstLength = nil
-        }
-        self.unit = firstLength.map { $0.unit == .points ? .pixels : .percentage }
-        if case let .cycle(payload) = action.kind {
-            self.cycle = payload.steps.compactMap { if case let .windowAction(action) = $0 { LegacyWindowAction(action: action, id: action.id) } else { nil } }
-        } else { self.cycle = nil }
+        direction.current == .cycle && cycle?.contains { $0.direction.current == .cycle } == true
     }
 
     func convertToWindowAction() -> WindowAction {
+        let direction = direction.current
         var action = WindowAction(direction)
         if let id { action = action.withRuntimeID(id) }
         action.name = name
         if direction == .cycle {
+            // Only old Defaults data can nest cycles here; drop the inner cycle.
             let steps = (cycle ?? []).filter { step in
-                if step.direction == .cycle { Migrator.log.warn("Dropped a cycle nested in the cycle \(name ?? "Cycle")") }
-                return step.direction != .cycle
+                if step.direction.current == .cycle { Migrator.log.warn("Dropped a cycle nested in the cycle \(name ?? "Cycle")") }
+                return step.direction.current != .cycle
             }
             action.kind = .cycle(.init(name: name, steps: steps.map { .windowAction($0.convertToWindowAction()) }))
         } else if direction == .custom || direction == .stash {
-            func length(_ value: Double?, _ dimensionUnit: CustomWindowActionUnit?) -> ScreenLength? {
-                value.flatMap { value in
-                    let lengthUnit: ScreenLength.Unit = (dimensionUnit ?? unit) == .pixels ? .points : .percent
-                    return ScreenLength(value, unit: lengthUnit)
-                }
-            }
-            let widthLength = length(width, widthUnit)
-            let heightLength = length(height, heightUnit)
+            let lengthUnit: ScreenLength.Unit = unit == .pixels ? .points : .percent
+            let widthLength = width.map { ScreenLength($0, unit: lengthUnit) }
+            let heightLength = height.map { ScreenLength($0, unit: lengthUnit) }
             switch sizeMode ?? .custom {
             case .custom: action.size = .custom(width: widthLength, height: heightLength)
             case .preserve: action.size = .preserve
             case .initial: action.size = .initial
             }
             action.customDimensions = .init(width: widthLength, height: heightLength)
-            if positionMode == .coordinates { action.position = .coordinates(x: length(xPoint, xUnit) ?? (unit == .pixels ? ScreenLength(0, unit: .points) : nil), y: length(yPoint, yUnit) ?? (unit == .pixels ? ScreenLength(0, unit: .points) : nil)) }
-            else { action.position = .anchor(anchor ?? .none) }
+            if positionMode == .coordinates {
+                let origin = unit == .pixels ? ScreenLength(0, unit: .points) : nil
+                action.position = .coordinates(x: xPoint.map { ScreenLength($0, unit: lengthUnit) } ?? origin, y: yPoint.map { ScreenLength($0, unit: lengthUnit) } ?? origin)
+            } else {
+                action.position = .anchor(anchor ?? .none)
+            }
         }
         return action
     }
 
     func convertToKeyBinding() -> KeyBinding {
-        KeyBinding(id: id ?? UUID(), configID: configID, keys: KeyCombination(keyCodes: keybind), bypassTriggerKey: bypassTriggerKey, target: .windowAction(convertToWindowAction()))
+        KeyBinding(id: id ?? UUID(), keys: KeyCombination(keyCodes: keybind), bypassTriggerKey: bypassTriggerKey, target: .windowAction(convertToWindowAction()))
     }
 }

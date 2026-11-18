@@ -8,6 +8,7 @@
 import Foundation
 import Scribe
 import Subsurface
+import Tome
 
 @Loggable
 @MainActor
@@ -64,7 +65,7 @@ final class MultitouchRecognizerRegistry {
     func rebuild(with gestures: [GestureBinding]) -> [StopResult] {
         logConflictingGestures(in: gestures)
 
-        let gesturesByFingerCount = Dictionary(grouping: GestureBinding.activeGestures(in: gestures), by: \.fingerCount)
+        let gesturesByFingerCount = Dictionary(grouping: GestureBinding.active(in: gestures), by: \.fingerCount)
         let neededFingerCounts = Set(gesturesByFingerCount.keys)
 
         var stopResults: [StopResult] = []

@@ -29,11 +29,15 @@ struct KeybindsConfigurationView: View {
     @TomeValue(\.enableTriggerDelayOnMiddleClick) private var enableTriggerDelayOnMiddleClick
     @TomeValue(\.hideOnNoSelectionForKeybinds) private var hideOnNoSelectionForKeybinds
     @TomeValue(\.keyBindings) private var keybinds
-    @TomeValue(\.gestures) private var gestures
-    @TomeValue(\.radialMenuActions) private var radialMenuBindings
+    @TomeValue(\.gestureBindings) private var gestures
+    @TomeValue(\.radialMenuBindings) private var radialMenuBindings
 
     private var graph: ActionTargetEditorGraph {
-        .init(keyBindings: keybinds, gestures: gestures, radialMenuBindings: radialMenuBindings)
+        .init(keyBindings: keybinds, gestureBindings: gestures, radialMenuBindings: radialMenuBindings)
+    }
+
+    private var conflictingKeybindIDs: Set<UUID> {
+        KeyBinding.conflictingIDs(in: keybinds, triggerKey: triggerKey)
     }
 
     /// If the user has "enabled" the trigger delay.
@@ -143,7 +147,7 @@ struct KeybindsConfigurationView: View {
                 selection: $model.selectedKeybinds,
                 id: \.id
             ) { keybind in
-                KeybindItemView(keybind)
+                KeybindItemView(keybind, hasConflict: conflictingKeybindIDs.contains(keybind.wrappedValue.id))
                     .environmentObject(model)
             } emptyView: {
                 VStack {

@@ -7,116 +7,127 @@
 
 import Foundation
 
+/// An immutable view of all reference destinations.
 struct BindingResolutionSnapshot {
-    enum Reference: Hashable, Sendable, CustomStringConvertible {
-        case key(String), gesture(String), radialMenu(String)
-        var description: String {
+    enum ResolutionError: LocalizedError, Equatable {
+        case missingReference(BindingReference)
+        case cycle([BindingReference])
+        /// A radial-menu gesture opens the whole menu, so it has no action to share.
+        case radialMenuGestureReference(BindingReference)
+        case duplicateIdentifier(BindingReference)
+        /// `nil` for a cycle written inline in the step.
+        case nestedCycle(BindingReference?)
+
+        var errorDescription: String? {
             switch self {
-            case let .key(id): "keybind '\(id)'"
-            case let .gesture(id): "gesture '\(id)'"
-            case let .radialMenu(id): "radial menu action '\(id)'"
-            }
-        }
-
-        init?(_ target: ActionTarget) {
-            switch target {
-            case let .keyBinding(id): self = .key(id)
-            case let .gestureBinding(id): self = .gesture(id)
-            case let .radialMenuBinding(id): self = .radialMenu(id)
-            case .windowAction, .radialMenuMode: return nil
+            case let .missingReference(reference): "Nothing has the id of \(reference)"
+            case let .cycle(path): "References form a cycle: " + path.map(\.description).joined(separator: " \u{2192} ")
+            case let .radialMenuGestureReference(reference): "\(reference) opens the radial menu, so it can't be referenced"
+            case let .duplicateIdentifier(reference): "Duplicate \(reference)"
+            case let .nestedCycle(reference): reference.map { "A cycle step references a cycle: \($0)" } ?? "A cycle step can't be a cycle"
             }
         }
     }
 
-    enum ResolutionError: Error, Equatable {
-        case cycle([Reference])
-        case radialMenuModeReference(Reference)
-        case duplicateIdentifier(Reference)
-        case nestedCycle(Reference?)
-    }
-
+    /// A nested cycle doesn't stop the walk; the step resolves to no action.
     fileprivate struct Walk {
         var nestedCycle: ResolutionError?
     }
 
-    let keyBindings: [KeyBinding]
-    let gestures: [GestureBinding]
-    let radialMenuBindings: [RadialMenuBinding]
     private let rootTargets: [ActionTarget]
-    private let destinations: [Reference: ActionTarget]
-    let duplicateIdentifiers: [Reference]
+    private let destinations: [BindingReference: ActionTarget]
+    private let radialMenuGestures: Set<BindingReference>
+    let duplicateIdentifiers: [BindingReference]
     private static let noAction = WindowAction(.noAction)
 
-    init(keyBindings: [KeyBinding], gestures: [GestureBinding], radialMenuBindings: [RadialMenuBinding]) {
-        let keyBindings = keyBindings.identified()
-        let gestures = gestures.identified()
-        let radialMenuBindings = radialMenuBindings.identified()
-        self.keyBindings = keyBindings
-        self.gestures = gestures
-        self.radialMenuBindings = radialMenuBindings
-        var destinations: [Reference: ActionTarget] = [:]
-        var duplicates: [Reference] = []
-        func insert(_ reference: Reference, target: ActionTarget) {
-            if destinations[reference] != nil { duplicates.append(reference) }
-            else { destinations[reference] = target }
+    /// Runtime lookups must pass `identified()` lists.
+    init(keyBindings: [KeyBinding], gestureBindings: [GestureBinding], radialMenuBindings: [RadialMenuBinding]) {
+        var destinations: [BindingReference: ActionTarget] = [:]
+        var duplicates: [BindingReference] = []
+        func insert(_ bindings: [some ActionBinding]) {
+            for binding in bindings where binding.configID != nil {
+                if destinations[binding.reference] != nil { duplicates.append(binding.reference) }
+                else { destinations[binding.reference] = binding.target }
+            }
         }
-        for binding in keyBindings {
-            if let id = binding.configID { insert(.key(id), target: binding.target) }
-        }
-        for binding in gestures {
-            if let id = binding.configID { insert(.gesture(id), target: binding.target) }
-        }
-        for binding in radialMenuBindings {
-            if let id = binding.configID { insert(.radialMenu(id), target: binding.target) }
-        }
-        self.rootTargets = keyBindings.map(\.target) + gestures.map(\.target) + radialMenuBindings.map(\.target)
+        insert(keyBindings)
+        insert(gestureBindings)
+        insert(radialMenuBindings)
+        self.rootTargets = keyBindings.map(\.target) + gestureBindings.map(\.target) + radialMenuBindings.map(\.target)
         self.destinations = destinations
+        self.radialMenuGestures = Set(gestureBindings.filter { $0.configID != nil && $0.kind == .radialMenu }.map(\.reference))
         self.duplicateIdentifiers = duplicates
     }
 
-    func resolve(_ target: ActionTarget) throws -> WindowAction? {
+    /// Also resolves references in cycle steps. A missing reference runs no action.
+    func resolve(_ target: ActionTarget) throws -> WindowAction {
         var walk = Walk()
         return try resolve(target, path: [], walk: &walk)
     }
 
-    func action(for target: ActionTarget) -> WindowAction? {
-        (try? resolve(target)) ?? (target == .radialMenuMode ? nil : Self.noAction)
+    /// No action when `target` can't be resolved.
+    func action(for target: ActionTarget) -> WindowAction {
+        (try? resolve(target)) ?? Self.noAction
     }
 
+    /// `holder` is `nil` when `target` is an inline action.
+    func terminal(of target: ActionTarget) throws -> (holder: BindingReference?, action: WindowAction) {
+        var target = target
+        var path: [BindingReference] = []
+        while true {
+            switch target {
+            case let .windowAction(action):
+                return (path.last, action)
+            case let .reference(reference):
+                guard !path.contains(reference) else { throw ResolutionError.cycle(path + [reference]) }
+                path.append(reference)
+                target = try destination(of: reference)
+            }
+        }
+    }
+
+    /// A missing reference isn't a problem; it runs no action.
     func validate() throws {
         if let duplicate = duplicateIdentifiers.first { throw ResolutionError.duplicateIdentifier(duplicate) }
-        for target in rootTargets where target != .radialMenuMode {
+        for target in rootTargets {
             var walk = Walk()
-            _ = try resolve(target, path: [], walk: &walk)
+            do { _ = try resolve(target, path: [], walk: &walk) }
+            catch ResolutionError.missingReference {}
             if let nested = walk.nestedCycle { throw nested }
         }
     }
 
-    private func resolve(_ target: ActionTarget, path: [Reference], walk: inout Walk, materializingSteps: Bool = true) throws -> WindowAction? {
+    private func destination(of reference: BindingReference) throws -> ActionTarget {
+        guard !radialMenuGestures.contains(reference) else { throw ResolutionError.radialMenuGestureReference(reference) }
+        guard let destination = destinations[reference] else { throw ResolutionError.missingReference(reference) }
+        return destination
+    }
+
+    private func resolve(_ target: ActionTarget, path: [BindingReference], walk: inout Walk, materializingSteps: Bool = true) throws -> WindowAction {
         switch target {
         case let .windowAction(action):
             return materializingSteps ? try resolveSteps(of: action, path: path, walk: &walk) : action
-        case .radialMenuMode: return nil
-        default:
-            guard let reference = Reference(target) else { preconditionFailure("Expected reference") }
+        case let .reference(reference):
             guard !path.contains(reference) else { throw ResolutionError.cycle(path + [reference]) }
-            guard let destination = destinations[reference] else { return Self.noAction }
-            guard let action = try resolve(destination, path: path + [reference], walk: &walk, materializingSteps: materializingSteps) else {
-                throw ResolutionError.radialMenuModeReference(reference)
-            }
-            return action
+            return try resolve(destination(of: reference), path: path + [reference], walk: &walk, materializingSteps: materializingSteps)
         }
     }
 }
 
 private extension BindingResolutionSnapshot {
-    func resolveSteps(of action: WindowAction, path: [Reference], walk: inout Walk) throws -> WindowAction {
+    /// A step that is or references a cycle becomes no action and is recorded for `validate()`.
+    func resolveSteps(of action: WindowAction, path: [BindingReference], walk: inout Walk) throws -> WindowAction {
         var action = action
         if case var .cycle(payload) = action.kind {
             payload.steps = try payload.steps.map { step in
-                let resolved = try resolve(step, path: path, walk: &walk, materializingSteps: false) ?? Self.noAction
+                let resolved: WindowAction
+                do { resolved = try resolve(step, path: path, walk: &walk, materializingSteps: false) }
+                catch ResolutionError.missingReference { resolved = Self.noAction }
                 guard resolved.direction != .cycle else {
-                    if walk.nestedCycle == nil { walk.nestedCycle = .nestedCycle(Reference(step)) }
+                    if walk.nestedCycle == nil {
+                        let reference: BindingReference? = if case let .reference(reference) = step { reference } else { nil }
+                        walk.nestedCycle = .nestedCycle(reference)
+                    }
                     return .windowAction(Self.noAction)
                 }
                 return .windowAction(resolved)
@@ -127,16 +138,11 @@ private extension BindingResolutionSnapshot {
     }
 }
 
-extension ActionTarget {
-    var resolvedAction: WindowAction? { WindowActionCache.shared.resolve(self) }
-}
-
 extension WindowAction {
     var resolvedCycleSteps: [WindowAction]? {
         guard case let .cycle(payload) = kind else { return nil }
-        return payload.steps.map { target in
-            if case let .windowAction(action) = target { return action }
-            return target.resolvedAction ?? WindowAction(.noAction)
+        return payload.steps.map { step in
+            if case let .windowAction(action) = step { action } else { WindowAction(.noAction) }
         }
     }
 }

@@ -10,6 +10,7 @@ import Foundation
 import os
 import Scribe
 import Subsurface
+import Tome
 
 /// Suppresses Dock gestures (Spaces, Mission Control, App Exposé) that conflict with Loop's.
 @Loggable
@@ -566,7 +567,7 @@ final class SystemGestureFilter {
 extension SystemGestureFilter {
     /// Maps each finger count to the Dock gestures that Loop's gestures would conflict with.
     static func claims(for gestures: [GestureBinding]) -> [Int: Claims] {
-        GestureBinding.activeGestures(in: gestures)
+        GestureBinding.active(in: gestures)
             .reduce(into: [:]) { result, gesture in
                 guard let kind = gesture.kind else { return }
                 let dockGestures = dockGestures(for: kind)

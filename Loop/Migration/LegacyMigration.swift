@@ -11,6 +11,8 @@ import Scribe
 import SwiftUI
 import Tome
 
+/// Copies each legacy Defaults value the user set into config.toml.
+/// A key present in the domain was set by the user, so it is written even when it equals the default.
 @Loggable(style: .static)
 struct LegacyMigration {
     let suite: UserDefaults
@@ -21,6 +23,7 @@ struct LegacyMigration {
         ConfigMigrator.legacyValue(key, suite: suite)
     }
 
+    /// An unusable value is skipped rather than aborting the migration.
     private func copy<Old, Value: Equatable & Sendable>(_ old: Defaults.Key<Old>, to key: WritableKeyPath<TomeValues, Value>, _ transform: (Old) throws -> Value) throws {
         guard persisted.contains(old.name) else { return }
         do {
@@ -34,14 +37,13 @@ struct LegacyMigration {
         try copy(old, to: key) { $0 }
     }
 
+    /// Legacy lengths carry float noise, so they keep one decimal place.
     private func copyRounded(_ old: Defaults.Key<CGFloat>, to key: WritableKeyPath<TomeValues, CGFloat>) throws {
         try copy(old, to: key, Self.roundedPoint)
     }
 
     func writeAll() throws {
         let keybinds = bindingsToMigrate()
-        let radial = legacy(LegacyDefaults.radialMenuActions)
-        let gestures = legacy(LegacyDefaults.gestures)
         let names = Dictionary(keybinds.compactMap { binding in binding.configID.map { (binding.id, $0) } }, uniquingKeysWith: { first, _ in first })
 
         try copy(LegacyDefaults.showDockIcon, to: \.showDockIcon)
@@ -53,9 +55,7 @@ struct LegacyMigration {
         try copy(LegacyDefaults.radialMenuVisibility, to: \.radialMenuVisibility)
         try copyRounded(LegacyDefaults.radialMenuCornerRadius, to: \.radialMenuCornerRadius)
         try copyRounded(LegacyDefaults.radialMenuThickness, to: \.radialMenuThickness)
-        if persisted.contains(LegacyDefaults.radialMenuActions.name) {
-            try settings.set(radial.map { RadialMenuBinding(id: $0.id, target: Self.roundedTarget($0.type.target(names: names))) }, for: \.radialMenuActions)
-        }
+        try copyBindings(LegacyRadialMenuAction.self, names: names)
         try copy(LegacyDefaults.previewVisibility, to: \.previewVisibility)
         try copyRounded(LegacyDefaults.previewPadding, to: \.previewPadding)
         try copyRounded(LegacyDefaults.previewBorderThickness, to: \.previewBorderThickness)
@@ -87,19 +87,11 @@ struct LegacyMigration {
         try copy(LegacyDefaults.enableTriggerDelayOnMiddleClick, to: \.enableTriggerDelayOnMiddleClick)
         try copy(LegacyDefaults.cycleModeRestartEnabled, to: \.cycleModeRestartEnabled)
         try copy(LegacyDefaults.cycleBackwardsOnShiftPressed, to: \.cycleBackwardsOnShiftPressed)
-        if persisted.contains(LegacyDefaults.keybinds.name) || keybinds.contains(where: { $0.configID != nil }) {
+        if persisted.contains(LegacyDefaults.keybinds.name) {
             try settings.set(keybinds, for: \.keyBindings)
         }
         try copy(LegacyDefaults.enableGestures, to: \.enableGestures)
-        if persisted.contains(LegacyDefaults.gestures.name) {
-            try settings.set(gestures.map { item in
-                let target: ActionTarget = switch item.action {
-                case .radialMenuActions: .radialMenuMode
-                case let .singleAction(reference): reference.target(names: names)
-                }
-                return GestureBinding(id: item.id, fingerCount: item.fingerCount, kind: item.kind?.current, target: Self.roundedTarget(target), activationZone: item.activationZone.current)
-            }, for: \.gestures)
-        }
+        try copyBindings(LegacyGestureBinding.self, names: names)
         try copy(LegacyDefaults.useSystemWindowManagerWhenAvailable, to: \.useSystemWindowManagerWhenAvailable)
         try copy(LegacyDefaults.animateWindowResizes, to: \.animateWindowResizes)
         try copy(LegacyDefaults.disableCursorInteraction, to: \.selectActionsWithCursor) { !$0 }
@@ -126,6 +118,21 @@ struct LegacyMigration {
         try copyRounded(LegacyDefaults.gestureTitlebarHeight, to: \.gestureTitlebarHeight)
     }
 
+    /// An unset list leaves the default bindings in place.
+    private func copyBindings<Legacy: LegacyBinding>(_ type: Legacy.Type, names: [UUID: String]) throws {
+        guard persisted.contains(Legacy.defaultsKey.name) else { return }
+        try settings.set(convertedBindings(type, names: names), for: Legacy.settingsKeyPath)
+    }
+
+    private func convertedBindings<Legacy: LegacyBinding>(_: Legacy.Type, names: [UUID: String]) -> [Legacy.Binding] {
+        legacy(Legacy.defaultsKey).compactMap { $0.migrated(names: names) }.map { binding in
+            var binding = binding
+            binding.target = Self.roundedTarget(binding.target)
+            return binding
+        }
+    }
+
+    /// Keybinds that radial menu or gesture entries refer to get a written `id`.
     private func bindingsToMigrate() -> [KeyBinding] {
         var linked: Set<UUID> = []
         for item in legacy(LegacyDefaults.radialMenuActions) {
@@ -134,14 +141,9 @@ struct LegacyMigration {
         for item in legacy(LegacyDefaults.gestures) {
             if case let .singleAction(.keybindReference(id)) = item.action { linked.insert(id) }
         }
-        var migrated: [KeyBinding] = []
-        var linkedIndices: [Int] = []
-        for saved in legacy(LegacyDefaults.keybinds) where saved.direction != .noSelection {
-            var binding = saved.convertToKeyBinding()
-            binding.target = Self.roundedTarget(binding.target)
-            migrated.append(binding)
-            if linked.contains(binding.id) { linkedIndices.append(migrated.count - 1) }
-        }
+        var migrated = convertedBindings(LegacyWindowAction.self, names: [:])
+        let linkedIndices = migrated.indices.filter { linked.contains(migrated[$0].id) }
+        // Assigned once the whole list is known, so a repeated name gets `-2`
         var taken = Set(migrated.compactMap(\.configID))
         for index in linkedIndices { taken.insert(migrated[index].ensureConfigurationID(avoiding: taken)) }
         return migrated

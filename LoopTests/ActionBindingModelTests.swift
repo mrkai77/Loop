@@ -61,26 +61,27 @@ struct ActionBindingModelTests {
     }
 
     @Test func promotingReferenceIDRetainsBindingAndActionIdentity() {
-        var rows = [KeyBinding(.maximize, keybind: [.kVK_Space])]
+        var rows = [KeyBinding(.maximize, keys: [.kVK_Space])]
         let identity = rows[0].id
-        let actionIdentity = rows[0].target.resolvedAction?.id
+        let actionIdentity = rows[0].target.id
         let pending = rows[0].reference
         let reference = rows.ensureConfigurationID(at: 0)
         #expect(reference == "maximize")
         #expect(rows.ensureConfigurationID(at: 0) == reference)
+        // Only a later decode derives the identity from the id
         #expect(rows[0].id == identity)
-        #expect(rows[0].target.resolvedAction?.id == actionIdentity)
+        #expect(rows[0].target.id == actionIdentity)
         #expect(rows[0].keys == [.kVK_Space])
-        #expect(rows[0].reference == .keyBinding(reference))
+        #expect(rows[0].reference == .init(.key, reference))
         #expect(rows[0].reference != pending)
-        var graph = ActionTargetEditorGraph(keyBindings: rows, gestures: [], radialMenuBindings: [])
-        #expect(graph.resolve(.keyBinding(reference))?.direction == .maximize)
-        let promoted = graph.promoted(rows[0].reference)
-        #expect(promoted == .keyBinding(reference))
+        var graph = ActionTargetEditorGraph(keyBindings: rows, gestureBindings: [], radialMenuBindings: [])
+        #expect(graph.resolve(.reference(.init(.key, reference)))?.direction == .maximize)
+        let promoted = graph.promoted(.reference(rows[0].reference))
+        #expect(promoted == .reference(.init(.key, reference)))
     }
 
     @Test func generatedIDsAreReadableAndUnique() {
-        func id(_ binding: some ConfigurationIdentifiable) -> String {
+        func id(_ binding: some ActionBinding) -> String {
             var binding = binding
             return binding.ensureConfigurationID(avoiding: [])
         }
@@ -135,8 +136,8 @@ struct ActionBindingModelTests {
             }
         }
         var rows = [
-            KeyBinding(.stash, keybind: KeyCombination(names: ["s"])),
-            KeyBinding("Cycle", cycle: [WindowAction(.leftHalf), WindowAction(.stash)], keybind: KeyCombination(names: ["c"]))
+            KeyBinding(.stash, keys: KeyCombination(names: ["s"])),
+            KeyBinding("Cycle", cycle: [WindowAction(.leftHalf), WindowAction(.stash)], keys: KeyCombination(names: ["c"]))
         ]
         let before = stashIDs(rows)
         for index in rows.indices { rows.ensureConfigurationID(at: index) }
@@ -149,7 +150,7 @@ struct ActionBindingModelTests {
     }
 
     @MainActor @Test func swiftUIBindingEditsKeepPayloadAndWrapperIdentity() {
-        var stored = KeyBinding(.custom, keybind: [.kVK_Space]).withConfigurationID("custom")
+        var stored = KeyBinding(.custom, keys: [.kVK_Space]).withConfigurationID("custom")
         let identity = stored.id
         let binding = Binding(get: { stored }, set: { stored = $0 })
         let action = Binding<WindowAction>(get: {

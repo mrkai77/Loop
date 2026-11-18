@@ -9,6 +9,7 @@ import AppKit
 import Scribe
 import Tome
 
+/// Publishes key lookup and the reference graph as one atomic snapshot.
 @Loggable
 final class WindowActionCache: @unchecked Sendable {
     static let shared = WindowActionCache()
@@ -16,26 +17,36 @@ final class WindowActionCache: @unchecked Sendable {
     struct Snapshot {
         let actionsByKeybind: [Set<CGKeyCode>: WindowAction]
         let bypassedActionsByKeybind: [Set<CGKeyCode>: WindowAction]
+        /// For the cycle logic that depends on a keybind's keys.
         let bindingsByActionID: [UUID: KeyBinding]
         let resolver: BindingResolutionSnapshot
+        /// Already `identified()`; runtime lookups must use these.
         let keyBindings: [KeyBinding]
-        let gesturesByID: [UUID: GestureBinding]
+        let gestureBindings: [GestureBinding]
+        /// The defaults unless customization is enabled.
         let radialMenuBindings: [RadialMenuBinding]
-        let radialMenuBindingsByID: [UUID: RadialMenuBinding]
         let graphIssue: Tome.Issue?
         let keyIssues: [Tome.Issue]
 
         var issues: [Tome.Issue] { (graphIssue.map { [$0] } ?? []) + keyIssues }
 
+        /// The first of bindings sharing an id wins.
+        func target(of kind: BindingKind, id: UUID) -> ActionTarget? {
+            switch kind {
+            case .key: keyBindings.first { $0.id == id }?.target
+            case .gesture: gestureBindings.first { $0.id == id }?.target
+            case .radialMenu: radialMenuBindings.first { $0.id == id }?.target
+            }
+        }
+
         static let empty = Snapshot(
             actionsByKeybind: [:],
             bypassedActionsByKeybind: [:],
             bindingsByActionID: [:],
-            resolver: .init(keyBindings: [], gestures: [], radialMenuBindings: []),
+            resolver: .init(keyBindings: [], gestureBindings: [], radialMenuBindings: []),
             keyBindings: [],
-            gesturesByID: [:],
+            gestureBindings: [],
             radialMenuBindings: [],
-            radialMenuBindingsByID: [:],
             graphIssue: nil,
             keyIssues: []
         )
@@ -53,25 +64,24 @@ final class WindowActionCache: @unchecked Sendable {
     func keyBinding(for action: WindowAction) -> KeyBinding? { read { $0.bindingsByActionID[action.id] } }
     var keyBindingActions: [WindowAction] {
         let current = read { $0 }
-        return current.keyBindings.compactMap { current.resolver.action(for: $0.target) }
+        return current.keyBindings.map { current.resolver.action(for: $0.target) }
     }
 
     var graphIssue: Tome.Issue? { read { $0.graphIssue } }
     var issues: [Tome.Issue] { read { $0.issues } }
+    /// Posted on the main queue.
     static let issuesDidChange = Notification.Name("WindowActionCache.issuesDidChange")
 
     var radialMenuBindings: [RadialMenuBinding] { read { $0.radialMenuBindings } }
-    func resolve(gestureID: UUID) -> WindowAction? {
+    var radialMenuActions: [WindowAction] {
         let current = read { $0 }
-        return current.gesturesByID[gestureID].flatMap { current.resolver.action(for: $0.target) }
+        return current.radialMenuBindings.map { current.resolver.action(for: $0.target) }
     }
 
-    func resolve(radialMenuBindingID: UUID) -> WindowAction? {
+    func resolve(_ kind: BindingKind, id: UUID) -> WindowAction? {
         let current = read { $0 }
-        return current.radialMenuBindingsByID[radialMenuBindingID].flatMap { current.resolver.action(for: $0.target) }
+        return current.target(of: kind, id: id).map(current.resolver.action(for:))
     }
-
-    func resolve(_ target: ActionTarget) -> WindowAction? { read { $0.resolver }.action(for: target) }
 
     private func read<T>(_ body: (Snapshot) -> T) -> T {
         snapshotLock.lock()
@@ -79,13 +89,14 @@ final class WindowActionCache: @unchecked Sendable {
         return body(snapshot)
     }
 
+    /// Bindings are resolved again whenever `layout` changes.
     init(layout: KeyboardLayout = .shared) {
         self.layout = layout
         self.observations = [
             Tome.observe(\.triggerKey) { [weak self] _ in self?.scheduleRegeneration() },
             Tome.observe(\.keyBindings) { [weak self] _ in self?.scheduleRegeneration() },
-            Tome.observe(\.gestures) { [weak self] _ in self?.scheduleRegeneration() },
-            Tome.observe(\.radialMenuActions) { [weak self] _ in self?.scheduleRegeneration() },
+            Tome.observe(\.gestureBindings) { [weak self] _ in self?.scheduleRegeneration() },
+            Tome.observe(\.radialMenuBindings) { [weak self] _ in self?.scheduleRegeneration() },
             Tome.observe(\.enableRadialMenuCustomization) { [weak self] _ in self?.scheduleRegeneration() },
             Tome.observe(\.cycleBackwardsOnShiftPressed) { [weak self] _ in self?.scheduleRegeneration() }
         ]
@@ -100,33 +111,38 @@ final class WindowActionCache: @unchecked Sendable {
     }
 
     private func regenerateCache() {
-        let resolver = BindingResolutionSnapshot(keyBindings: Tome.keyBindings, gestures: Tome.gestures, radialMenuBindings: Tome.radialMenuActions)
-        let bindings = resolver.keyBindings
-        let gestures = resolver.gestures
-        let configuredMenu = resolver.radialMenuBindings
-        let radialMenu = Tome.enableRadialMenuCustomization ? configuredMenu : RadialMenuBinding.defaultRadialMenuActions
+        let bindings = Tome.keyBindings.identified()
+        let gestures = Tome.gestureBindings.identified()
+        let configuredMenu = Tome.radialMenuBindings.identified()
+        let radialMenu = Tome.enableRadialMenuCustomization ? configuredMenu : RadialMenuBinding.defaults.identified()
+        let resolver = BindingResolutionSnapshot(keyBindings: bindings, gestureBindings: gestures, radialMenuBindings: configuredMenu)
+        // Reported, not enforced: only bindings that reach the bad reference lose their action
         var graphIssue: Tome.Issue?
         do { try resolver.validate() }
         catch {
             log.warn("Invalid binding reference graph: \(error)")
-            graphIssue = Tome.Issue(path: "references", message: Self.message(for: error))
+            graphIssue = Tome.Issue(path: "references", message: error.localizedDescription)
         }
         var normal: [Set<CGKeyCode>: WindowAction] = [:]
         var bypassed: [Set<CGKeyCode>: WindowAction] = [:]
         var definingBindings: [UUID: KeyBinding] = [:]
+        // A referenced action belongs to the keybind that defines it
         for binding in bindings {
             if case let .windowAction(action) = binding.target { definingBindings[action.id] = binding }
         }
-        for binding in bindings {
-            guard !binding.keys.isEmpty, let action = resolver.action(for: binding.target) else { continue }
+        let active = KeyBinding.active(in: bindings, triggerKey: Tome.triggerKey)
+        for binding in active {
+            let action = resolver.action(for: binding.target)
             if definingBindings[action.id] == nil { definingBindings[action.id] = binding }
+            // Inactive until the layout has the key. When two names resolve to the same codes,
+            // the first binding wins.
             guard let codes = binding.keys.keyCodes(on: layout) else { continue }
             if binding.bypassTriggerKey == true {
                 if bypassed[codes] == nil { bypassed[codes] = action }
             } else if normal[codes] == nil { normal[codes] = action }
         }
         if Tome.cycleBackwardsOnShiftPressed {
-            for binding in bindings where binding.bypassTriggerKey != true && !binding.keys.isEmpty && !binding.keys.containsFixedKey(.kVK_Shift) {
+            for binding in active where binding.bypassTriggerKey != true && !binding.keys.containsFixedKey(.kVK_Shift) {
                 guard let codes = binding.keys.keyCodes(on: layout), let action = normal[codes], action.direction == .cycle else { continue }
                 let shifted = codes.union([.kVK_Shift])
                 if normal[shifted] == nil { normal[shifted] = action }
@@ -138,9 +154,8 @@ final class WindowActionCache: @unchecked Sendable {
             bindingsByActionID: definingBindings,
             resolver: resolver,
             keyBindings: bindings,
-            gesturesByID: Dictionary(gestures.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first }),
+            gestureBindings: gestures,
             radialMenuBindings: radialMenu,
-            radialMenuBindingsByID: Dictionary((configuredMenu + radialMenu).map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first }),
             graphIssue: graphIssue,
             keyIssues: keyIssues(for: bindings)
         )
@@ -161,16 +176,6 @@ final class WindowActionCache: @unchecked Sendable {
         let message = { (name: String) in "'\(name)' isn't on the current keyboard layout" }
         return unresolved(in: bindings.map(\.keys)).map { Tome.Issue(path: "key.bindings", message: message($0)) }
             + unresolved(in: [Tome.triggerKey]).map { Tome.Issue(path: "trigger.keys", message: message($0)) }
-    }
-
-    private static func message(for error: any Error) -> String {
-        switch error as? BindingResolutionSnapshot.ResolutionError {
-        case let .cycle(path): "References form a cycle: " + path.map(\.description).joined(separator: " \u{2192} ")
-        case let .radialMenuModeReference(reference): "The whole radial menu can't be referenced by \(reference)"
-        case let .duplicateIdentifier(reference): "Duplicate \(reference)"
-        case let .nestedCycle(reference): reference.map { "A cycle step references a cycle: \($0)" } ?? "A cycle step can't be a cycle"
-        case nil: error.localizedDescription
-        }
     }
 
     private func scheduleRegeneration() {

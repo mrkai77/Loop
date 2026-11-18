@@ -12,64 +12,85 @@ import Testing
 struct BindingResolutionSnapshotTests {
     @Test func everyReferenceCategoryResolvesAcrossEveryDestination() throws {
         let final = WindowAction(.maximize)
-        let destinations: [ActionTarget] = [.keyBinding("destination"), .gestureBinding("destination"), .radialMenuBinding("destination")]
+        let destinations: [ActionTarget] = [.reference(.init(.key, "destination")), .reference(.init(.gesture, "destination")), .reference(.init(.radialMenu, "destination"))]
         for target in destinations {
             let snapshot = BindingResolutionSnapshot(
                 keyBindings: [.init(configID: "destination", target: .windowAction(final)), .init(configID: "source", target: target)],
-                gestures: [.init(configID: "destination", target: .windowAction(final)), .init(configID: "source", target: target)],
+                gestureBindings: [.init(configID: "destination", target: .windowAction(final)), .init(configID: "source", target: target)],
                 radialMenuBindings: [.init(configID: "destination", target: .windowAction(final)), .init(configID: "source", target: target)]
             )
             try snapshot.validate()
-            for source in [ActionTarget.keyBinding("source"), .gestureBinding("source"), .radialMenuBinding("source")] {
-                #expect(try snapshot.resolve(source)?.direction == .maximize)
+            for source in [ActionTarget.reference(.init(.key, "source")), .reference(.init(.gesture, "source")), .reference(.init(.radialMenu, "source"))] {
+                #expect(try snapshot.resolve(source).direction == .maximize)
             }
         }
     }
 
     @Test func multiHopReferencesResolveRegardlessOfPhysicalInputsOrOrdering() throws {
-        let key = KeyBinding(configID: "key", keys: [], target: .gestureBinding("gesture"))
-        let gesture = GestureBinding(kind: nil, configID: "gesture", target: .radialMenuBinding("menu"))
-        let menu = RadialMenuBinding(configID: "menu", target: .keyBinding("final"))
+        let key = KeyBinding(configID: "key", keys: [], target: .reference(.init(.gesture, "gesture")))
+        let gesture = GestureBinding(kind: nil, configID: "gesture", target: .reference(.init(.radialMenu, "menu")))
+        let menu = RadialMenuBinding(configID: "menu", target: .reference(.init(.key, "final")))
         let final = KeyBinding(configID: "final", keys: [], target: .windowAction(.init(.leftHalf)))
         for keys in [[key, final], [final, key]] {
-            let snapshot = BindingResolutionSnapshot(keyBindings: keys, gestures: [gesture], radialMenuBindings: [menu])
+            let snapshot = BindingResolutionSnapshot(keyBindings: keys, gestureBindings: [gesture], radialMenuBindings: [menu])
             try snapshot.validate()
-            #expect(try snapshot.resolve(.keyBinding("key"))?.direction == .leftHalf)
+            #expect(try snapshot.resolve(.reference(.init(.key, "key"))).direction == .leftHalf)
         }
     }
 
     @Test func missingReferencesPerformNoActionAndRemainReferences() throws {
-        let target = ActionTarget.gestureBinding("deleted")
-        let snapshot = BindingResolutionSnapshot(keyBindings: [], gestures: [], radialMenuBindings: [])
-        #expect(try snapshot.resolve(target)?.direction == .noAction)
-        #expect(target == .gestureBinding("deleted"))
+        let target = ActionTarget.reference(.init(.gesture, "deleted"))
+        let snapshot = BindingResolutionSnapshot(keyBindings: [.init(configID: "alias", target: target)], gestureBindings: [], radialMenuBindings: [])
+        #expect(throws: BindingResolutionSnapshot.ResolutionError.missingReference(.init(.gesture, "deleted"))) { try snapshot.resolve(.reference(.init(.key, "alias"))) }
+        #expect(throws: BindingResolutionSnapshot.ResolutionError.missingReference(.init(.gesture, "deleted"))) { try snapshot.terminal(of: target) }
+        #expect(snapshot.action(for: target).direction == .noAction)
+        try snapshot.validate() // Running no action isn't a problem in the graph.
+        #expect(target == .reference(.init(.gesture, "deleted")))
     }
 
     @Test func cyclesThroughAllCategoriesAndCycleStepsAreDiagnosed() {
-        let key = KeyBinding(configID: "key", target: .gestureBinding("gesture"))
-        let gesture = GestureBinding(configID: "gesture", target: .radialMenuBinding("menu"))
-        let menu = RadialMenuBinding(configID: "menu", target: .windowAction(.init(kind: .cycle(.init(steps: [.keyBinding("key")])))))
-        let snapshot = BindingResolutionSnapshot(keyBindings: [key], gestures: [gesture], radialMenuBindings: [menu])
+        let key = KeyBinding(configID: "key", target: .reference(.init(.gesture, "gesture")))
+        let gesture = GestureBinding(configID: "gesture", target: .reference(.init(.radialMenu, "menu")))
+        let menu = RadialMenuBinding(configID: "menu", target: .windowAction(.init(kind: .cycle(.init(steps: [.reference(.init(.key, "key"))])))))
+        let snapshot = BindingResolutionSnapshot(keyBindings: [key], gestureBindings: [gesture], radialMenuBindings: [menu])
         #expect(throws: BindingResolutionSnapshot.ResolutionError.self) { try snapshot.validate() }
-        #expect(snapshot.action(for: .keyBinding("key"))?.direction == .noAction)
-        let selfReference = BindingResolutionSnapshot(keyBindings: [.init(configID: "self", target: .keyBinding("self"))], gestures: [], radialMenuBindings: [])
+        #expect(snapshot.action(for: .reference(.init(.key, "key"))).direction == .noAction)
+        let selfReference = BindingResolutionSnapshot(keyBindings: [.init(configID: "self", target: .reference(.init(.key, "self")))], gestureBindings: [], radialMenuBindings: [])
         #expect(throws: BindingResolutionSnapshot.ResolutionError.self) { try selfReference.validate() }
     }
 
-    @Test func radialMenuGestureModeHasNoSingleReferenceableAction() throws {
-        let gesture = GestureBinding(kind: .radialMenu, configID: "radial", target: .radialMenuMode)
-        let snapshot = BindingResolutionSnapshot(keyBindings: [], gestures: [gesture], radialMenuBindings: [])
-        #expect(try snapshot.resolve(.radialMenuMode) == nil)
-        try snapshot.validate() // A named mode gesture is harmless until referenced.
-        #expect(throws: BindingResolutionSnapshot.ResolutionError.self) { try snapshot.resolve(.gestureBinding("radial")) }
+    @Test func aRadialMenuGestureHasNoReferenceableAction() throws {
+        let gesture = GestureBinding(kind: .radialMenu, configID: "radial")
+        let snapshot = BindingResolutionSnapshot(keyBindings: [.init(configID: "link", target: .reference(.init(.gesture, "radial")))], gestureBindings: [gesture], radialMenuBindings: [])
+        let error = BindingResolutionSnapshot.ResolutionError.radialMenuGestureReference(.init(.gesture, "radial"))
+        #expect(throws: error) { try snapshot.resolve(.reference(.init(.gesture, "radial"))) }
+        #expect(throws: error) { try snapshot.terminal(of: .reference(.init(.key, "link"))) }
+        #expect(throws: error) { try snapshot.validate() }
+        #expect(error.localizedDescription == "gesture 'radial' opens the radial menu, so it can't be referenced")
+    }
+
+    @Test func terminalFollowsReferencesWithoutResolvingCycleSteps() throws {
+        let cycle = WindowAction(kind: .cycle(.init(steps: [.reference(.init(.key, "half"))])))
+        let snapshot = BindingResolutionSnapshot(
+            keyBindings: [.init(configID: "half", target: .windowAction(.init(.leftHalf))), .init(configID: "cycle", target: .windowAction(cycle))],
+            gestureBindings: [.init(configID: "alias", target: .reference(.init(.key, "cycle")))],
+            radialMenuBindings: []
+        )
+        let terminal = try snapshot.terminal(of: .reference(.init(.gesture, "alias")))
+        #expect(terminal.holder == .init(.key, "cycle"))
+        #expect(terminal.action == cycle)
+        #expect(try snapshot.terminal(of: .windowAction(cycle)).holder == nil)
+        #expect(throws: BindingResolutionSnapshot.ResolutionError.cycle([.init(.key, "loop"), .init(.key, "loop")])) {
+            try BindingResolutionSnapshot(keyBindings: [.init(configID: "loop", target: .reference(.init(.key, "loop")))], gestureBindings: [], radialMenuBindings: [])
+                .terminal(of: .reference(.init(.key, "loop")))
+        }
     }
 
     @Test func cycleStepReferencesAreMaterialized() throws {
-        let outer = WindowAction(kind: .cycle(.init(steps: [.gestureBinding("half"), .windowAction(.init(.maximize))])))
-        let snapshot = BindingResolutionSnapshot(keyBindings: [], gestures: [.init(configID: "half", target: .windowAction(.init(.leftHalf)))], radialMenuBindings: [])
+        let outer = WindowAction(kind: .cycle(.init(steps: [.reference(.init(.gesture, "half")), .windowAction(.init(.maximize))])))
+        let snapshot = BindingResolutionSnapshot(keyBindings: [], gestureBindings: [.init(configID: "half", target: .windowAction(.init(.leftHalf)))], radialMenuBindings: [])
         try snapshot.validate()
-        let resolvedCycle = try snapshot.resolve(.windowAction(outer))
-        let cycle = try #require(resolvedCycle)
+        let cycle = try snapshot.resolve(.windowAction(outer))
         #expect(cycle.resolvedCycleSteps?.map(\.direction) == [.leftHalf, .maximize])
         var coordinator = CycleActionCoordinator()
         var current = WindowAction(.noSelection)
@@ -96,37 +117,37 @@ struct BindingResolutionSnapshotTests {
 
     @Test func aCycleStepReferencingACycleResolvesToNoActionAndIsReported() throws {
         let inner = WindowAction([.init(.leftHalf), .init(.rightHalf)])
-        let outer = WindowAction(kind: .cycle(.init(steps: [.gestureBinding("inner"), .keyBinding("alias"), .windowAction(.init(.maximize))])))
+        let outer = WindowAction(kind: .cycle(.init(steps: [.reference(.init(.gesture, "inner")), .reference(.init(.key, "alias")), .windowAction(.init(.maximize))])))
         let snapshot = BindingResolutionSnapshot(
-            keyBindings: [.init(configID: "alias", target: .gestureBinding("inner")), .init(configID: "outer", target: .windowAction(outer))],
-            gestures: [.init(configID: "inner", target: .windowAction(inner))],
+            keyBindings: [.init(configID: "alias", target: .reference(.init(.gesture, "inner"))), .init(configID: "outer", target: .windowAction(outer))],
+            gestureBindings: [.init(configID: "inner", target: .windowAction(inner))],
             radialMenuBindings: []
         )
-        let resolved = try #require(snapshot.action(for: .keyBinding("outer")))
+        let resolved = snapshot.action(for: .reference(.init(.key, "outer")))
         #expect(resolved.resolvedCycleSteps?.map(\.direction) == [.noAction, .noAction, .maximize])
-        #expect(snapshot.action(for: .gestureBinding("inner"))?.direction == .cycle)
-        #expect(throws: BindingResolutionSnapshot.ResolutionError.nestedCycle(.gesture("inner"))) { try snapshot.validate() }
+        #expect(snapshot.action(for: .reference(.init(.gesture, "inner"))).direction == .cycle)
+        #expect(throws: BindingResolutionSnapshot.ResolutionError.nestedCycle(.init(.gesture, "inner"))) { try snapshot.validate() }
     }
 
     @Test func aCycleStepThatIsACycleInlineResolvesToNoActionAndIsReported() throws {
         let inline = WindowAction([.init(.leftHalf)])
         let outer = WindowAction(kind: .cycle(.init(steps: [.windowAction(inline), .windowAction(.init(.maximize))])))
-        let snapshot = BindingResolutionSnapshot(keyBindings: [.init(configID: "outer", target: .windowAction(outer))], gestures: [], radialMenuBindings: [])
-        #expect(snapshot.action(for: .keyBinding("outer"))?.resolvedCycleSteps?.map(\.direction) == [.noAction, .maximize])
+        let snapshot = BindingResolutionSnapshot(keyBindings: [.init(configID: "outer", target: .windowAction(outer))], gestureBindings: [], radialMenuBindings: [])
+        #expect(snapshot.action(for: .reference(.init(.key, "outer"))).resolvedCycleSteps?.map(\.direction) == [.noAction, .maximize])
         #expect(throws: BindingResolutionSnapshot.ResolutionError.nestedCycle(nil)) { try snapshot.validate() }
     }
 
     @Test func referencesToNonCycleBindingsAreNotNestedCycles() throws {
-        let outer = WindowAction(kind: .cycle(.init(steps: [.keyBinding("half")])))
-        let snapshot = BindingResolutionSnapshot(keyBindings: [.init(configID: "half", target: .windowAction(.init(.leftHalf))), .init(configID: "outer", target: .windowAction(outer))], gestures: [], radialMenuBindings: [])
+        let outer = WindowAction(kind: .cycle(.init(steps: [.reference(.init(.key, "half"))])))
+        let snapshot = BindingResolutionSnapshot(keyBindings: [.init(configID: "half", target: .windowAction(.init(.leftHalf))), .init(configID: "outer", target: .windowAction(outer))], gestureBindings: [], radialMenuBindings: [])
         try snapshot.validate()
     }
 
     @Test func reverseCyclePolicyUsesPhysicalSourceRatherThanReferencedKeybind() throws {
         let destination = KeyBinding(configID: "destination", keys: [.kVK_Shift, .kVK_LeftArrow], target: .windowAction(.init([.init(.leftHalf), .init(.rightHalf)])))
-        let source = KeyBinding(keys: [.kVK_RightArrow], target: .keyBinding("destination"))
-        let snapshot = BindingResolutionSnapshot(keyBindings: [source, destination], gestures: [], radialMenuBindings: [])
-        #expect(try snapshot.resolve(source.target)?.direction == .cycle)
+        let source = KeyBinding(keys: [.kVK_RightArrow], target: .reference(.init(.key, "destination")))
+        let snapshot = BindingResolutionSnapshot(keyBindings: [source, destination], gestureBindings: [], radialMenuBindings: [])
+        #expect(try snapshot.resolve(source.target).direction == .cycle)
         #expect(CycleActionCoordinator.allowsShiftReverseCycle(sourceBinding: source, triggerKeys: [], enabled: true))
         #expect(!CycleActionCoordinator.allowsShiftReverseCycle(sourceBinding: destination, triggerKeys: [], enabled: true))
         #expect(CycleActionCoordinator.allowsShiftReverseCycle(sourceBinding: nil, triggerKeys: [], enabled: true))
@@ -157,12 +178,12 @@ struct BindingResolutionSnapshotTests {
     @Test func aliasesShareTerminalStashIdentity() throws {
         let stash = WindowAction(.stash)
         let snapshot = BindingResolutionSnapshot(
-            keyBindings: [.init(configID: "stash", target: .windowAction(stash)), .init(configID: "alias", target: .keyBinding("stash"))],
-            gestures: [.init(configID: "gesture", target: .keyBinding("alias"))],
-            radialMenuBindings: [.init(configID: "menu", target: .gestureBinding("gesture"))]
+            keyBindings: [.init(configID: "stash", target: .windowAction(stash)), .init(configID: "alias", target: .reference(.init(.key, "stash")))],
+            gestureBindings: [.init(configID: "gesture", target: .reference(.init(.key, "alias")))],
+            radialMenuBindings: [.init(configID: "menu", target: .reference(.init(.gesture, "gesture")))]
         )
-        for target in [ActionTarget.keyBinding("stash"), .keyBinding("alias"), .gestureBinding("gesture"), .radialMenuBinding("menu")] {
-            #expect(try snapshot.resolve(target)?.id == snapshot.resolve(.keyBinding("stash"))?.id)
+        for target in [ActionTarget.reference(.init(.key, "stash")), .reference(.init(.key, "alias")), .reference(.init(.gesture, "gesture")), .reference(.init(.radialMenu, "menu"))] {
+            #expect(try snapshot.resolve(target).id == snapshot.resolve(.reference(.init(.key, "stash"))).id)
         }
     }
 
@@ -170,16 +191,15 @@ struct BindingResolutionSnapshotTests {
         let cycle = WindowAction([.init(.leftHalf), .init(.rightHalf)])
         let snapshot = BindingResolutionSnapshot(
             keyBindings: [.init(configID: "cycle", target: .windowAction(cycle))],
-            gestures: [.init(configID: "gesture", target: .keyBinding("cycle"))],
-            radialMenuBindings: [.init(configID: "menu", target: .gestureBinding("gesture"))]
+            gestureBindings: [.init(configID: "gesture", target: .reference(.init(.key, "cycle")))],
+            radialMenuBindings: [.init(configID: "menu", target: .reference(.init(.gesture, "gesture")))]
         )
         var coordinator = CycleActionCoordinator()
         var current = WindowAction(.noSelection)
         var parent: WindowAction?
         var directions: [WindowDirection] = []
-        for target in [ActionTarget.keyBinding("cycle"), .gestureBinding("gesture"), .radialMenuBinding("menu")] {
-            let resolved = try snapshot.resolve(target)
-            let action = try #require(resolved)
+        for target in [ActionTarget.reference(.init(.key, "cycle")), .reference(.init(.gesture, "gesture")), .reference(.init(.radialMenu, "menu"))] {
+            let action = try snapshot.resolve(target)
             let proposed = coordinator.proposeAction(
                 for: 1,
                 in: action,

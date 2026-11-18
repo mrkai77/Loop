@@ -11,31 +11,14 @@ import Tome
 
 struct KeybindItemView: View {
     @TomeValue(\.triggerKey) private var triggerKey
-    @TomeValue(\.keyBindings) private var keybinds
 
     @Binding private var action: KeyBinding
+    /// Conflicting keybinds are all disabled
+    private let hasConflict: Bool
 
-    init(_ action: Binding<KeyBinding>) {
+    init(_ action: Binding<KeyBinding>, hasConflict: Bool) {
         _action = action
-    }
-
-    /// Checks if there are any existing keybinds with the same key combination
-    private var hasDuplicateKeybinds: Bool {
-        guard !action.keys.isEmpty else {
-            return false
-        }
-
-        let effectiveKeybind = action.bypassTriggerKey == true
-            ? action.keys.names
-            : triggerKey.names.union(action.keys.names)
-
-        return keybinds.contains { otherAction in
-            guard otherAction.id != action.id else { return false }
-            let otherEffectiveKeybind = otherAction.bypassTriggerKey == true
-                ? otherAction.keys.names
-                : triggerKey.names.union(otherAction.keys.names)
-            return effectiveKeybind == otherEffectiveKeybind
-        }
+        self.hasConflict = hasConflict
     }
 
     var body: some View {
@@ -54,7 +37,7 @@ struct KeybindItemView: View {
             HStack(spacing: 6) {
                 keycorderSection()
                     .padding(.leading, 4)
-                    .luminareToolTip(attachedTo: .topLeading, hidden: !hasDuplicateKeybinds) {
+                    .luminareToolTip(attachedTo: .topLeading, hidden: !hasConflict) {
                         Text("Another keybind uses this key combination.")
                             .padding(6)
                     }
@@ -103,7 +86,7 @@ struct KeybindItemView: View {
             }
 
             Keycorder($action)
-                .opacity(hasDuplicateKeybinds || action.keys.isEmpty ? 0.5 : 1)
+                .opacity(hasConflict || action.keys.isEmpty ? 0.5 : 1)
         }
         .contextMenu {
             if action.bypassTriggerKey == true {

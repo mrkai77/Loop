@@ -77,6 +77,7 @@ final class AdvancedConfigurationModel: ObservableObject {
         }
     }
 
+    /// Backs up config.toml first.
     func resetConfiguration() {
         do {
             try ConfigurationManager.shared.reset()
@@ -88,7 +89,7 @@ final class AdvancedConfigurationModel: ObservableObject {
     }
 
     func resetRadialMenuActions() {
-        Tome.reset(\.radialMenuActions)
+        Tome.reset(\.radialMenuBindings)
         showSuccessIndicator(\.showResetRadialMenuActionsSuccessIndicator)
     }
 

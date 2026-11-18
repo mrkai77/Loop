@@ -72,7 +72,7 @@ final class MultitouchTrigger {
 
         gesturesObservationTask = Task { [weak self] in
             // Watch keybinds too, so gestures referencing a deleted keybind stay in sync.
-            for await _ in Tome.updates(\.gestures, \.keyBindings, initial: false) {
+            for await _ in Tome.updates(\.gestureBindings, \.keyBindings, initial: false) {
                 guard !Task.isCancelled, let self else { break }
                 rebuildRecognizers()
             }
@@ -110,14 +110,14 @@ final class MultitouchTrigger {
             return
         }
 
-        systemGestureFilter.start(claiming: SystemGestureFilter.claims(for: Tome.gestures))
+        systemGestureFilter.start(claiming: SystemGestureFilter.claims(for: Tome.gestureBindings))
     }
 
     private func rebuildRecognizers() {
         #if DEBUG
             closeDebugOverlay(force: true)
         #endif
-        handleStopResults(recognizerRegistry.rebuild(with: Tome.gestures))
+        handleStopResults(recognizerRegistry.rebuild(with: Tome.gestureBindings))
         // Stopping the monitor finishes the contact streams of recognizers the rebuild keeps.
         if recognizerRegistry.hasRecognizers {
             gestureMonitor.start()
@@ -482,13 +482,13 @@ extension MultitouchTrigger {
         guard actions.indices.contains(index) else { return }
         let action = actions[index]
 
-        let resolvedAction = windowActionCache.resolve(radialMenuBindingID: action.id) ?? .init(.noAction)
+        let resolvedAction = windowActionCache.resolve(.radialMenu, id: action.id) ?? .init(.noAction)
 
         changeAction(resolvedAction, reverse: reverse, canAdvanceCycle: canAdvanceCycle)
     }
 
     func resolvedWindowAction(from gesture: GestureBinding) -> WindowAction? {
-        windowActionCache.resolve(gestureID: gesture.id)
+        windowActionCache.resolve(.gesture, id: gesture.id)
     }
 
     func triggerSingleAction(from gesture: GestureBinding, reverse: Bool = false, canAdvanceCycle: Bool = true) {

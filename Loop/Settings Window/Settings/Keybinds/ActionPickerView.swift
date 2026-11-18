@@ -8,17 +8,20 @@
 import SwiftUI
 import Tome
 
+/// Picks an action, or a reference to another binding.
+/// `owner` hides the binding being edited and references that would loop.
 struct ActionPickerView: View {
     @TomeValue(\.keyBindings) private var keybinds
-    @TomeValue(\.gestures) private var gestures
-    @TomeValue(\.radialMenuActions) private var radialBindings
+    @TomeValue(\.gestureBindings) private var gestures
+    @TomeValue(\.radialMenuBindings) private var radialBindings
 
     @State private var searchText = ""
     @State private var searchResults: [ActionTarget] = []
     @FocusState private var isSearchFocused: Bool
 
     @Binding private var selection: ActionTarget
-    private let owner: ActionTarget?
+    private let owner: BindingReference?
+    /// `false` for cycle steps, which can't be cycles.
     private let allowsCycles: Bool
 
     private let directionSections: [PickerSection<ActionTarget>] = {
@@ -41,14 +44,14 @@ struct ActionPickerView: View {
     private var keybindsSection: PickerSection<ActionTarget> {
         PickerSection(
             "Your Keybinds",
-            keybinds.map(\.reference)
+            keybinds.map { .reference($0.reference) }
         )
     }
 
     private var allSections: [PickerSection<ActionTarget>] {
         let sections = directionSections + [keybindsSection,
-                                            PickerSection("Your Gestures", gestures.filter { $0.kind != .radialMenu }.map(\.reference)),
-                                            PickerSection("Your Radial Menu", radialBindings.map(\.reference))]
+                                            PickerSection("Your Gestures", gestures.filter { $0.kind != .radialMenu }.map { .reference($0.reference) }),
+                                            PickerSection("Your Radial Menu", radialBindings.map { .reference($0.reference) })]
         return sections.map { section in
             PickerSection(section.title, section.items.filter { item in
                 if !allowsCycles, resolvedPickerAction(item)?.direction == .cycle { return false }
@@ -70,9 +73,7 @@ struct ActionPickerView: View {
         Binding(get: { selection }, set: { picked in
             var promotedGraph = graph
             let picked = promotedGraph.promoted(picked) ?? picked
-            if promotedGraph.keyBindings != keybinds { keybinds = promotedGraph.keyBindings }
-            if promotedGraph.gestures != gestures { gestures = promotedGraph.gestures }
-            if promotedGraph.radialMenuBindings != radialBindings { radialBindings = promotedGraph.radialMenuBindings }
+            promotedGraph.commit()
             if case let .windowAction(previous) = selection, case let .windowAction(action) = picked {
                 selection = .windowAction(previous.direction == action.direction ? previous : action.withRuntimeID(previous.id))
             } else {
@@ -81,7 +82,7 @@ struct ActionPickerView: View {
         })
     }
 
-    init(selection: Binding<ActionTarget>, owner: ActionTarget? = nil, allowsCycles: Bool = true) {
+    init(selection: Binding<ActionTarget>, owner: BindingReference? = nil, allowsCycles: Bool = true) {
         self._selection = selection
         self.owner = owner
         self.allowsCycles = allowsCycles
@@ -150,19 +151,14 @@ struct ActionPickerView: View {
     }
 
     private var graph: ActionTargetEditorGraph {
-        .init(keyBindings: keybinds, gestures: gestures, radialMenuBindings: radialBindings)
+        .init(keyBindings: keybinds, gestureBindings: gestures, radialMenuBindings: radialBindings)
     }
 
+    /// Doesn't give the referenced binding a written id just to display it.
     private func resolvedPickerAction(_ target: ActionTarget) -> WindowAction? {
         let candidate: ActionTarget? = switch target {
-        case let .keyBinding(id):
-            keybinds.first { $0.reference == .keyBinding(id) }?.target
-        case let .gestureBinding(id):
-            gestures.first { $0.reference == .gestureBinding(id) }?.target
-        case let .radialMenuBinding(id):
-            radialBindings.first { $0.reference == .radialMenuBinding(id) }?.target
+        case let .reference(reference): graph.target(of: reference)
         case .windowAction: target
-        case .radialMenuMode: nil
         }
         return candidate.flatMap(graph.resolve)
     }

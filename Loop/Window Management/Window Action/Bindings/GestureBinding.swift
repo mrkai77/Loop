@@ -6,21 +6,20 @@
 //
 
 import SwiftUI
-import TOML
 import Tome
+import TOML
 
-struct GestureBinding: ConfigurationIdentifiable, Codable, Hashable, Sendable {
-    static let category = "gesture"
+struct GestureBinding: ActionBinding, Codable, Hashable, Sendable {
+    static let bindingKind = BindingKind.gesture
 
     var id: UUID
     var fingerCount: Int
     /// `nil` until the user picks a gesture, like a keybind with no keys
     var kind: Kind?
     var configID: String?
+    /// Unused, and never written, for a radial-menu gesture.
     var target: ActionTarget
     var activationZone: ActivationZone
-
-    var reference: ActionTarget { .gestureBinding(referenceID) }
 
     init(
         id: UUID = .init(),
@@ -34,7 +33,7 @@ struct GestureBinding: ConfigurationIdentifiable, Codable, Hashable, Sendable {
         self.fingerCount = fingerCount
         self.kind = kind
         self.configID = configID
-        self.target = kind == .radialMenu ? .radialMenuMode : target
+        self.target = target
         self.activationZone = activationZone
     }
 
@@ -144,41 +143,28 @@ extension GestureBinding {
 // MARK: - Conflict Detection
 
 extension GestureBinding {
-    static func activeGestures(in gestures: [GestureBinding]) -> [GestureBinding] {
-        let conflictingIDs = conflictingIDs(in: gestures)
-        return gestures.filter { $0.kind != nil && !conflictingIDs.contains($0.id) }
+    static func conflictingIDs(in gestures: [Self]) -> Set<UUID> { conflictingIDs(in: gestures, by: \.trigger) }
+    static func active(in gestures: [Self]) -> [Self] { active(in: gestures, by: \.trigger) }
+
+    struct Trigger: Hashable {
+        var fingerCount: Int
+        var kind: Kind
     }
 
-    func conflicts(with other: GestureBinding) -> Bool {
-        guard id != other.id, kind != nil, fingerCount == other.fingerCount else {
-            return false
-        }
-
-        return kind == other.kind
+    var trigger: Trigger? {
+        kind.map { Trigger(fingerCount: fingerCount, kind: $0) }
     }
 
     /// Returns IDs for gestures that take over a direction of an active radial menu gesture.
+    /// A swipe or magnify sharing a radial menu's finger count overrides that direction instead of conflicting.
     static func radialMenuOverrideIDs(in gestures: [GestureBinding]) -> Set<UUID> {
-        let active = activeGestures(in: gestures)
-        let radialFingerCounts = Set(active.filter { $0.kind == .radialMenu }.map(\.fingerCount))
+        let enabled = active(in: gestures)
+        let radialFingerCounts = Set(enabled.filter { $0.kind == .radialMenu }.map(\.fingerCount))
         return Set(
-            active
+            enabled
                 .filter { $0.kind != .radialMenu && radialFingerCounts.contains($0.fingerCount) }
                 .map(\.id)
         )
-    }
-
-    static func conflictingIDs(in gestures: [GestureBinding]) -> Set<UUID> {
-        var result = Set<UUID>()
-        for i in gestures.indices {
-            for j in (i + 1) ..< gestures.count {
-                if gestures[i].conflicts(with: gestures[j]) {
-                    result.insert(gestures[i].id)
-                    result.insert(gestures[j].id)
-                }
-            }
-        }
-        return result
     }
 }
 
@@ -189,7 +175,6 @@ extension GestureBinding {
         GestureBinding(
             fingerCount: 2,
             kind: .radialMenu,
-            target: .radialMenuMode,
             activationZone: .titlebar
         )
     ]
@@ -203,6 +188,7 @@ extension GestureBinding: CustomStringConvertible {
 
 // MARK: - Configuration
 
+/// A radial-menu gesture has no target of its own.
 extension GestureBinding {
     private static let fingerRange = 2...5
 
@@ -216,26 +202,18 @@ extension GestureBinding {
         guard Self.fingerRange.contains(fingers) else {
             throw DecodingError.dataCorruptedError(forKey: .fingers, in: table, debugDescription: "Fingers must be from 2 to 5, found \(ConfigurationMessage.quoted(String(fingers)))")
         }
-        var kind = try table.decodeIfPresent(Kind.self, forKey: .kind)
-        let configID = try table.decodeIfPresent(String.self, forKey: .id)
-        try configID.map { try ConfigurationIdentity.validate($0, as: "gesture id") }
+        let kind = try table.decodeIfPresent(Kind.self, forKey: .kind)
+        let configID = try Self.decodeConfigurationID(from: table, forKey: .id)
 
         let hasTarget = try ActionTarget.isPresent(in: decoder)
-        var target = ActionTarget.windowAction(.init(.noAction))
-        if hasTarget {
-            target = try ActionTarget(from: decoder)
-        }
-        if kind == .radialMenu {
-            guard !hasTarget else {
-                throw DecodingError.dataCorruptedError(forKey: .kind, in: table, debugDescription: "A radial-menu gesture can't have another target")
-            }
-            target = .radialMenuMode
+        if kind == .radialMenu, hasTarget {
+            throw DecodingError.dataCorruptedError(forKey: .kind, in: table, debugDescription: "A radial-menu gesture can't have another target")
         }
         try self.init(
             fingerCount: fingers,
             kind: kind,
             configID: configID,
-            target: target,
+            target: hasTarget ? ActionTarget(from: decoder) : .windowAction(.init(.noAction)),
             activationZone: table.decodeIfPresent(ActivationZone.self, forKey: .zone) ?? .titlebar
         )
         deriveIdentity()
@@ -245,14 +223,11 @@ extension GestureBinding {
         guard Self.fingerRange.contains(fingerCount) else {
             throw EncodingError.invalidValue(fingerCount, .init(codingPath: encoder.codingPath, debugDescription: "Gesture fingers must be from 2 to 5, found \(ConfigurationMessage.quoted(String(fingerCount)))"))
         }
-        guard (target == .radialMenuMode) == (kind == .radialMenu) else {
-            throw EncodingError.invalidValue(target, .init(codingPath: encoder.codingPath, debugDescription: "Only a radial-menu gesture selects the whole menu"))
-        }
         var table = encoder.container(keyedBy: CodingKeys.self)
-        try table.encodeIfPresent(configID, forKey: .id)
+        try encodeConfigurationID(into: &table, forKey: .id)
         try table.encode(fingerCount, forKey: .fingers)
         if let kind { try table.encode(kind, forKey: .kind) }
         try table.encode(activationZone, forKey: .zone)
-        if target != .radialMenuMode { try target.encode(to: encoder) }
+        if kind != .radialMenu { try target.encode(to: encoder) }
     }
 }

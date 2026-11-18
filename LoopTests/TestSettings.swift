@@ -9,13 +9,15 @@ import Defaults
 import Foundation
 @testable import Loop
 import Testing
-import TOML
 import Tome
+import TOML
 
+/// Tests that use Loop's real settings keys share one store, so their suites nest here and run serially.
 @Suite(.serialized)
 enum StoreTests {}
 
 enum TestSettings {
+    /// A long debounce keeps writes explicit; call `Tome.flush()` when the bytes matter.
     static let url: URL = {
         let directory = FileManager.default.temporaryDirectory.appendingPathComponent("LoopTests-" + UUID().uuidString)
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -25,6 +27,7 @@ enum TestSettings {
         return url
     }()
 
+    /// Loads `source` as if another editor saved it. Invalid content is loaded too.
     static func install(_ source: String = "") throws {
         _ = url
         try Tome.flush()
@@ -33,8 +36,10 @@ enum TestSettings {
         refreshDiagnostics()
     }
 
+    /// The store clears a key's issue only when its async state event arrives,
+    /// so without this a previous test's invalid value would still be reported.
     static func refreshDiagnostics() {
-        Tome.refresh(\.keyBindings, \.gestures, \.radialMenuActions, \.padding, \.triggerKey)
+        Tome.refresh(\.keyBindings, \.gestureBindings, \.radialMenuBindings, \.padding, \.triggerKey)
     }
 }
 
@@ -45,6 +50,7 @@ struct Profile {
 
     var url: URL { TestSettings.url }
     var serialized: String { Tome.serializedDocument }
+    /// Keys decode lazily, so they are refreshed first.
     var issues: [Tome.Issue] {
         TestSettings.refreshDiagnostics()
         return Tome.issues
@@ -83,10 +89,12 @@ enum TargetCoding {
     enum TargetError: Error { case expectedAction }
 }
 
-extension Array where Element: ConfigurationIdentifiable {
+extension Array where Element: ActionBinding {
+    /// Decoded, then identified, as the running app reads it.
     static func decodeIdentified(_ value: TOMLValue) throws -> [Element] { try decodeTOML(value).identified() }
 }
 
+/// A throwaway legacy Defaults suite and config file location.
 struct LegacyDefaultsFixture {
     let suiteName = "Loop.LegacyDefaultsFixture.\(UUID().uuidString)"
     let suite: UserDefaults
@@ -125,7 +133,16 @@ final class Recorder<Value: Sendable>: @unchecked Sendable {
 }
 
 extension ActionTarget {
+    /// `nil` for a reference.
     var resolvedDirection: WindowDirection? {
         if case let .windowAction(action) = self { action.direction } else { nil }
+    }
+}
+
+extension ActionBinding {
+    func withConfigurationID(_ configID: String) -> Self {
+        var binding = self
+        binding.configID = configID
+        return binding
     }
 }

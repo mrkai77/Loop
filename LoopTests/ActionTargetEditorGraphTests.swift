@@ -10,33 +10,30 @@ import Foundation
 import Testing
 
 struct ActionTargetEditorGraphTests {
-    private enum Category: CaseIterable { case key, gesture, radial }
-
     @Test func renamingFollowsAGeneratedIDAndEveryReferenceToIt() {
         let unnamed = WindowAction(.custom)
         let named = WindowAction(kind: .custom(.init(name: "Daru")), id: unnamed.id)
-        let cycle = WindowAction(kind: .cycle(.init(name: "Spin", steps: [.keyBinding("custom"), .windowAction(.init(.maximize))])))
+        let cycle = WindowAction(kind: .cycle(.init(name: "Spin", steps: [.reference(.init(.key, "custom")), .windowAction(.init(.maximize))])))
         var graph = ActionTargetEditorGraph(
             keyBindings: [
                 .init(configID: "custom", keys: [.kVK_Tab], target: .windowAction(unnamed)),
                 .init(configID: "daru", keys: [.kVK_Return], target: .windowAction(.init(.maximize))),
                 .init(keys: [.kVK_LeftArrow], target: .windowAction(cycle))
             ],
-            gestures: [.init(kind: .swipeUp, target: .keyBinding("custom"))],
-            radialMenuBindings: [.init(target: .keyBinding("custom"))]
+            gestureBindings: [.init(kind: .swipeUp, target: .reference(.init(.key, "custom")))],
+            radialMenuBindings: [.init(target: .reference(.init(.key, "custom")))]
         )
-        let holder = graph.keyBindings[0].id
-        let renamed = graph.renameGeneratedID(of: holder, from: unnamed, to: named)
-        #expect(renamed)
+        #expect(graph.replaceAction(in: graph.keyBindings[0].target, owner: graph.keyBindings[0].reference, with: named) == nil)
+        #expect(graph.resolve(.reference(.init(.key, "daru-2"))) == named)
         // "daru" is taken by another key binding.
         #expect(graph.keyBindings[0].configID == "daru-2")
-        #expect(graph.gestures[0].target == .keyBinding("daru-2"))
-        #expect(graph.radialMenuBindings[0].target == .keyBinding("daru-2"))
+        #expect(graph.gestureBindings[0].target == .reference(.init(.key, "daru-2")))
+        #expect(graph.radialMenuBindings[0].target == .reference(.init(.key, "daru-2")))
         guard case let .windowAction(spin) = graph.keyBindings[2].target, case let .cycle(steps) = spin.kind else {
             Issue.record("The cycle was lost")
             return
         }
-        #expect(steps.steps.first == .keyBinding("daru-2"))
+        #expect(steps.steps.first == .reference(.init(.key, "daru-2")))
     }
 
     @Test func handWrittenIDsAndCycleStepsDontRename() {
@@ -44,20 +41,21 @@ struct ActionTargetEditorGraphTests {
         let renamed = WindowAction(kind: .custom(.init(name: "Big")), id: maximize.id)
         var graph = ActionTargetEditorGraph(
             keyBindings: [.init(configID: "max", keys: [.kVK_Space], target: .windowAction(maximize))],
-            gestures: [],
-            radialMenuBindings: [.init(target: .keyBinding("max"))]
+            gestureBindings: [],
+            radialMenuBindings: [.init(target: .reference(.init(.key, "max")))]
         )
-        let changed = graph.renameGeneratedID(of: graph.keyBindings[0].id, from: maximize, to: renamed)
-        #expect(!changed)
+        #expect(graph.replaceAction(in: .reference(.init(.key, "max")), owner: nil, with: renamed) == nil)
         #expect(graph.keyBindings[0].configID == "max")
-        #expect(graph.radialMenuBindings[0].target == .keyBinding("max"))
+        #expect(graph.keyBindings[0].target == .windowAction(renamed))
+        #expect(graph.radialMenuBindings[0].target == .reference(.init(.key, "max")))
 
         let step = ActionTarget.windowAction(.init(.leftHalf))
         let holding = KeyBinding(configID: "cycle", keys: [.kVK_RightArrow], target: .windowAction(.init(kind: .cycle(.init(steps: [step])))))
         graph.keyBindings.append(holding)
-        #expect(graph.holder(of: step, owner: holding.reference) == nil)
-        #expect(graph.holder(of: holding.target, owner: holding.reference) == holding.id)
-        #expect(graph.holder(of: .keyBinding("max"), owner: nil) == graph.keyBindings[0].id)
+        let before = graph
+        let right = WindowAction(.rightHalf)
+        #expect(graph.replaceAction(in: step, owner: holding.reference, with: right) == .windowAction(right))
+        #expect(graph == before)
     }
 
     @Test func generatedIDsAreTheStemOrItsNumberedForms() {
@@ -68,15 +66,15 @@ struct ActionTargetEditorGraphTests {
         #expect(!ConfigurationIdentity.isGenerated("max", from: "maximize"))
     }
 
-    @Test func sameCategoryChainsOnlyRewriteTheirTerminalWrapper() throws {
-        for category in Category.allCases {
+    @Test func sameKindChainsOnlyRewriteTheirTerminalWrapper() {
+        for kind in BindingKind.allCases {
             let original = WindowAction(.custom)
             let action = WindowAction(kind: .custom(.init(name: "Edited")), id: original.id)
-            let first = reference(category, "a")
-            let middle = reference(category, "b")
-            let last = reference(category, "c")
-            var graph = ActionTargetEditorGraph(keyBindings: [], gestures: [], radialMenuBindings: [])
-            switch category {
+            let first = ActionTarget.reference(.init(kind, "a"))
+            let middle = ActionTarget.reference(.init(kind, "b"))
+            let last = ActionTarget.reference(.init(kind, "c"))
+            var graph = ActionTargetEditorGraph(keyBindings: [], gestureBindings: [], radialMenuBindings: [])
+            switch kind {
             case .key:
                 graph.keyBindings = [
                     .init(configID: "a", keys: [.kVK_Space], target: middle),
@@ -84,78 +82,78 @@ struct ActionTargetEditorGraphTests {
                     .init(configID: "c", target: .windowAction(original))
                 ]
             case .gesture:
-                graph.gestures = [
+                graph.gestureBindings = [
                     .init(configID: "a", target: middle), .init(configID: "b", target: last),
                     .init(configID: "c", target: .windowAction(original))
                 ]
-            case .radial:
+            case .radialMenu:
                 graph.radialMenuBindings = [
                     .init(configID: "a", target: middle), .init(configID: "b", target: last),
                     .init(configID: "c", target: .windowAction(original))
                 ]
             }
             let before = graph
-            try apply(#require(graph.replacingAction(in: first, with: action)), to: &graph)
+            #expect(graph.replaceAction(in: first, owner: nil, with: action) == nil)
             #expect(graph.resolve(first) == action)
-            switch category {
+            switch kind {
             case .key:
                 #expect(Array(graph.keyBindings.prefix(2)) == Array(before.keyBindings.prefix(2)))
                 #expect(graph.keyBindings.map(\.id) == before.keyBindings.map(\.id))
                 #expect(graph.keyBindings.map(\.keys) == before.keyBindings.map(\.keys))
             case .gesture:
-                #expect(Array(graph.gestures.prefix(2)) == Array(before.gestures.prefix(2)))
-                #expect(graph.gestures.map(\.id) == before.gestures.map(\.id))
-            case .radial:
+                #expect(Array(graph.gestureBindings.prefix(2)) == Array(before.gestureBindings.prefix(2)))
+                #expect(graph.gestureBindings.map(\.id) == before.gestureBindings.map(\.id))
+            case .radialMenu:
                 #expect(Array(graph.radialMenuBindings.prefix(2)) == Array(before.radialMenuBindings.prefix(2)))
                 #expect(graph.radialMenuBindings.map(\.id) == before.radialMenuBindings.map(\.id))
             }
         }
     }
 
-    @Test func mixedCategoryChainWithRepeatedCategoryChangesOnlyTerminalCollection() throws {
+    @Test func mixedKindChainWithRepeatedKindChangesOnlyTerminalCollection() {
         let original = WindowAction(.custom)
         var edited = original
         edited.name = "New label"
         var graph = ActionTargetEditorGraph(
-            keyBindings: [.init(configID: "a", target: .gestureBinding("b")), .init(configID: "c", target: .radialMenuBinding("d"))],
-            gestures: [.init(configID: "b", target: .keyBinding("c"))],
+            keyBindings: [.init(configID: "a", target: .reference(.init(.gesture, "b"))), .init(configID: "c", target: .reference(.init(.radialMenu, "d")))],
+            gestureBindings: [.init(configID: "b", target: .reference(.init(.key, "c")))],
             radialMenuBindings: [.init(configID: "d", target: .windowAction(original))]
         )
         let before = graph
-        let replacement = try #require(graph.replacingAction(in: .keyBinding("a"), with: edited))
-        guard case .radialMenuBindings = replacement else { Issue.record("Expected one terminal radial-menu write"); return }
-        apply(replacement, to: &graph)
-        #expect(graph.resolve(.keyBinding("a")) == edited)
+        #expect(graph.replaceAction(in: .reference(.init(.key, "a")), owner: nil, with: edited) == nil)
+        #expect(graph.resolve(.reference(.init(.key, "a"))) == edited)
         #expect(graph.keyBindings == before.keyBindings)
-        #expect(graph.gestures == before.gestures)
+        #expect(graph.gestureBindings == before.gestureBindings)
         #expect(graph.radialMenuBindings.first?.id == before.radialMenuBindings.first?.id)
     }
 
     @Test func resolutionUsesEditedCollectionsWithoutRuntimeCacheRefresh() {
         var graph = ActionTargetEditorGraph(
-            keyBindings: [.init(configID: "key", target: .gestureBinding("gesture"))],
-            gestures: [.init(configID: "gesture", target: .radialMenuBinding("radial"))],
+            keyBindings: [.init(configID: "key", target: .reference(.init(.gesture, "gesture")))],
+            gestureBindings: [.init(configID: "gesture", target: .reference(.init(.radialMenu, "radial")))],
             radialMenuBindings: [.init(configID: "radial", target: .windowAction(.init(.custom)))]
         )
-        #expect(graph.resolve(.keyBinding("key"))?.name == nil)
+        #expect(graph.resolve(.reference(.init(.key, "key")))?.name == nil)
         let edited = WindowAction(kind: .custom(.init(name: "Immediately visible")))
         graph.radialMenuBindings[0].target = .windowAction(edited)
-        #expect(graph.resolve(.keyBinding("key"))?.getName() == "Immediately visible")
-        graph.gestures[0].target = .windowAction(.init(.maximize))
-        #expect(graph.resolve(.keyBinding("key"))?.direction == .maximize)
+        #expect(graph.resolve(.reference(.init(.key, "key")))?.getName() == "Immediately visible")
+        graph.gestureBindings[0].target = .windowAction(.init(.maximize))
+        #expect(graph.resolve(.reference(.init(.key, "key")))?.direction == .maximize)
         graph.keyBindings[0].target = .windowAction(.init(.stash))
-        #expect(graph.resolve(.keyBinding("key"))?.direction == .stash)
+        #expect(graph.resolve(.reference(.init(.key, "key")))?.direction == .stash)
     }
 
     @Test func danglingAndCyclicReferencesCannotBeEdited() {
         let graph = ActionTargetEditorGraph(
-            keyBindings: [.init(configID: "a", target: .gestureBinding("b"))],
-            gestures: [.init(configID: "b", target: .keyBinding("a")), .init(kind: .radialMenu, configID: "mode")],
+            keyBindings: [.init(configID: "a", target: .reference(.init(.gesture, "b")))],
+            gestureBindings: [.init(configID: "b", target: .reference(.init(.key, "a"))), .init(kind: .radialMenu, configID: "mode")],
             radialMenuBindings: []
         )
-        for target in [ActionTarget.keyBinding("a"), .keyBinding("missing"), .gestureBinding("mode"), .radialMenuMode] {
+        for target in [ActionTarget.reference(.init(.key, "a")), .reference(.init(.key, "missing")), .reference(.init(.gesture, "mode"))] {
+            var edited = graph
             #expect(graph.resolve(target) == nil)
-            #expect(graph.replacingAction(in: target, with: .init(.maximize)) == nil)
+            #expect(edited.replaceAction(in: target, owner: nil, with: .init(.maximize)) == nil)
+            #expect(edited == graph)
         }
     }
 
@@ -165,32 +163,30 @@ struct ActionTargetEditorGraphTests {
             keyBindings: [
                 unnamed,
                 .init(configID: "a", target: .windowAction(.init(.maximize))),
-                .init(configID: "b", target: .keyBinding("a"))
+                .init(configID: "b", target: .reference(.init(.key, "a")))
             ],
-            gestures: [.init(configID: "g", target: .windowAction(.init(.maximize)))],
-            radialMenuBindings: [.init(configID: "r", target: .gestureBinding("g"))]
+            gestureBindings: [.init(configID: "g", target: .windowAction(.init(.maximize)))],
+            radialMenuBindings: [.init(configID: "r", target: .reference(.init(.gesture, "g")))]
         )
-        #expect(!graph.canSetTarget(unnamed.reference, for: unnamed.reference))
-        #expect(!graph.canSetTarget(.keyBinding("a"), for: .keyBinding("a")))
-        #expect(!graph.canSetTarget(.keyBinding("b"), for: .keyBinding("a")))
-        #expect(!graph.canSetTarget(.radialMenuBinding("r"), for: .gestureBinding("g")))
-        #expect(graph.canSetTarget(.gestureBinding("g"), for: .keyBinding("a")))
+        #expect(!graph.canSetTarget(.reference(unnamed.reference), for: unnamed.reference))
+        #expect(!graph.canSetTarget(.reference(.init(.key, "a")), for: .init(.key, "a")))
+        #expect(!graph.canSetTarget(.reference(.init(.key, "b")), for: .init(.key, "a")))
+        #expect(!graph.canSetTarget(.reference(.init(.radialMenu, "r")), for: .init(.gesture, "g")))
+        #expect(graph.canSetTarget(.reference(.init(.gesture, "g")), for: .init(.key, "a")))
     }
+}
 
-    private func reference(_ category: Category, _ id: String) -> ActionTarget {
-        switch category {
-        case .key: .keyBinding(id)
-        case .gesture: .gestureBinding(id)
-        case .radial: .radialMenuBinding(id)
-        }
-    }
-
-    private func apply(_ replacement: ActionTargetEditorGraph.Replacement, to graph: inout ActionTargetEditorGraph) {
-        switch replacement {
-        case let .keyBindings(values): graph.keyBindings = values
-        case let .gestures(values): graph.gestures = values
-        case let .radialMenuBindings(values): graph.radialMenuBindings = values
-        case .direct: Issue.record("Expected a referenced terminal wrapper")
+extension StoreTests {
+    struct ActionTargetEditorGraphCommitTests {
+        @Test func committingWritesOnlyTheListsThatChanged() throws {
+            let profile = try Profile()
+            var graph = ActionTargetEditorGraph.current
+            graph.gestureBindings.append(GestureBinding(kind: .swipeUp, target: .windowAction(.init(.maximize))))
+            graph.commit()
+            try profile.flush()
+            #expect(profile.value(at: ["gestures", "bindings"]) != nil)
+            #expect(profile.value(at: ["key", "bindings"]) == nil)
+            #expect(profile.value(at: ["radial-menu", "bindings"]) == nil)
         }
     }
 }

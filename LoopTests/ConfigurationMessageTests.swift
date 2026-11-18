@@ -8,11 +8,11 @@
 import Foundation
 @testable import Loop
 import Testing
-import TOML
 import Tome
+import TOML
 
 struct ConfigurationMessageTests {
-    private func message<T: Decodable>(_ type: T.Type, _ value: TOMLValue) -> String? {
+    private func message(_ type: (some Decodable).Type, _ value: TOMLValue) -> String? {
         do { _ = try TOMLDecoder().decodeFromValue(type, from: value) } catch let DecodingError.dataCorrupted(context) {
             return context.debugDescription
         } catch let DecodingError.typeMismatch(_, context) {
@@ -33,7 +33,7 @@ struct ConfigurationMessageTests {
     @Test func targetsNameWhatIsWrong() {
         #expect(message(ActionTarget.self, .table(["action": .string("bogus")])) == "Unknown action 'bogus'")
         #expect(message(ActionTarget.self, .table(["action": .string("key:Not Valid!")]))
-            == "Invalid key binding id 'Not Valid!'; use letters, digits, '-' and '_'")
+            == "Invalid keybind id 'Not Valid!'; use letters, digits, '-' and '_'")
     }
 
     @Test func payloadsNameWhatTheyFound() {

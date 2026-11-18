@@ -19,12 +19,12 @@ struct GesturesConfigurationView: View {
     @StateObject private var model = GesturesConfigurationModel()
 
     @TomeValue(\.enableGestures) private var enableGestures
-    @TomeValue(\.gestures) private var gestures
+    @TomeValue(\.gestureBindings) private var gestures
     @TomeValue(\.keyBindings) private var keyBindings
-    @TomeValue(\.radialMenuActions) private var radialMenuBindings
+    @TomeValue(\.radialMenuBindings) private var radialMenuBindings
 
     private var graph: ActionTargetEditorGraph {
-        .init(keyBindings: keyBindings, gestures: gestures, radialMenuBindings: radialMenuBindings)
+        .init(keyBindings: keyBindings, gestureBindings: gestures, radialMenuBindings: radialMenuBindings)
     }
 
     private var conflictingGestureIDs: Set<UUID> {

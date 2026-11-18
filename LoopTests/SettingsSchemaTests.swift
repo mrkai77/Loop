@@ -9,8 +9,8 @@ import Foundation
 @testable import Loop
 import SwiftUI
 import Testing
-import TOML
 import Tome
+import TOML
 
 extension StoreTests {
     struct TOMLSchemaTests {
@@ -104,12 +104,12 @@ extension StoreTests {
         }
 
         @Test func aReferenceIsAnActionNamingAnotherBinding() throws {
-            #expect(try TargetCoding.decode(["action": .string("key:wide")]) == .keyBinding("wide"))
-            #expect(try TargetCoding.decode(["action": .string("gesture:swipe")]) == .gestureBinding("swipe"))
-            #expect(try TargetCoding.decode(["action": .string("radial-menu:top")]) == .radialMenuBinding("top"))
+            #expect(try TargetCoding.decode(["action": .string("key:wide")]) == .reference(.init(.key, "wide")))
+            #expect(try TargetCoding.decode(["action": .string("gesture:swipe")]) == .reference(.init(.gesture, "swipe")))
+            #expect(try TargetCoding.decode(["action": .string("radial-menu:top")]) == .reference(.init(.radialMenu, "top")))
             #expect(throws: (any Error).self) { try TargetCoding.decode(["action": .string("radial-menu")]) }
-            #expect(try TargetCoding.encode(.keyBinding("wide")) == ["action": .string("key:wide")])
-            #expect(try TargetCoding.encode(.radialMenuBinding("top")) == ["action": .string("radial-menu:top")])
+            #expect(try TargetCoding.encode(.reference(.init(.key, "wide"))) == ["action": .string("key:wide")])
+            #expect(try TargetCoding.encode(.reference(.init(.radialMenu, "top"))) == ["action": .string("radial-menu:top")])
             #expect(throws: (any Error).self) { try TargetCoding.decode([:]) }
             #expect(throws: (any Error).self) { try TargetCoding.decode(["action": .string("key:Not Valid!")]) }
             #expect(throws: (any Error).self) { try TargetCoding.decode(["action": .string("window:wide")]) }
@@ -139,11 +139,11 @@ extension StoreTests {
         @Test func everyBindingKindRoundTripsThroughTheFile() throws {
             let custom = WindowAction(kind: .custom(.init(name: "Custom", size: .custom(width: ScreenLength(40), height: nil), position: .coordinates(x: nil, y: ScreenLength(5, unit: .points)))))
             let stash = WindowAction(kind: .stash(.init(name: "Stash", size: .preserve, position: .anchor(.topRight))))
-            let cycle = WindowAction(kind: .cycle(.init(name: "Cycle", steps: [.windowAction(custom), .windowAction(WindowAction(.leftHalf)), .keyBinding("wide")])))
+            let cycle = WindowAction(kind: .cycle(.init(name: "Cycle", steps: [.windowAction(custom), .windowAction(WindowAction(.leftHalf)), .reference(.init(.key, "wide"))])))
             let keys = [
                 KeyBinding(configID: "wide", keys: KeyCombination(names: ["a"]), bypassTriggerKey: true, target: .windowAction(custom)),
                 KeyBinding(keys: KeyCombination(names: ["b"]), target: .windowAction(cycle)),
-                KeyBinding(keys: KeyCombination(names: ["c"]), target: .gestureBinding("swipe")),
+                KeyBinding(keys: KeyCombination(names: ["c"]), target: .reference(.init(.gesture, "swipe"))),
                 KeyBinding(target: .windowAction(WindowAction(.noAction)))
             ]
             let decodedKeys = try [KeyBinding].decodeTOML(keys.encodeTOML())
@@ -152,7 +152,7 @@ extension StoreTests {
             #expect(decodedKeys.map(\.configID) == keys.map(\.configID))
             #expect(decodedKeys.map(\.bypassTriggerKey) == keys.map(\.bypassTriggerKey))
 
-            let radial = [RadialMenuBinding(configID: "top", target: .windowAction(stash)), RadialMenuBinding(target: .windowAction(cycle)), RadialMenuBinding(target: .keyBinding("wide"))]
+            let radial = [RadialMenuBinding(configID: "top", target: .windowAction(stash)), RadialMenuBinding(target: .windowAction(cycle)), RadialMenuBinding(target: .reference(.init(.key, "wide")))]
             let decodedRadial = try [RadialMenuBinding].decodeTOML(radial.encodeTOML())
             #expect(decodedRadial.map(\.target.semanticKey) == radial.map(\.target.semanticKey))
             #expect(decodedRadial.map(\.configID) == radial.map(\.configID))
@@ -160,7 +160,7 @@ extension StoreTests {
             let gestures = [
                 GestureBinding(kind: .radialMenu, configID: "menu"),
                 GestureBinding(fingerCount: 3, kind: .swipeLeft, configID: "swipe", target: .windowAction(custom), activationZone: .anywhere),
-                GestureBinding(fingerCount: 4, kind: .magnifyIn, target: .radialMenuBinding("top")),
+                GestureBinding(fingerCount: 4, kind: .magnifyIn, target: .reference(.init(.radialMenu, "top"))),
                 GestureBinding(fingerCount: 2, kind: .swipeUp, target: .windowAction(cycle))
             ]
             let decodedGestures = try [GestureBinding].decodeTOML(gestures.encodeTOML())
@@ -177,7 +177,7 @@ extension StoreTests {
             let rows = [
                 KeyBinding(configID: "portrait", keys: KeyCombination(names: ["a"]), bypassTriggerKey: true, target: .windowAction(custom)),
                 KeyBinding(configID: "halves", keys: KeyCombination(names: ["b"]), target: .windowAction(cycle)),
-                KeyBinding(keys: KeyCombination(names: ["c"]), target: .keyBinding("portrait"))
+                KeyBinding(keys: KeyCombination(names: ["c"]), target: .reference(.init(.key, "portrait")))
             ]
             var document = try TOMLDocument("")
             try document.set(TOMLEncoder().encodeToDocumentValue(rows), at: ["key", "bindings"])
@@ -211,7 +211,7 @@ extension StoreTests {
         }
 
         @Test func fullReferenceMatrixPreservesDanglingIDs() throws {
-            let targets: [ActionTarget] = [.keyBinding("wide"), .gestureBinding("gs_example"), .radialMenuBinding("rm_example")]
+            let targets: [ActionTarget] = [.reference(.init(.key, "wide")), .reference(.init(.gesture, "gs_example")), .reference(.init(.radialMenu, "rm_example"))]
             for target in targets {
                 let keys = [KeyBinding(target: target)]
                 #expect(try [KeyBinding].decodeTOML(keys.encodeTOML()).map(\.target) == [target])
@@ -223,7 +223,7 @@ extension StoreTests {
         }
 
         @Test func rowsWithoutAWrittenIDAreRandomAndPromotionKeepsIdentity() throws {
-            let encoded = try [KeyBinding(.leftHalf, keybind: KeyCombination(names: ["a"])), KeyBinding(.rightHalf, keybind: KeyCombination(names: ["b"]))].encodeTOML()
+            let encoded = try [KeyBinding(.leftHalf, keys: KeyCombination(names: ["a"])), KeyBinding(.rightHalf, keys: KeyCombination(names: ["b"]))].encodeTOML()
             var rows = try [KeyBinding].decodeTOML(encoded)
             #expect(Set(rows.map(\.id)).count == 2)
             #expect(rows.allSatisfy { $0.configID == nil })
@@ -257,10 +257,10 @@ extension StoreTests {
             #expect(try settings.fileContents() == source)
 
             let snapshot = BindingResolutionSnapshot(
-                keyBindings: settings[\.keyBindings] + [KeyBinding(configID: "ref", target: .keyBinding("same"))],
-                gestures: [], radialMenuBindings: []
+                keyBindings: settings[\.keyBindings] + [KeyBinding(configID: "ref", target: .reference(.init(.key, "same")))],
+                gestureBindings: [], radialMenuBindings: []
             )
-            #expect(snapshot.action(for: .keyBinding("same"))?.direction == .leftHalf)
+            #expect(snapshot.action(for: .reference(.init(.key, "same"))).direction == .leftHalf)
 
             var rows = settings[\.keyBindings]
             rows[0].keys = KeyCombination(names: ["a"])
@@ -287,14 +287,15 @@ extension StoreTests {
             try settings.reload()
             #expect(settings[\.keyBindings].map(\.configID) == ["same", "same-2"])
             try settings.install("[[gestures.bindings]]\nid = \"g\"\nfingers = 3\nkind = \"pinch\"\naction = \"maximize\"\n[[gestures.bindings]]\nid = \"g\"\nfingers = 4\nkind = \"pinch\"\naction = \"maximize\"\n[[radial-menu.bindings]]\nid = \"r\"\naction = \"maximize\"\n[[radial-menu.bindings]]\nid = \"r\"\naction = \"maximize\"\n")
-            #expect(settings[\.gestures].map(\.configID) == ["g", "g-2"])
-            #expect(settings[\.radialMenuActions].map(\.configID) == ["r", "r-2"])
+            #expect(settings[\.gestureBindings].map(\.configID) == ["g", "g-2"])
+            #expect(settings[\.radialMenuBindings].map(\.configID) == ["r", "r-2"])
             #expect(settings.issues.isEmpty)
         }
 
         @Test func theRadialMenuIsAGestureKindNotAnAction() throws {
             let rows = try [GestureBinding].decodeTOML(.array([.table(["kind": .string("radial-menu")])]))
-            #expect(rows.first?.target == .radialMenuMode)
+            #expect(rows.first?.target.resolvedDirection == .noAction)
+            #expect(try TOMLCodecs.decodeTable(TOMLCodecs.decodeArray(rows.encodeTOML())[0])["action"] == nil)
             #expect(try [GestureBinding].decodeTOML(rows.encodeTOML()).map(\.kind) == [.radialMenu])
             #expect(throws: (any Error).self) { try [GestureBinding].decodeTOML(.array([.table(["action": .string("radial-menu")])])) }
             #expect(throws: (any Error).self) {
@@ -332,11 +333,11 @@ extension StoreTests {
             """)
             #expect(settings[\.keyBindings].first?.configID == "mine")
             #expect(settings[\.keyBindings].first?.keys == KeyCombination(names: ["ctrl", "a"]))
-            #expect(settings[\.gestures].map(\.fingerCount) == GestureBinding.defaults.map(\.fingerCount))
+            #expect(settings[\.gestureBindings].map(\.fingerCount) == GestureBinding.defaults.map(\.fingerCount))
             #expect(settings.issues.contains { $0.path == "gestures.bindings" })
             #expect(!settings.issues.contains { $0.path == "key.bindings" })
-            try settings.set([GestureBinding(fingerCount: 3, kind: .swipeLeft)], for: \.gestures)
-            #expect(settings[\.gestures].first?.fingerCount == 3)
+            try settings.set([GestureBinding(fingerCount: 3, kind: .swipeLeft)], for: \.gestureBindings)
+            #expect(settings[\.gestureBindings].first?.fingerCount == 3)
             #expect(settings.serialized.contains("fingers = 9") == false)
             #expect(settings[\.keyBindings].first?.configID == "mine")
             #expect(settings.issues.isEmpty)
@@ -354,9 +355,9 @@ extension StoreTests {
             action = "gesture:also-missing"
             """)
             #expect(settings.issues.isEmpty)
-            let resolver = BindingResolutionSnapshot(keyBindings: settings[\.keyBindings], gestures: settings[\.gestures], radialMenuBindings: settings[\.radialMenuActions])
-            #expect(resolver.action(for: settings[\.radialMenuActions][0].target)?.direction == .noAction)
-            #expect(resolver.action(for: settings[\.gestures][0].target)?.direction == .noAction)
+            let resolver = BindingResolutionSnapshot(keyBindings: settings[\.keyBindings], gestureBindings: settings[\.gestureBindings], radialMenuBindings: settings[\.radialMenuBindings])
+            #expect(resolver.action(for: settings[\.radialMenuBindings][0].target).direction == .noAction)
+            #expect(resolver.action(for: settings[\.gestureBindings][0].target).direction == .noAction)
         }
 
         @Test func canonicalAPIReadsAndObservesTheSection() async throws {
@@ -426,19 +427,19 @@ extension StoreTests {
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString)
             defer { try? FileManager.default.removeItem(at: directory) }
             let settings = try Tome.Settings(url: directory.appendingPathComponent("config.toml"), debounceInterval: 60)
-            try settings.set([GestureBinding(fingerCount: 3, kind: .swipeLeft), GestureBinding(fingerCount: 4, kind: .swipeRight)], for: \.gestures)
-            let ids = settings[\.gestures].map(\.id)
+            try settings.set([GestureBinding(fingerCount: 3, kind: .swipeLeft), GestureBinding(fingerCount: 4, kind: .swipeRight)], for: \.gestureBindings)
+            let ids = settings[\.gestureBindings].map(\.id)
             #expect(Set(ids).count == 2)
-            var edited = settings[\.gestures]
+            var edited = settings[\.gestureBindings]
             edited[1].kind = .swipeUp
-            try settings.set(edited, for: \.gestures)
-            #expect(settings[\.gestures].map(\.id) == ids)
-            #expect(settings[\.gestures][1].kind == .swipeUp)
+            try settings.set(edited, for: \.gestureBindings)
+            #expect(settings[\.gestureBindings].map(\.id) == ids)
+            #expect(settings[\.gestureBindings][1].kind == .swipeUp)
             edited[1] = edited[1].withConfigurationID("selected")
-            try settings.set(edited, for: \.gestures)
-            let selected = try #require(settings[\.gestures].first { $0.configID == "selected" }).id
-            try settings.set([GestureBinding(fingerCount: 2, kind: .magnifyIn)] + edited, for: \.gestures)
-            #expect(settings[\.gestures].first { $0.configID == "selected" }?.id == selected)
+            try settings.set(edited, for: \.gestureBindings)
+            let selected = try #require(settings[\.gestureBindings].first { $0.configID == "selected" }).id
+            try settings.set([GestureBinding(fingerCount: 2, kind: .magnifyIn)] + edited, for: \.gestureBindings)
+            #expect(settings[\.gestureBindings].first { $0.configID == "selected" }?.id == selected)
         }
     }
 }

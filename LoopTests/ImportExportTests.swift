@@ -9,8 +9,8 @@ import AppKit
 import Foundation
 @testable import Loop
 import Testing
-import TOML
 import Tome
+import TOML
 
 extension StoreTests {
     struct ImportExportTests {
@@ -57,13 +57,14 @@ extension StoreTests {
             #expect(action.configID == "portrait")
             #expect(action.id == originalBinding.id)
             #expect(action.target.semanticKey == originalBinding.target.semanticKey)
-            #expect(destination[\.radialMenuActions].first?.target == .keyBinding("portrait"))
-            #expect(destination[\.gestures].first?.target == .keyBinding("portrait"))
+            #expect(destination[\.radialMenuBindings].first?.target == .reference(.init(.key, "portrait")))
+            #expect(destination[\.gestureBindings].first?.target == .reference(.init(.key, "portrait")))
             #expect(try destination.fileContents() == source)
         }
 
         @Test func validationListsEveryProblemBeforeAnythingIsConfirmed() throws {
             let settings = try Profile("")
+            // Keys join validation once they are read
             _ = (settings[\.showDockIcon], settings[\.previewCornerRadius])
             let invalid = "[icon]\nshow-in-dock = \"yes\"\n[preview]\ncorner-radius = \"bad\"\n"
             let paths = Set(Migrator.validateConfiguration(invalid).map(\.path))
@@ -99,21 +100,28 @@ extension StoreTests {
         }
 
         @Test func currentAndPre12JSONSupportMergeReplaceAndExplicitUnlinkedActions() throws {
-            let action = KeyBinding(configID: "test", keys: KeyCombination(names: ["a"]), bypassTriggerKey: true, target: .windowAction(WindowAction(kind: .custom(.init(name: "Test", size: .preserve, position: .coordinates(x: ScreenLength(5), y: ScreenLength(7)))))))
-            let saved = LegacyKeybindsFile(version: "1.4.2", triggerKey: [.kVK_Function], actions: [LegacyWindowAction(action)])
-            let current = try Migrator.decodeJSON(JSONEncoder().encode(saved))
-            let legacy = try Migrator.decodeJSON(JSONEncoder().encode(saved.actions))
+            let expected = ActionTarget.windowAction(WindowAction(kind: .custom(.init(name: "Test", size: .preserve, position: .coordinates(x: ScreenLength(5), y: ScreenLength(7))))))
+            var custom = Develop.WindowAction(.custom, keybind: [.kVK_ANSI_A], name: "Test")
+            custom.bypassTriggerKey = true
+            custom.unit = .percentage
+            custom.sizeMode = .preserve
+            custom.positionMode = .coordinates
+            custom.xPoint = 5
+            custom.yPoint = 7
+            let saved = Develop.KeybindsFile(version: "1.4.2", triggerKey: [.kVK_Function], actions: [custom])
+            let current = try Migrator.decodeJSON(Data(Develop.json(saved).utf8))
+            let legacy = try Migrator.decodeJSON(Data(Develop.json(saved.actions).utf8))
             #expect(legacy.triggerKey == nil)
-            #expect(current.actions.first?.convertToKeyBinding().target.semanticKey == action.target.semanticKey)
+            #expect(current.bindings.first?.target.semanticKey == expected.semanticKey)
+            #expect(current.bindings.first?.keys == KeyCombination(names: ["a"]))
             let settings = try Profile()
-            try settings.set([KeyBinding(.rightHalf, keybind: KeyCombination(names: ["b"]))], for: \.keyBindings)
+            try settings.set([KeyBinding(.rightHalf, keys: KeyCombination(names: ["b"]))], for: \.keyBindings)
             #expect(try Migrator.applyJSON(current, decision: .merge))
             #expect(settings[\.keyBindings].count == 2)
             #expect(settings[\.triggerKey] == [.kVK_Function])
             #expect(try Migrator.applyJSON(legacy, decision: .erase))
             #expect(settings[\.keyBindings].count == 1)
             #expect(settings[\.keyBindings][0].bypassTriggerKey == true)
-            #expect(settings[\.keyBindings][0].configID == "test")
             try settings.flush()
         }
 
@@ -124,15 +132,14 @@ extension StoreTests {
             let a = KeyCombination(names: ["a"])
             // (existing, imported, bindings left after the merge)
             let cases: [(KeyBinding, KeyBinding, Int)] = [
-                (KeyBinding(.leftHalf, keybind: a), KeyBinding(.rightHalf, keybind: a), 1),
+                (KeyBinding(.leftHalf, keys: a), KeyBinding(.rightHalf, keys: a), 1),
                 (KeyBinding(keys: a, target: custom(75, 80, .center)), KeyBinding(keys: a, target: custom(25, 50, .bottomLeft)), 1),
-                (KeyBinding(keys: a, target: .keyBinding("missing")), KeyBinding(.rightHalf, keybind: a), 2)
+                (KeyBinding(keys: a, target: .reference(.init(.key, "missing"))), KeyBinding(.rightHalf, keys: a), 2)
             ]
             for (existing, imported, count) in cases {
                 let settings = try Profile()
                 try settings.set([existing], for: \.keyBindings)
-                let saved = LegacyKeybindsFile(version: nil, triggerKey: nil, actions: [LegacyWindowAction(imported)])
-                #expect(try Migrator.applyJSON(saved, decision: .merge))
+                #expect(try Migrator.applyJSON(ImportedKeybinds(triggerKey: nil, bindings: [imported]), decision: .merge))
                 #expect(settings[\.keyBindings].count == count)
                 #expect(settings[\.keyBindings][0].target.semanticKey == existing.target.semanticKey)
                 if count == 2 { #expect(settings[\.keyBindings][1].target.semanticKey == imported.target.semanticKey) }
@@ -142,8 +149,8 @@ extension StoreTests {
         @Test func rectangleRetainsCompleteStandaloneShortcut() throws {
             let json = #"{"shortcuts":{"leftHalf":{"keyCode":123,"modifierFlags":786432},"unknown":{"keyCode":-1,"modifierFlags":0}}}"#
             let imported = try Migrator.decodeJSON(Data(json.utf8))
-            let action = try #require(imported.actions.first?.convertToKeyBinding())
-            #expect(imported.actions.count == 1)
+            let action = try #require(imported.bindings.first)
+            #expect(imported.bindings.count == 1)
             #expect(action.target.semanticKey == ActionTarget.windowAction(WindowAction(.leftHalf)).semanticKey)
             #expect(action.keys == [.kVK_Control, .kVK_Option, .kVK_LeftArrow])
             #expect(action.bypassTriggerKey == true)
@@ -154,15 +161,17 @@ extension StoreTests {
         }
 
         @Test func issue1080OriginalJSONImportsAllActionsWithoutInventingMissingLinkData() throws {
+            // The issue's file has no bypassTriggerKey field, so its link state can't be recovered
             let saved = try Migrator.decodeJSON(Data(Self.issue1080.utf8))
-            #expect(saved.actions.count == 9)
+            #expect(saved.bindings.count == 9)
             #expect(saved.triggerKey == [.kVK_Function])
             let settings = try Profile()
             #expect(try Migrator.applyJSON(saved, decision: .erase))
             #expect(settings[\.keyBindings].count == 9)
             #expect(settings[\.keyBindings].first?.keys == KeyCombination(names: ["c", "alt", "ctrl"]))
-            #expect(settings[\.keyBindings][1].target.resolvedAction?.customDimensions?.width?.value == 50)
-            #expect(settings[\.keyBindings][2].target.resolvedAction?.resolvedCycleSteps?.count == 3)
+            let resolver = BindingResolutionSnapshot(keyBindings: settings[\.keyBindings], gestureBindings: [], radialMenuBindings: [])
+            #expect(resolver.action(for: settings[\.keyBindings][1].target).customDimensions?.width?.value == 50)
+            #expect(resolver.action(for: settings[\.keyBindings][2].target).resolvedCycleSteps?.count == 3)
             let exported = Tome.serializedDocument
             #expect(try Migrator.importConfiguration(exported, confirmed: true))
             #expect(Tome.serializedDocument == exported)
@@ -176,8 +185,8 @@ extension StoreTests {
             ] {
                 let settings = try Profile()
                 #expect(try Migrator.importConfiguration(source, confirmed: true))
-                let resolver = BindingResolutionSnapshot(keyBindings: settings[\.keyBindings], gestures: settings[\.gestures], radialMenuBindings: settings[\.radialMenuActions])
-                #expect(settings[\.keyBindings].allSatisfy { resolver.action(for: $0.target)?.direction == .noAction })
+                let resolver = BindingResolutionSnapshot(keyBindings: settings[\.keyBindings], gestureBindings: settings[\.gestureBindings], radialMenuBindings: settings[\.radialMenuBindings])
+                #expect(settings[\.keyBindings].allSatisfy { resolver.action(for: $0.target).direction == .noAction })
             }
         }
 
@@ -188,8 +197,8 @@ extension StoreTests {
                 return Data(text.utf8)
             }
             let flat = try Migrator.decodeJSON(json(depth: 1))
-            #expect(flat.actions.count == 1)
-            _ = try flat.actions.map { $0.convertToKeyBinding() }.encodeTOML()
+            #expect(flat.bindings.count == 1)
+            _ = try flat.bindings.encodeTOML()
             #expect(throws: MigratorError.self) { try Migrator.decodeJSON(json(depth: 2)) }
             #expect(throws: MigratorError.self) { try Migrator.importLoopLegacyKeybinds(from: json(depth: 2)) }
             #expect(throws: (any Error).self) { try Migrator.decodeJSON(json(depth: 20)) }

@@ -49,7 +49,7 @@ struct RadialMenuGestureOverrideTests {
         let gestures = [radial, firstUnset, secondUnset]
 
         #expect(GestureBinding.conflictingIDs(in: gestures).isEmpty)
-        #expect(GestureBinding.activeGestures(in: gestures).map(\.id) == [radial.id])
+        #expect(GestureBinding.active(in: gestures).map(\.id) == [radial.id])
         #expect(GestureBinding.radialMenuOverrideIDs(in: gestures).isEmpty)
     }
 
@@ -101,7 +101,7 @@ struct RadialMenuGestureOverrideTests {
         GestureBinding(
             fingerCount: fingerCount,
             kind: kind,
-            target: kind == .radialMenu ? .radialMenuMode : .windowAction(.init(action)),
+            target: .windowAction(.init(action)),
             activationZone: activationZone
         )
     }

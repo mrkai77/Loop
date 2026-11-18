@@ -139,6 +139,7 @@ struct Keycorder: View {
     /// Handles key presses and updates the current keybind
     func handleKeyDown(with event: NSEvent) {
         // Get current selected keys that aren't modifiers
+        // Stored by its name on the current layout
         let pressedKey = KeyboardLayout.shared.name(forKeyCode: event.keyCode.baseKey(isFnPressed: fnKeyState.isPressed))
         let currentKeys = selectionKeybind.union([pressedKey])
 
@@ -205,17 +206,11 @@ struct Keycorder: View {
             return false
         }
 
-        let effectiveSelection = bypassTriggerKey == true
-            ? selectionKeybind
-            : triggerKey.names.union(selectionKeybind)
+        let selection = KeyBinding(keys: KeyCombination(names: selectionKeybind), bypassTriggerKey: bypassTriggerKey)
+        let selectionTrigger = selection.trigger(triggerKey: triggerKey)
 
-        for keybind in Tome.keyBindings {
-            let effectiveExisting = keybind.bypassTriggerKey == true
-                ? keybind.keys.names
-                : triggerKey.names.union(keybind.keys.names)
-
-            guard effectiveSelection == effectiveExisting else { continue }
-
+        if let selectionTrigger,
+           let keybind = Tome.keyBindings.first(where: { $0.trigger(triggerKey: triggerKey) == selectionTrigger }) {
             let action = ActionTargetEditorGraph.current.resolve(keybind.target)
             if let name = action?.name, !name.isEmpty {
                 errorMessage = "That keybind is already being used by \(name)."

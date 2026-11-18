@@ -72,7 +72,7 @@ final class SettingsWindowManager: ObservableObject {
         self.radialMenuViewModel = .init(isSettingsPreview: true)
         self.previewViewModel = .init(isSettingsPreview: true)
 
-        if let firstAction = RadialMenuBinding.userConfiguredActions.first.flatMap({ ActionTargetEditorGraph.current.resolve($0.target) }) {
+        if let firstAction = WindowActionCache.shared.radialMenuActions.first {
             setPreviewedAction(to: firstAction)
         }
     }
@@ -160,9 +160,7 @@ final class SettingsWindowManager: ObservableObject {
     private func setNextPreviewedAction() {
         if isPreviewingUserSelection {
             guard let parent = previewedParentAction,
-                  parent.direction == .cycle,
-                  case let .cycle(payload) = parent.kind,
-                  case let cycle = payload.steps.compactMap(ActionTargetEditorGraph.current.resolve),
+                  let cycle = parent.resolvedCycleSteps,
                   let index = cycle.firstIndex(of: previewedAction)
             else {
                 return
@@ -171,8 +169,7 @@ final class SettingsWindowManager: ObservableObject {
             let nextIndex = (index + 1) % cycle.count
             setPreviewedAction(to: parent, cycleAction: cycle[nextIndex])
         } else {
-            let radialMenuActions: [WindowAction] = RadialMenuBinding.userConfiguredActions
-                .compactMap { ActionTargetEditorGraph.current.resolve($0.target) }
+            let radialMenuActions = WindowActionCache.shared.radialMenuActions
 
             let nextAction = if let index = radialMenuActions.firstIndex(of: previewedParentAction ?? previewedAction) {
                 radialMenuActions[(index + 1) % radialMenuActions.count]
@@ -184,10 +181,11 @@ final class SettingsWindowManager: ObservableObject {
         }
     }
 
-    func previewSelection<Binding: ConfigurationIdentifiable>(_ selection: Set<Binding>, in bindings: [Binding], graph: ActionTargetEditorGraph) {
+    /// Reads from `bindings` rather than `selection`, so an edited target shows at once.
+    func previewSelection<Binding: ActionBinding>(_ selection: Set<Binding>, in bindings: [Binding], graph: ActionTargetEditorGraph) {
         if selection.count == 1, let selected = selection.first,
            let current = bindings.first(where: { $0.id == selected.id }),
-           let action = graph.resolve(current.target) {
+           let action = graph.previewAction(for: current.target) {
             isPreviewingUserSelection = true
             setPreviewedAction(to: action)
         } else {
@@ -195,12 +193,11 @@ final class SettingsWindowManager: ObservableObject {
         }
     }
 
+    /// `newAction` must have its cycle steps resolved (see `ActionTargetEditorGraph.previewAction(for:)`).
     func setPreviewedAction(to newAction: WindowAction, cycleAction: WindowAction? = nil) {
         if newAction.direction == .cycle {
             previewedParentAction = newAction
-            previewedAction = cycleAction ?? {
-                if case let .cycle(payload) = newAction.kind { payload.steps.first.flatMap(ActionTargetEditorGraph.current.resolve) } else { nil }
-            }() ?? .init(.noAction)
+            previewedAction = cycleAction ?? newAction.resolvedCycleSteps?.first ?? .init(.noAction)
         } else {
             previewedParentAction = nil
             previewedAction = newAction

@@ -1,27 +1,16 @@
+//
+//  StashIdentityTests.swift
+//  LoopTests
+//
+//  Created by Kai Azim on 2026-11-16.
+//
 
 import Foundation
 @testable import Loop
 import SwiftUI
 import Testing
-import TOML
 import Tome
-
-struct ActionPositionMemoryTests {
-    @Test func switchingPositionModesKeepsTheInactiveModesValues() {
-        var memory = ActionPositionMemory()
-        let coordinates = ActionPosition.coordinates(x: ScreenLength(25), y: ScreenLength(30, unit: .points))
-        #expect(memory.switched(from: .anchor(.bottomRight), toCoordinates: true) == .coordinates(x: ScreenLength(0), y: ScreenLength(0)))
-        #expect(memory.switched(from: coordinates, toCoordinates: false) == .anchor(.bottomRight))
-        #expect(memory.switched(from: .anchor(.bottomRight), toCoordinates: true) == coordinates)
-        #expect(memory.switched(from: coordinates, toCoordinates: false) == .anchor(.bottomRight))
-    }
-
-    @Test func anAnchorlessActionFallsBackToCenter() {
-        var memory = ActionPositionMemory()
-        #expect(memory.switched(from: .coordinates(x: ScreenLength(5), y: nil), toCoordinates: false) == .anchor(.center))
-        #expect(memory.switched(from: .anchor(.center), toCoordinates: true) == .coordinates(x: ScreenLength(5), y: nil))
-    }
-}
+import TOML
 
 struct StashIdentityTests {
     private let source = """
@@ -41,6 +30,7 @@ struct StashIdentityTests {
 
     private func stashIDs(_ source: String) throws -> [UUID] {
         let rows = try #require(TOMLDocument(source).value(at: ["key", "bindings"]))
+        // Every call is a fresh launch
         return try [KeyBinding].decodeIdentified(rows).flatMap { binding -> [UUID] in
             guard case let .windowAction(action) = binding.target else { return [] }
             if case let .cycle(cycle) = action.kind {
@@ -80,6 +70,7 @@ struct StashIdentityTests {
         #expect(try stashIDs(twice) == ids)
     }
 
+    /// `prefix` rows come before the unidentified stash keybind.
     private func unidentifiedStashID(after prefix: String = "") throws -> UUID {
         let source = "\(prefix)[[key.bindings]]\naction = \"stash\"\nposition = \"top-left\"\nkeys = \"s\"\n"
         return try #require(stashIDs(source).last)
@@ -95,27 +86,9 @@ struct StashIdentityTests {
         let radial = try #require(TOMLDocument(source + "\n[[radial-menu.bindings]]\naction = \"key:named\"\n").value(at: ["radial-menu", "bindings"]))
         let bindings = try [KeyBinding].decodeIdentified(rows)
         let menu = try [RadialMenuBinding].decodeIdentified(radial)
-        let resolver = BindingResolutionSnapshot(keyBindings: bindings, gestures: [], radialMenuBindings: menu)
+        let resolver = BindingResolutionSnapshot(keyBindings: bindings, gestureBindings: [], radialMenuBindings: menu)
         let direct = try #require(resolver.action(for: bindings[2].target))
         let viaAlias = try #require(resolver.action(for: menu[0].target))
         #expect(direct.id == viaAlias.id)
-    }
-}
-
-extension StoreTests {
-    struct ColourSettingsTests {
-        @Test func coloursReadSixOrEightDigitHexAndWriteSixWhenOpaque() throws {
-            let profile = try Profile("[accent-color]\ncolor = \"#11223344\"\n")
-            defer { Tome.reset(\.customAccentColor) }
-            Tome.refresh(\.customAccentColor)
-            #expect(try Color.tomeBridge.serialize(Tome.customAccentColor) == .string("#11223344"))
-            #expect(!profile.issues.contains { $0.path == "accent-color.color" })
-            Tome.customAccentColor = Color(.sRGB, red: 1, green: 0, blue: 0)
-            #expect(profile.value(at: ["accent-color", "color"]) == .string("#FF0000"))
-            try profile.install("[accent-color]\ncolor = \"#336699\"\n")
-            Tome.refresh(\.customAccentColor)
-            #expect(try Color.tomeBridge.serialize(Tome.customAccentColor) == .string("#336699"))
-            #expect(!profile.issues.contains { $0.path == "accent-color.color" })
-        }
     }
 }

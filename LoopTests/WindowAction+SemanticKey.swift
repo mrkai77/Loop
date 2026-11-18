@@ -7,6 +7,7 @@
 
 @testable import Loop
 
+/// Decoding assigns new UUIDs, so tests compare actions without their identity.
 extension WindowAction {
     indirect enum SemanticKey: Hashable {
         case builtin(WindowDirection)
@@ -28,19 +29,13 @@ extension WindowAction {
 extension ActionTarget {
     indirect enum SemanticKey: Hashable {
         case action(WindowAction.SemanticKey)
-        case keyBinding(String)
-        case gestureBinding(String)
-        case radialMenuBinding(String)
-        case radialMenuMode
+        case reference(BindingReference)
     }
 
     var semanticKey: SemanticKey {
         switch self {
         case let .windowAction(action): .action(action.semanticKey)
-        case let .keyBinding(id): .keyBinding(id)
-        case let .gestureBinding(id): .gestureBinding(id)
-        case let .radialMenuBinding(id): .radialMenuBinding(id)
-        case .radialMenuMode: .radialMenuMode
+        case let .reference(reference): .reference(reference)
         }
     }
 }

@@ -7,16 +7,13 @@
 
 import CryptoKit
 import Foundation
-import TOML
-import Tome
 
 enum ConfigurationIdentity {
     private static let namespace = UUID(uuid: (0x4C, 0x4F, 0x4F, 0x50, 0x4C, 0x4F, 0x4F, 0x50, 0x4C, 0x4F, 0x4F, 0x50, 0x4C, 0x4F, 0x4F, 0x50))
 
-    private static let idCharacters = CharacterSet(charactersIn: "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-_")
-
+    /// ASCII letters, digits, `-` and `_`.
     static func isValid(_ id: String) -> Bool {
-        !id.isEmpty && id.unicodeScalars.allSatisfy(idCharacters.contains)
+        !id.isEmpty && id.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }
     }
 
     static func validate(_ id: String, as description: String = "id") throws {
@@ -25,7 +22,8 @@ enum ConfigurationIdentity {
         }
     }
 
-    static func deduplicatingIDs<Binding: ConfigurationIdentifiable>(_ bindings: [Binding]) -> [Binding] {
+    /// References keep resolving to the first row. A repeated `move-to-space-1` becomes `move-to-space-1-2`.
+    static func deduplicatingIDs<Binding: ActionBinding>(_ bindings: [Binding]) -> [Binding] {
         var taken = Set(bindings.compactMap(\.configID))
         var seen: Set<String> = []
         return bindings.map { binding in
@@ -52,6 +50,7 @@ enum ConfigurationIdentity {
         return "\(id)-\(suffix)"
     }
 
+    /// `HTTPServer` becomes `http-server`, and `macOSCenter` becomes `macos-center`.
     static func kebabCase(_ text: String) -> String {
         let characters = Array(text.folding(options: .diacriticInsensitive, locale: nil))
         var words: [String] = []
@@ -77,73 +76,5 @@ enum ConfigurationIdentity {
         hash[6] = (hash[6] & 0x0F) | 0x50
         hash[8] = (hash[8] & 0x3F) | 0x80
         return hash.withUnsafeBytes { UUID(uuid: $0.loadUnaligned(as: uuid_t.self)) }
-    }
-}
-
-protocol ConfigurationIdentifiable: Identifiable, Codable, Hashable, Sendable, Tome.Serializable where ID == UUID {
-    static var category: String { get }
-
-    var id: UUID { get set }
-    var configID: String? { get set }
-    var target: ActionTarget { get set }
-}
-
-extension ConfigurationIdentifiable {
-    var referenceID: String { configID ?? id.uuidString.lowercased() }
-
-    func withConfigurationID(_ configID: String) -> Self {
-        var binding = self
-        binding.configID = configID
-        return binding
-    }
-
-    var readableIDStem: String {
-        switch target {
-        case let .windowAction(action):
-            let named = action.hasCustomizableName ? ConfigurationIdentity.kebabCase(action.name ?? "") : ""
-            if !named.isEmpty { return named }
-            let kind = ConfigurationIdentity.kebabCase(action.direction.rawValue)
-            return kind.isEmpty ? "custom" : kind
-        case .radialMenuMode: return "radial_menu"
-        case .keyBinding, .gestureBinding, .radialMenuBinding: return "link"
-        }
-    }
-
-    mutating func ensureConfigurationID(avoiding taken: Set<String>) -> String {
-        if let configID { return configID }
-        let value = ConfigurationIdentity.nextFreeID(readableIDStem, taken: taken)
-        configID = value
-        return value
-    }
-
-    mutating func deriveIdentity() {
-        guard let configID else { return }
-        id = ConfigurationIdentity.uuid("\(Self.category)/id:\(configID)")
-    }
-}
-
-extension Array where Element: ConfigurationIdentifiable {
-    @discardableResult
-    mutating func ensureConfigurationID(at index: Index) -> String {
-        let taken = Set(compactMap(\.configID))
-        return self[index].ensureConfigurationID(avoiding: taken)
-    }
-
-    func identified() -> Self {
-        var occurrences: [String: Int] = [:]
-        return map { binding in
-            var binding = binding
-            let key = binding.target.contentKey
-            let occurrence = occurrences[key, default: 0]
-            occurrences[key] = occurrence + 1
-            binding.target = binding.target.identified(seed: "\(Element.category)/content:\(key)#\(occurrence)")
-            return binding
-        }
-    }
-}
-
-extension ConfigurationIdentifiable {
-    static func tomeNormalizedElements(_ elements: [Self]) -> [Self] {
-        ConfigurationIdentity.deduplicatingIDs(elements)
     }
 }

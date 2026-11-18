@@ -6,16 +6,13 @@
 //
 
 import Foundation
-import Tome
 
-struct RadialMenuBinding: ConfigurationIdentifiable, Codable, Hashable, Sendable {
-    static let category = "radial-menu"
+struct RadialMenuBinding: ActionBinding, Codable, Hashable, Sendable {
+    static let bindingKind = BindingKind.radialMenu
 
     var id: UUID
     var configID: String?
     var target: ActionTarget
-
-    var reference: ActionTarget { .radialMenuBinding(referenceID) }
 
     init(id: UUID = UUID(), configID: String? = nil, target: ActionTarget) {
         self.id = id
@@ -24,7 +21,6 @@ struct RadialMenuBinding: ConfigurationIdentifiable, Codable, Hashable, Sendable
     }
 
     static func custom(_ action: WindowAction) -> Self { .init(target: .windowAction(action)) }
-    var associatedActionId: UUID? { target.resolvedAction?.id }
 }
 
 extension RadialMenuBinding {
@@ -34,24 +30,19 @@ extension RadialMenuBinding {
 
     init(from decoder: Decoder) throws {
         let table = try decoder.container(keyedBy: CodingKeys.self)
-        let configID = try table.decodeIfPresent(String.self, forKey: .id)
-        try configID.map { try ConfigurationIdentity.validate($0, as: "radial menu id") }
-        self.init(configID: configID, target: try ActionTarget(from: decoder))
+        try self.init(configID: Self.decodeConfigurationID(from: table, forKey: .id), target: ActionTarget(from: decoder))
         deriveIdentity()
     }
 
     func encode(to encoder: Encoder) throws {
-        guard target != .radialMenuMode else {
-            throw EncodingError.invalidValue(target, .init(codingPath: encoder.codingPath, debugDescription: "The radial menu is only a target of a radial-menu gesture"))
-        }
         var table = encoder.container(keyedBy: CodingKeys.self)
-        try table.encodeIfPresent(configID, forKey: .id)
+        try encodeConfigurationID(into: &table, forKey: .id)
         try target.encode(to: encoder)
     }
 }
 
 extension RadialMenuBinding {
-    static let defaultRadialMenuActions: [RadialMenuBinding] = [
+    static let defaults: [RadialMenuBinding] = [
         .custom(
             WindowAction(
                 .init(localized: "Top Cycle"),
@@ -90,8 +81,4 @@ extension RadialMenuBinding {
             )
         )
     ]
-
-    static var userConfiguredActions: [RadialMenuBinding] {
-        Tome.enableRadialMenuCustomization ? Tome.radialMenuActions : defaultRadialMenuActions
-    }
 }

@@ -8,185 +8,45 @@
 import Foundation
 import Tome
 
+/// The bindings as the settings editors see them, resolved independently of the runtime cache.
 struct ActionTargetEditorGraph: Equatable {
     var keyBindings: [KeyBinding]
-    var gestures: [GestureBinding]
+    var gestureBindings: [GestureBinding]
     var radialMenuBindings: [RadialMenuBinding]
 
     static var current: Self {
-        .init(keyBindings: Tome.keyBindings, gestures: Tome.gestures, radialMenuBindings: Tome.radialMenuActions)
+        .init(keyBindings: Tome.keyBindings, gestureBindings: Tome.gestureBindings, radialMenuBindings: Tome.radialMenuBindings)
     }
 
-    enum Replacement {
-        case direct(ActionTarget)
-        case keyBindings([KeyBinding])
-        case gestures([GestureBinding])
-        case radialMenuBindings([RadialMenuBinding])
+    private var resolver: BindingResolutionSnapshot {
+        .init(keyBindings: keyBindings, gestureBindings: gestureBindings, radialMenuBindings: radialMenuBindings)
     }
 
-    private enum Destination {
-        case keyBinding(Int)
-        case gesture(Int)
-        case radialMenuBinding(Int)
+    /// Saves only the lists that changed.
+    func commit() {
+        if keyBindings != Tome.keyBindings { Tome.keyBindings = keyBindings }
+        if gestureBindings != Tome.gestureBindings { Tome.gestureBindings = gestureBindings }
+        if radialMenuBindings != Tome.radialMenuBindings { Tome.radialMenuBindings = radialMenuBindings }
     }
 
-    private func terminal(_ target: ActionTarget) -> (Destination?, WindowAction)? {
-        var target = target
-        var destination: Destination?
-        var visited = Set<String>()
-        while visited.insert(target.id).inserted {
-            switch target {
-            case let .windowAction(action): return (destination, action)
-            case let .keyBinding(id):
-                guard let index = keyBindings.firstIndex(where: { $0.configID == id }) else { return nil }
-                destination = .keyBinding(index)
-                target = keyBindings[index].target
-            case let .gestureBinding(id):
-                guard let index = gestures.firstIndex(where: { $0.configID == id && $0.kind != .radialMenu }) else { return nil }
-                destination = .gesture(index)
-                target = gestures[index].target
-            case let .radialMenuBinding(id):
-                guard let index = radialMenuBindings.firstIndex(where: { $0.configID == id }) else { return nil }
-                destination = .radialMenuBinding(index)
-                target = radialMenuBindings[index].target
-            case .radialMenuMode: return nil
-            }
-        }
-        return nil
+    // MARK: Resolving
+
+    /// `nil` for a missing reference, a reference cycle or a radial-menu gesture.
+    func resolve(_ target: ActionTarget) -> WindowAction? { terminal(target)?.action }
+
+    /// Also resolves references in cycle steps, for previews.
+    func previewAction(for target: ActionTarget) -> WindowAction? { try? resolver.resolve(target) }
+
+    func target(of reference: BindingReference) -> ActionTarget? {
+        location(of: reference).map { binding(at: $0).target }
     }
 
-    func resolve(_ target: ActionTarget) -> WindowAction? { terminal(target)?.1 }
-
-    func terminalReference(for target: ActionTarget) -> ActionTarget? {
-        guard let (destination, _) = terminal(target) else { return nil }
-        switch destination {
-        case let .keyBinding(index): return keyBindings[index].reference
-        case let .gesture(index): return gestures[index].reference
-        case let .radialMenuBinding(index): return radialMenuBindings[index].reference
-        case nil: return nil
-        }
+    /// `nil` when `target` is an inline action.
+    func terminalReference(for target: ActionTarget) -> BindingReference? {
+        (try? resolver.terminal(of: target))?.holder
     }
 
-    mutating func promoted(_ target: ActionTarget) -> ActionTarget? {
-        switch target {
-        case .keyBinding:
-            guard let index = keyBindings.firstIndex(where: { $0.reference == target }) else { return nil }
-            keyBindings.ensureConfigurationID(at: index)
-            return keyBindings[index].reference
-        case .gestureBinding:
-            guard let index = gestures.firstIndex(where: { $0.reference == target }) else { return nil }
-            gestures.ensureConfigurationID(at: index)
-            return gestures[index].reference
-        case .radialMenuBinding:
-            guard let index = radialMenuBindings.firstIndex(where: { $0.reference == target }) else { return nil }
-            radialMenuBindings.ensureConfigurationID(at: index)
-            return radialMenuBindings[index].reference
-        case .windowAction, .radialMenuMode: return target
-        }
-    }
-
-    func canSetTarget(_ candidate: ActionTarget, for owner: ActionTarget) -> Bool {
-        var graph = self
-        // Promoting the candidate renames its reference, which may be the owner's own.
-        let promotedCandidate = graph.promoted(candidate) ?? candidate
-        let ownerReference = owner == candidate ? promotedCandidate : owner
-        switch ownerReference {
-        case .keyBinding:
-            guard let index = graph.keyBindings.firstIndex(where: { $0.reference == ownerReference }) else { return true }
-            graph.keyBindings.ensureConfigurationID(at: index)
-            graph.keyBindings[index].target = promotedCandidate
-        case .gestureBinding:
-            guard let index = graph.gestures.firstIndex(where: { $0.reference == ownerReference }) else { return true }
-            graph.gestures.ensureConfigurationID(at: index)
-            graph.gestures[index].target = promotedCandidate
-        case .radialMenuBinding:
-            guard let index = graph.radialMenuBindings.firstIndex(where: { $0.reference == ownerReference }) else { return true }
-            graph.radialMenuBindings.ensureConfigurationID(at: index)
-            graph.radialMenuBindings[index].target = promotedCandidate
-        case .windowAction, .radialMenuMode: return true
-        }
-        return (try? BindingResolutionSnapshot(
-            keyBindings: graph.keyBindings, gestures: graph.gestures,
-            radialMenuBindings: graph.radialMenuBindings
-        ).validate()) != nil
-    }
-
-    func replacingAction(in target: ActionTarget, with action: WindowAction) -> Replacement? {
-        guard let (destination, _) = terminal(target) else { return nil }
-        switch destination {
-        case nil: return .direct(.windowAction(action))
-        case let .keyBinding(index):
-            var values = keyBindings
-            values[index].target = .windowAction(action)
-            return .keyBindings(values)
-        case let .gesture(index):
-            var values = gestures
-            values[index].target = .windowAction(action)
-            return .gestures(values)
-        case let .radialMenuBinding(index):
-            var values = radialMenuBindings
-            values[index].target = .windowAction(action)
-            return .radialMenuBindings(values)
-        }
-    }
-
-    func holder(of target: ActionTarget, owner: ActionTarget?) -> UUID? {
-        guard let (destination, _) = terminal(target) else { return nil }
-        switch destination {
-        case let .keyBinding(index): return keyBindings[index].id
-        case let .gesture(index): return gestures[index].id
-        case let .radialMenuBinding(index): return radialMenuBindings[index].id
-        case nil:
-            guard let owner else { return nil }
-            if let binding = keyBindings.first(where: { $0.reference == owner }) { return binding.target == target ? binding.id : nil }
-            if let binding = gestures.first(where: { $0.reference == owner }) { return binding.target == target ? binding.id : nil }
-            if let binding = radialMenuBindings.first(where: { $0.reference == owner }) { return binding.target == target ? binding.id : nil }
-            return nil
-        }
-    }
-
-    mutating func renameGeneratedID(of holder: UUID, from old: WindowAction, to new: WindowAction) -> Bool {
-        let renamed: (old: ActionTarget, new: ActionTarget)? = if let index = keyBindings.firstIndex(where: { $0.id == holder }) {
-            Self.renameGeneratedID(in: &keyBindings, at: index, from: old, to: new, reference: ActionTarget.keyBinding)
-        } else if let index = gestures.firstIndex(where: { $0.id == holder }) {
-            Self.renameGeneratedID(in: &gestures, at: index, from: old, to: new, reference: ActionTarget.gestureBinding)
-        } else if let index = radialMenuBindings.firstIndex(where: { $0.id == holder }) {
-            Self.renameGeneratedID(in: &radialMenuBindings, at: index, from: old, to: new, reference: ActionTarget.radialMenuBinding)
-        } else {
-            nil
-        }
-        guard let renamed else { return false }
-        for index in keyBindings.indices { keyBindings[index].target = keyBindings[index].target.replacingReference(renamed.old, with: renamed.new) }
-        for index in gestures.indices { gestures[index].target = gestures[index].target.replacingReference(renamed.old, with: renamed.new) }
-        for index in radialMenuBindings.indices {
-            radialMenuBindings[index].target = radialMenuBindings[index].target.replacingReference(renamed.old, with: renamed.new)
-        }
-        return true
-    }
-
-    private static func renameGeneratedID<Binding: ConfigurationIdentifiable>(
-        in bindings: inout [Binding], at index: Int, from old: WindowAction, to new: WindowAction, reference: (String) -> ActionTarget
-    ) -> (old: ActionTarget, new: ActionTarget)? {
-        guard let current = bindings[index].configID else { return nil }
-        var before = bindings[index]
-        before.target = .windowAction(old)
-        var after = bindings[index]
-        after.target = .windowAction(new)
-        guard before.readableIDStem != after.readableIDStem,
-              ConfigurationIdentity.isGenerated(current, from: before.readableIDStem) else { return nil }
-        let taken = Set(bindings.indices.filter { $0 != index }.compactMap { bindings[$0].configID })
-        bindings[index].configID = ConfigurationIdentity.nextFreeID(after.readableIDStem, taken: taken)
-        return (reference(current), reference(bindings[index].referenceID))
-    }
-
-    static func followRename(of holder: UUID, from old: WindowAction, to new: WindowAction) {
-        var graph = Self.current
-        guard graph.renameGeneratedID(of: holder, from: old, to: new) else { return }
-        Tome.keyBindings = graph.keyBindings
-        Tome.gestures = graph.gestures
-        Tome.radialMenuActions = graph.radialMenuBindings
-    }
-
+    /// A cycle shows its first step's icon.
     func iconAction(for action: WindowAction) -> WindowAction {
         guard case let .cycle(payload) = action.kind,
               let first = payload.steps.first,
@@ -194,9 +54,129 @@ struct ActionTargetEditorGraph: Equatable {
               resolved.direction != .cycle else { return action }
         return resolved
     }
+
+    // MARK: Editing
+
+    /// Gives the referenced binding a written id. Non-reference targets come back unchanged.
+    mutating func promoted(_ target: ActionTarget) -> ActionTarget? {
+        guard case let .reference(reference) = target else { return target }
+        return location(of: reference).map { .reference(ensureConfigurationID(at: $0)) }
+    }
+
+    /// Checks a selection without writing ids or an invalid graph to Settings.
+    func canSetTarget(_ candidate: ActionTarget, for owner: BindingReference) -> Bool {
+        var graph = self
+        let promotedCandidate = graph.promoted(candidate) ?? candidate
+        // Promoting the candidate renames its reference, which may be the owner's own.
+        let ownerReference = if candidate == .reference(owner), case let .reference(promoted) = promotedCandidate { promoted } else { owner }
+        guard let ownerLocation = graph.location(of: ownerReference) else { return true }
+        _ = graph.ensureConfigurationID(at: ownerLocation)
+        graph.update(ownerLocation) { $0.target = promotedCandidate }
+        return (try? graph.resolver.validate()) != nil
+    }
+
+    /// Edits through a reference go into the referenced binding. Generated ids follow the new action; hand-written ids never change.
+    /// - Returns: the target with `action` inline when no binding holds it (such as a cycle step's own), otherwise `nil`.
+    mutating func replaceAction(in target: ActionTarget, owner: BindingReference?, with action: WindowAction) -> ActionTarget? {
+        guard let (holder, old) = terminal(target) else { return nil }
+        let location: Location
+        if let holder {
+            location = holder
+        } else if let owner, let ownerLocation = self.location(of: owner), binding(at: ownerLocation).target == target {
+            location = ownerLocation
+        } else {
+            return .windowAction(action)
+        }
+        update(location) { $0.target = .windowAction(action) }
+        renameGeneratedID(at: location, from: old, to: action)
+        return nil
+    }
+
+    // MARK: Locations
+
+    private struct Location {
+        var kind: BindingKind
+        var index: Int
+    }
+
+    private func bindings(of kind: BindingKind) -> [any ActionBinding] {
+        switch kind {
+        case .key: keyBindings
+        case .gesture: gestureBindings
+        case .radialMenu: radialMenuBindings
+        }
+    }
+
+    private func binding(at location: Location) -> any ActionBinding {
+        bindings(of: location.kind)[location.index]
+    }
+
+    /// Only the written id and target are taken back from `body`.
+    @discardableResult
+    private mutating func update<Result>(_ location: Location, _ body: (inout any ActionBinding) -> Result) -> Result {
+        switch location.kind {
+        case .key: Self.update(&keyBindings[location.index], body)
+        case .gesture: Self.update(&gestureBindings[location.index], body)
+        case .radialMenu: Self.update(&radialMenuBindings[location.index], body)
+        }
+    }
+
+    private static func update<Result>(_ binding: inout some ActionBinding, _ body: (inout any ActionBinding) -> Result) -> Result {
+        var edited: any ActionBinding = binding
+        let result = body(&edited)
+        binding.configID = edited.configID
+        binding.target = edited.target
+        return result
+    }
+
+    /// With `requiringWrittenID`, bindings without a written id are skipped.
+    private func location(of reference: BindingReference, requiringWrittenID: Bool = false) -> Location? {
+        bindings(of: reference.kind)
+            .firstIndex { requiringWrittenID ? $0.configID == reference.id : $0.referenceID == reference.id }
+            .map { Location(kind: reference.kind, index: $0) }
+    }
+
+    private func terminal(_ target: ActionTarget) -> (holder: Location?, action: WindowAction)? {
+        guard let (holder, action) = try? resolver.terminal(of: target) else { return nil }
+        guard let holder else { return (nil, action) }
+        return location(of: holder, requiringWrittenID: true).map { ($0, action) }
+    }
+
+    private mutating func ensureConfigurationID(at location: Location) -> BindingReference {
+        let taken = Set(bindings(of: location.kind).compactMap(\.configID))
+        return update(location) {
+            _ = $0.ensureConfigurationID(avoiding: taken)
+            return $0.reference
+        }
+    }
+
+    /// A generated id follows the new action, and so does every reference to it.
+    private mutating func renameGeneratedID(at location: Location, from old: WindowAction, to new: WindowAction) {
+        let siblings = bindings(of: location.kind)
+        let binding = siblings[location.index]
+        guard let current = binding.configID else { return }
+        var before = binding
+        before.target = .windowAction(old)
+        var after = binding
+        after.target = .windowAction(new)
+        guard before.readableIDStem != after.readableIDStem,
+              ConfigurationIdentity.isGenerated(current, from: before.readableIDStem) else { return }
+        let taken = Set(siblings.indices.filter { $0 != location.index }.compactMap { siblings[$0].configID })
+        let renamedID = ConfigurationIdentity.nextFreeID(after.readableIDStem, taken: taken)
+        update(location) { $0.configID = renamedID }
+
+        let oldReference = ActionTarget.reference(BindingReference(location.kind, current))
+        let newReference = ActionTarget.reference(BindingReference(location.kind, renamedID))
+        for kind in BindingKind.allCases {
+            for index in bindings(of: kind).indices {
+                update(Location(kind: kind, index: index)) { $0.target = $0.target.replacingReference(oldReference, with: newReference) }
+            }
+        }
+    }
 }
 
 private extension ActionTarget {
+    /// Includes references in cycle steps.
     func replacingReference(_ old: ActionTarget, with new: ActionTarget) -> ActionTarget {
         if self == old { return new }
         guard case var .windowAction(action) = self, case var .cycle(cycle) = action.kind else { return self }

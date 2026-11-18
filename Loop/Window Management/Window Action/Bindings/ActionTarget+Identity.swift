@@ -9,6 +9,7 @@ import Foundation
 
 extension ActionTarget {
     /// Cycle progress and stash recovery remember actions by identity, so it must survive a restart.
+    /// Stash steps are identified by their geometry.
     func identified(seed: String) -> ActionTarget {
         guard case var .windowAction(action) = self else { return self }
         action = action.withRuntimeID(ConfigurationIdentity.uuid(seed))
@@ -26,6 +27,7 @@ extension ActionTarget {
         return .windowAction(action)
     }
 
+    /// A cycle is keyed by name only, so editing its steps keeps its identity.
     var contentKey: String {
         if case let .windowAction(action) = self, case let .cycle(cycle) = action.kind { return "cycle:\(cycle.name ?? "")" }
         return identityKey
@@ -40,10 +42,7 @@ extension ActionTarget {
             case .cycle: "cycle"
             case var .stash(frame): { frame.name = nil; return "stash:\(frame)" }()
             }
-        case let .keyBinding(id): "key:\(id)"
-        case let .gestureBinding(id): "gesture:\(id)"
-        case let .radialMenuBinding(id): "radial-menu:\(id)"
-        case .radialMenuMode: "radialMenu"
+        case let .reference(reference): reference.configurationString
         }
     }
 }

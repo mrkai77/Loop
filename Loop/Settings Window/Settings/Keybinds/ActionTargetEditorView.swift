@@ -9,42 +9,43 @@ import Luminare
 import SwiftUI
 import Tome
 
+/// Shared by the keybind, gesture, radial menu and cycle step editors.
 struct ActionTargetEditorView: View {
     @Binding var target: ActionTarget
-    private let owner: ActionTarget?
+    private let owner: BindingReference?
     private let allowsCycles: Bool
     @TomeValue(\.keyBindings) private var keyBindings
-    @TomeValue(\.gestures) private var gestures
-    @TomeValue(\.radialMenuActions) private var radialMenuBindings
+    @TomeValue(\.gestureBindings) private var gestures
+    @TomeValue(\.radialMenuBindings) private var radialMenuBindings
     @State private var isPickerPresented = false
     @State private var isCustomPresented = false
     @State private var isCyclePresented = false
 
-    init(target: Binding<ActionTarget>, owner: ActionTarget? = nil, allowsCycles: Bool = true) {
+    init(target: Binding<ActionTarget>, owner: BindingReference? = nil, allowsCycles: Bool = true) {
         _target = target
         self.owner = owner
         self.allowsCycles = allowsCycles
     }
 
     private var graph: ActionTargetEditorGraph {
-        .init(keyBindings: keyBindings, gestures: gestures, radialMenuBindings: radialMenuBindings)
+        .init(keyBindings: keyBindings, gestureBindings: gestures, radialMenuBindings: radialMenuBindings)
     }
 
     private var action: WindowAction? { graph.resolve(target) }
     private var actionBinding: Binding<WindowAction> {
         Binding(
             get: { action ?? .init(.noAction) },
-            set: { target = replacingAction(with: $0) }
+            set: { replaceAction(with: $0) }
         )
     }
 
     private var pickerHelp: String {
-        switch owner {
-        case .gestureBinding:
+        switch owner?.kind {
+        case .gesture:
             String(localized: "Customize this gesture’s action.", comment: "Help text shown when hovering a gesture's action button")
-        case .radialMenuBinding:
+        case .radialMenu:
             String(localized: "Customize this radial menu action.")
-        default:
+        case .key, nil:
             String(localized: "Customize this keybind’s action.")
         }
     }
@@ -76,7 +77,7 @@ struct ActionTargetEditorView: View {
                         Image(systemName: "bolt.horizontal.fill")
                             .foregroundStyle(.secondary)
 
-                        Text("Linked binding not found")
+                        Text("Linked action not found")
                             .fontWeight(.regular)
                             .lineLimit(1)
                             .foregroundStyle(.secondary)
@@ -131,6 +132,7 @@ struct ActionTargetEditorView: View {
             .font(.title3)
             .foregroundStyle(.secondary)
         }
+        // Stay mounted while the picker turns a built-in into a payload action
         .luminareModal(isPresented: $isCustomPresented) {
             if action?.direction.isCustomizable == true {
                 CustomActionConfigurationView(action: actionBinding, isPresented: $isCustomPresented)
@@ -143,6 +145,7 @@ struct ActionTargetEditorView: View {
                 .frame(width: 400)
         }
         .luminareModalCornerRadius(24)
+        // A reference edits another binding's action, so it never opens an editor
         .onChange(of: action?.direction) { direction in
             guard !target.isReference else { return }
             isCustomPresented = direction?.isCustomizable == true
@@ -153,18 +156,14 @@ struct ActionTargetEditorView: View {
         }
     }
 
-    private func replacingAction(with action: WindowAction) -> ActionTarget {
-        let graph = ActionTargetEditorGraph.current
-        if let old = graph.resolve(target), let holder = graph.holder(of: target, owner: owner) {
-            DispatchQueue.main.async { ActionTargetEditorGraph.followRename(of: holder, from: old, to: action) }
+    /// Edits the graph holds are saved by committing, never through `target`,
+    /// so a stale copy of the binding can't undo a renamed id.
+    private func replaceAction(with action: WindowAction) {
+        var graph = ActionTargetEditorGraph.current
+        if let inline = graph.replaceAction(in: target, owner: owner, with: action) {
+            target = inline
+        } else {
+            graph.commit()
         }
-        switch graph.replacingAction(in: target, with: action) {
-        case let .direct(target): return target
-        case let .keyBindings(values): Tome.keyBindings = values
-        case let .gestures(values): Tome.gestures = values
-        case let .radialMenuBindings(values): Tome.radialMenuActions = values
-        case nil: break
-        }
-        return target
     }
 }

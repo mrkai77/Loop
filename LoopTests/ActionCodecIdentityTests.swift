@@ -8,11 +8,12 @@
 import Foundation
 @testable import Loop
 import Testing
-import TOML
 import Tome
+import TOML
 
 extension StoreTests {
     struct ActionCodecIdentityTests {
+        /// Excludes stash identities, which are derived from content.
         private func actionIDs(_ target: ActionTarget) -> [UUID] {
             guard case let .windowAction(action) = target else { return [] }
             if case let .cycle(cycle) = action.kind { return [action.id] + cycle.steps.flatMap(actionIDs) }
@@ -31,6 +32,7 @@ extension StoreTests {
             .windowAction(WindowAction("Cycle", cycle: [WindowAction(.leftHalf), WindowAction(.rightHalf), WindowAction(.stash)]))
         }
 
+        /// The first row must not change when an unrelated row is edited.
         private func assertUnchangedTree(
             encoded: TOMLValue,
             decode: (TOMLValue) throws -> [ActionTarget]
@@ -48,7 +50,7 @@ extension StoreTests {
 
         @Test func allCategoriesKeepDirectAndStepIDsAcrossUnrelatedRowEdits() throws {
             let target = cycleTarget()
-            try assertUnchangedTree(encoded: [KeyBinding(keys: KeyCombination(names: ["a"]), target: target), KeyBinding(.maximize, keybind: KeyCombination(names: ["b"]))].encodeTOML()) {
+            try assertUnchangedTree(encoded: [KeyBinding(keys: KeyCombination(names: ["a"]), target: target), KeyBinding(.maximize, keys: KeyCombination(names: ["b"]))].encodeTOML()) {
                 try [KeyBinding].decodeIdentified($0).map(\.target)
             }
             try assertUnchangedTree(encoded: [RadialMenuBinding(target: target), .custom(WindowAction(.maximize))].encodeTOML()) {
@@ -116,18 +118,19 @@ extension StoreTests {
             let cycle = WindowAction("Stash cycle", cycle: [WindowAction(.leftHalf), WindowAction(.stash)])
             let keyValue = try [KeyBinding(configID: "stash-cycle", target: .windowAction(cycle))].encodeTOML()
             let initial = try [KeyBinding].decodeIdentified(keyValue)
-            let snapshot = BindingResolutionSnapshot(keyBindings: initial, gestures: [], radialMenuBindings: [])
-            let resolved = try #require(try snapshot.resolve(.keyBinding("stash-cycle")))
+            let snapshot = BindingResolutionSnapshot(keyBindings: initial, gestureBindings: [], radialMenuBindings: [])
+            let resolved = try snapshot.resolve(.reference(.init(.key, "stash-cycle")))
             let stashedAction = try #require(resolved.resolvedCycleSteps?.last)
+            // StashedWindowsStore matches this exact UUID after a restart
             let lookupID = stashedAction.id
             let restarted = try [KeyBinding].decodeIdentified(keyValue)
-            let restartedCycle = try #require(try BindingResolutionSnapshot(keyBindings: restarted, gestures: [], radialMenuBindings: []).resolve(.keyBinding("stash-cycle")))
+            let restartedCycle = try BindingResolutionSnapshot(keyBindings: restarted, gestureBindings: [], radialMenuBindings: []).resolve(.reference(.init(.key, "stash-cycle")))
             #expect(restartedCycle.resolvedCycleSteps?.last?.id == lookupID)
             _ = try [GestureBinding].decodeIdentified([GestureBinding(kind: .swipeUp, target: .windowAction(WindowAction(.maximize)))].encodeTOML())
             _ = try [RadialMenuBinding].decodeIdentified([RadialMenuBinding.custom(WindowAction(.minimize))].encodeTOML())
             let refreshed = try [KeyBinding].decodeIdentified(keyValue)
-            let refreshedSnapshot = BindingResolutionSnapshot(keyBindings: refreshed, gestures: [], radialMenuBindings: [])
-            let refreshedCycle = try #require(try refreshedSnapshot.resolve(.keyBinding("stash-cycle")))
+            let refreshedSnapshot = BindingResolutionSnapshot(keyBindings: refreshed, gestureBindings: [], radialMenuBindings: [])
+            let refreshedCycle = try refreshedSnapshot.resolve(.reference(.init(.key, "stash-cycle")))
             #expect(refreshedCycle.resolvedCycleSteps?.last?.id == lookupID)
         }
 
@@ -162,8 +165,8 @@ extension StoreTests {
             let settings = try Profile(source)
             let url = settings.url
             let keyTarget = try #require(settings[\.keyBindings].identified().first?.target)
-            let radialTarget = try #require(settings[\.radialMenuActions].identified().first?.target)
-            let gestureTarget = try #require(settings[\.gestures].identified().first?.target)
+            let radialTarget = try #require(settings[\.radialMenuBindings].identified().first?.target)
+            let gestureTarget = try #require(settings[\.gestureBindings].identified().first?.target)
             let keyCycle = try directAction(keyTarget)
             var progress = CycleProgressStore()
             let proposed = progress.proposeSelection(for: 42, in: keyCycle, from: .sessionProgress(fallback: nil), moving: .forward)
@@ -182,8 +185,8 @@ extension StoreTests {
                 .write(to: url, atomically: true, encoding: .utf8)
             try settings.reload()
             let updatedKey = try #require(settings[\.keyBindings].identified().first?.target)
-            let updatedRadial = try #require(settings[\.radialMenuActions].identified().first?.target)
-            let updatedGesture = try #require(settings[\.gestures].identified().first?.target)
+            let updatedRadial = try #require(settings[\.radialMenuBindings].identified().first?.target)
+            let updatedGesture = try #require(settings[\.gestureBindings].identified().first?.target)
             #expect(actionIDs(updatedKey) == actionIDs(keyTarget))
             #expect(actionIDs(updatedRadial) == actionIDs(radialTarget))
             #expect(actionIDs(updatedGesture) == actionIDs(gestureTarget))
