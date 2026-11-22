@@ -170,32 +170,27 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
 
         try ensureCommandLineToolInstallDirectoryExists()
 
+        let directory = try openCommandLineToolInstallDirectory()
+        defer { close(directory) }
+
         switch try commandLineToolLinkState() {
         case .missing:
             break
         case .loopManaged:
-            // Removes the link itself, never its target
-            do {
-                try fileManager.removeItem(at: destinationURL)
-            } catch {
-                throw PrivilegedHelperError.commandLineToolFailed(
-                    reason: "Couldn’t replace \(destinationURL.path): \(error.localizedDescription)"
-                )
-            }
+            try removeCommandLineToolLink(in: directory)
         case .occupied:
             throw PrivilegedHelperError.commandLineToolFailed(
-                reason: "\(destinationURL.path) is used by another app or file."
+                reason: "\(destinationURL.path) belongs to another app or file."
             )
         }
 
-        do {
-            try fileManager.createSymbolicLink(at: destinationURL, withDestinationURL: sourceURL)
-            log.success("Installed Loop CLI symlink at \(destinationURL.path) -> \(sourceURL.path)")
-        } catch {
+        guard symlinkat(sourceURL.path, directory, PrivilegedHelperConstants.commandLineToolSymlinkName) == 0 else {
             throw PrivilegedHelperError.commandLineToolFailed(
-                reason: "Couldn’t create \(destinationURL.path): \(error.localizedDescription)"
+                reason: "Couldn’t create \(destinationURL.path): \(String(cString: strerror(errno)))"
             )
         }
+
+        log.success("Installed Loop CLI symlink at \(destinationURL.path) -> \(sourceURL.path)")
     }
 
     private func executeUninstallCommandLineTool() throws {
@@ -205,18 +200,51 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         case .missing:
             return
         case .loopManaged:
-            do {
-                try fileManager.removeItem(at: destinationURL)
-                log.success("Removed Loop CLI symlink at \(destinationURL.path)")
-            } catch {
-                throw PrivilegedHelperError.commandLineToolFailed(
-                    reason: "Couldn’t remove \(destinationURL.path): \(error.localizedDescription)"
-                )
-            }
+            let directory = try openCommandLineToolInstallDirectory()
+            defer { close(directory) }
+
+            try removeCommandLineToolLink(in: directory)
+            log.success("Removed Loop CLI symlink at \(destinationURL.path)")
         case .occupied:
             throw PrivilegedHelperError.commandLineToolFailed(
-                reason: "\(destinationURL.path) is used by another app or file."
+                reason: "\(destinationURL.path) belongs to another app or file."
             )
+        }
+    }
+
+    /// Opened once without following a link, so swapping the folder or its parents can't redirect what happens next
+    private func openCommandLineToolInstallDirectory() throws -> Int32 {
+        let path = PrivilegedHelperConstants.commandLineToolInstallDirectory
+        let directory = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+
+        guard directory >= 0 else {
+            throw PrivilegedHelperError.commandLineToolFailed(
+                reason: "Couldn’t open \(path): \(String(cString: strerror(errno)))"
+            )
+        }
+
+        return directory
+    }
+
+    /// Checks it's still a link right before removing it, and only ever removes the link, never its target
+    private func removeCommandLineToolLink(in directory: Int32) throws {
+        let name = PrivilegedHelperConstants.commandLineToolSymlinkName
+        let path = PrivilegedHelperConstants.commandLineToolSymlinkURL.path
+
+        var info = stat()
+        guard fstatat(directory, name, &info, AT_SYMLINK_NOFOLLOW) == 0 else {
+            guard errno == ENOENT else {
+                throw PrivilegedHelperError.commandLineToolFailed(reason: "Couldn’t inspect \(path): \(String(cString: strerror(errno)))")
+            }
+            return
+        }
+
+        guard info.st_mode & S_IFMT == S_IFLNK else {
+            throw PrivilegedHelperError.commandLineToolFailed(reason: "\(path) belongs to another app or file.")
+        }
+
+        guard unlinkat(directory, name, 0) == 0 else {
+            throw PrivilegedHelperError.commandLineToolFailed(reason: "Couldn’t remove \(path): \(String(cString: strerror(errno)))")
         }
     }
 
@@ -245,7 +273,35 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
             )
         }
 
+        // `sudo loop` runs whatever the link points at as root, so only link the tool Loop ships
+        guard isSignedCommandLineTool(at: sourceURL) else {
+            throw PrivilegedHelperError.commandLineToolFailed(
+                reason: "The command-line tool at \(sourceURL.path) isn’t signed by Loop’s developer."
+            )
+        }
+
         return sourceURL
+    }
+
+    private func isSignedCommandLineTool(at url: URL) -> Bool {
+        var staticCode: SecStaticCode?
+        var requirement: SecRequirement?
+
+        guard SecStaticCodeCreateWithPath(url as CFURL, SecCSFlags(), &staticCode) == errSecSuccess, let staticCode,
+              SecRequirementCreateWithString(PrivilegedHelperConstants.commandLineToolRequirement as CFString, SecCSFlags(), &requirement) == errSecSuccess,
+              let requirement
+        else {
+            log.error("Couldn’t prepare the signature check for \(url.path)")
+            return false
+        }
+
+        let status = SecStaticCodeCheckValidity(staticCode, SecCSFlags(rawValue: kSecCSCheckAllArchitectures), requirement)
+        guard status == errSecSuccess else {
+            log.error("Command-line tool signature check failed for \(url.path), status \(status)")
+            return false
+        }
+
+        return true
     }
 
     private func ensureCommandLineToolInstallDirectoryExists() throws {

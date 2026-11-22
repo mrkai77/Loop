@@ -511,10 +511,9 @@ actor UpdateInstaller {
                             }
                         }
                     }
-                } catch is CancellationError {
-                    throw UpdateError.installationFailed("Administrator authorization was canceled")
                 } catch {
-                    guard !enteredPrivilegedSession else {
+                    // Without a session, offer the Applications folder instead, including when the password prompt was canceled
+                    guard !enteredPrivilegedSession, !(error is CancellationError) else {
                         throw error
                     }
 

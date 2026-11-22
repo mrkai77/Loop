@@ -205,7 +205,7 @@ final class LoopSocketManager {
         case .installedStale:
             "\(path) points to another copy of Loop. Click Repair in Loop’s Advanced settings."
         case .installedWithoutAdministrator:
-            "\(path) isn’t owned by root, so other apps could have created it to control Loop. Click Repair in Loop’s Advanced settings."
+            "\(path) isn’t owned by an administrator, so another app could have created it. Click Repair in Loop’s Advanced settings."
         case .blocked:
             "\(path) belongs to another app or file. Remove it, then install the command-line tool in Loop’s Advanced settings."
         }

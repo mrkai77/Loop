@@ -42,6 +42,9 @@ enum PrivilegedHelperConstants {
     static let appBundleIdentifier = "com.MrKai77.Loop"
     static let authorizedClientRequirement = "identifier \"com.MrKai77.Loop\" and anchor apple generic and certificate leaf[subject.OU] = \"5F967GYF84\""
 
+    /// What the helper checks before linking `loop-cli` into the user's path as root
+    static let commandLineToolRequirement = "identifier \"loop-cli\" and anchor apple generic and certificate leaf[subject.OU] = \"5F967GYF84\""
+
     static let commandLineToolExecutableName = "loop-cli"
     static let commandLineToolSymlinkName = "loop"
     static let commandLineToolInstallDirectory = "/usr/local/bin"

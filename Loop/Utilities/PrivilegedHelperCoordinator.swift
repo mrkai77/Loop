@@ -10,16 +10,37 @@ import Scribe
 import Security
 import ServiceManagement
 
-private struct PrivilegedHelperCoordinatorError: LocalizedError {
-    let message: String
+/// Localized for alerts. The details are technical, so they're kept as they are for diagnosing problems.
+private enum PrivilegedHelperCoordinatorError: LocalizedError {
+    case authorizationFailed(details: String)
+    case helperUnavailable(details: String)
+    case helperFailed(details: String)
+    /// The helper's own explanation, like a file that's in the way
+    case helperReported(String)
 
     var errorDescription: String? {
-        message
+        switch self {
+        case let .authorizationFailed(details):
+            String(localized: "Loop couldn’t get administrator authorization. (\(details))", comment: "The value is a technical detail")
+        case let .helperUnavailable(details):
+            String(localized: "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (\(details))", comment: "The value is a technical detail")
+        case let .helperFailed(details):
+            String(localized: "Loop’s helper stopped before it finished. (\(details))", comment: "The value is a technical detail")
+        case let .helperReported(message):
+            message
+        }
     }
 }
 
 @Loggable
 final class PrivilegedHelperCoordinator {
+    /// The user dismissed the administrator password prompt
+    struct AuthorizationCanceled: LocalizedError {
+        var errorDescription: String? {
+            String(localized: "Administrator authorization was canceled.")
+        }
+    }
+
     enum PrivilegedHelperReadiness {
         case available
         case unavailable(reason: String)
@@ -103,9 +124,7 @@ final class PrivilegedHelperCoordinator {
         let createStatus = AuthorizationCreate(nil, nil, [], &authRef)
 
         guard createStatus == errAuthorizationSuccess, let authRef else {
-            throw PrivilegedHelperCoordinatorError(
-                message: "Could not request administrator authorization: \(authorizationErrorMessage(for: createStatus))"
-            )
+            throw PrivilegedHelperCoordinatorError.authorizationFailed(details: authorizationErrorMessage(for: createStatus))
         }
 
         defer {
@@ -160,26 +179,26 @@ final class PrivilegedHelperCoordinator {
 
             connection.interruptionHandler = {
                 self.log.warn("Privileged helper \(operation.name) interrupted during shared session")
-                finish(.failure(PrivilegedHelperCoordinatorError(message: "Privileged helper \(operation.name) interrupted")))
+                finish(.failure(PrivilegedHelperCoordinatorError.helperFailed(details: "\(operation.name) interrupted")))
             }
             connection.invalidationHandler = {
                 self.log.warn("Privileged helper \(operation.name) invalidated during shared session")
-                finish(.failure(PrivilegedHelperCoordinatorError(message: "Privileged helper \(operation.name) invalidated")))
+                finish(.failure(PrivilegedHelperCoordinatorError.helperFailed(details: "\(operation.name) invalidated")))
             }
 
             guard let proxy = connection.remoteObjectProxyWithErrorHandler({ error in
                 self.log.warn("Privileged helper \(operation.name) transport failed during shared session: \(error.localizedDescription)")
-                finish(.failure(PrivilegedHelperCoordinatorError(message: "Privileged helper \(operation.name) transport failed: \(error.localizedDescription)")))
+                finish(.failure(PrivilegedHelperCoordinatorError.helperFailed(details: "\(operation.name) transport failed: \(error.localizedDescription)")))
             }) as? PrivilegedHelperProtocol else {
                 self.log.warn("Failed to connect to privileged helper for \(operation.name)")
-                finish(.failure(PrivilegedHelperCoordinatorError(message: "Failed to connect to privileged helper")))
+                finish(.failure(PrivilegedHelperCoordinatorError.helperFailed(details: "couldn’t connect")))
                 return
             }
 
             // NSXPC reports remote failures via callbacks; direct throwing proxy calls can raise uncaught Objective-C exceptions.
             operation.invoke(on: proxy) { error in
                 if let error {
-                    finish(.failure(PrivilegedHelperCoordinatorError(message: error.localizedDescription)))
+                    finish(.failure(PrivilegedHelperCoordinatorError.helperReported(error.localizedDescription)))
                 } else {
                     finish(.success(()))
                 }
@@ -193,7 +212,7 @@ final class PrivilegedHelperCoordinator {
                 }
 
                 self.log.warn("Privileged helper \(operation.name) timed out during shared session")
-                finish(.failure(PrivilegedHelperCoordinatorError(message: "Privileged helper \(operation.name) timed out")))
+                finish(.failure(PrivilegedHelperCoordinatorError.helperFailed(details: "\(operation.name) timed out")))
             }
         }
     }
@@ -207,11 +226,11 @@ final class PrivilegedHelperCoordinator {
         let helperPath = canonicalHelperURL.path
 
         guard fileManager.fileExists(atPath: helperPath) else {
-            throw PrivilegedHelperCoordinatorError(message: "Privileged helper executable was not found at \(helperPath)")
+            throw PrivilegedHelperCoordinatorError.helperUnavailable(details: "not found at \(helperPath)")
         }
 
         guard fileManager.isExecutableFile(atPath: helperPath) else {
-            throw PrivilegedHelperCoordinatorError(message: "Privileged helper executable is not executable at \(helperPath)")
+            throw PrivilegedHelperCoordinatorError.helperUnavailable(details: "not executable at \(helperPath)")
         }
 
         return canonicalHelperURL
@@ -278,12 +297,10 @@ final class PrivilegedHelperCoordinator {
 
         guard rightsStatus == errAuthorizationSuccess else {
             if rightsStatus == errAuthorizationCanceled {
-                throw CancellationError()
+                throw AuthorizationCanceled()
             }
 
-            throw PrivilegedHelperCoordinatorError(
-                message: "Authorization rights request failed: \(authorizationErrorMessage(for: rightsStatus))"
-            )
+            throw PrivilegedHelperCoordinatorError.authorizationFailed(details: authorizationErrorMessage(for: rightsStatus))
         }
 
         log.info("Authorization rights granted for one-shot privileged helper")
@@ -319,7 +336,7 @@ final class PrivilegedHelperCoordinator {
 
         guard success else {
             let details = error?.takeRetainedValue().localizedDescription ?? "Unknown privileged submission failure"
-            throw PrivilegedHelperCoordinatorError(message: "Privileged helper submission failed: \(details)")
+            throw PrivilegedHelperCoordinatorError.helperUnavailable(details: "submission failed: \(details)")
         }
     }
 

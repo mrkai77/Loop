@@ -24,9 +24,9 @@ final class CommandLineToolInstaller {
             case .installedStale:
                 "`\(symlinkPath)` points to another copy of Loop. Click Repair to use this one."
             case .installedWithoutAdministrator:
-                "`\(symlinkPath)` wasn’t installed by Loop. Click Repair to reinstall it."
+                "`\(symlinkPath)` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
             case .blocked:
-                "`\(symlinkPath)` is used by another app or file. Remove it, then try again."
+                "`\(symlinkPath)` belongs to another app or file. Remove it, then try again."
             }
         }
     }

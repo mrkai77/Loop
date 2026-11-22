@@ -166,8 +166,10 @@ final class AdvancedConfigurationModel: ObservableObject {
 
             do {
                 try await operation()
-            } catch is CancellationError {
+            } catch is PrivilegedHelperCoordinator.AuthorizationCanceled {
                 // The user canceled the password prompt
+            } catch is CancellationError {
+                return
             } catch {
                 log.error("Command-line tool operation failed: \(error.localizedDescription)")
                 commandLineToolError = CommandLineToolError(title: failureTitle, message: error.localizedDescription)
