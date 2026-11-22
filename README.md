@@ -122,9 +122,14 @@ The `loop` command isn't installed by default. To install it, open Loop's settin
 
 ```bash
 loop list actions          # Built-in actions
-loop list keybinds         # Your keybinds, also gestures and radial-menu
-loop run right-half
-loop run keybind:portrait
+loop list keybinds         # Your keybinds
+loop list gestures         # Your trackpad gestures
+loop list radial-menu      # Your radial menu actions
+loop list windows          # Open windows
+loop list screens          # Connected screens
+
+loop run right-half        # A built-in action
+loop run keybind:portrait  # One of your keybinds, also gesture:<id> and radial-menu:<id>
 ```
 
 Actions apply to the window a keybind would. To pick a different window or screen:
