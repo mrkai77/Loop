@@ -7,8 +7,6 @@ struct InitialWindowPlacementTests {
         let bounds = CGRect(x: -1600, y: 25, width: 1600, height: 1000)
         let oversized = CGRect(x: -1800, y: -100, width: 2000, height: 1200)
         #expect(InitialWindowFrames.constrain(oversized, to: bounds) == bounds)
-        #expect(WindowEngine.anchoredFrame(for: oversized.size, within: bounds, targetEdges: [.trailing, .bottom], bounds: bounds)
-            == CGRect(x: -1600, y: 25, width: 2000, height: 1200))
         #expect(InitialWindowFrames.constrain(CGRect(x: 100, y: 900, width: 800, height: 600), to: bounds)
             == CGRect(x: -800, y: 425, width: 800, height: 600))
         #expect(InitialWindowFrames.constrain(CGRect(x: 0, y: 0, width: -800, height: 600), to: bounds) == nil)

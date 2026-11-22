@@ -167,7 +167,7 @@ final class InitialWindowFrameManager {
     private func place(_ window: Window) -> InitialWindowFrames.Readiness {
         guard let screen = ScreenUtility.screenContaining(window),
               let (frame, bounds) = InitialWindowFrames.frame(for: window, on: screen) else { return .skip }
-        window.setFrameSynchronously(frame, placement: .init(bounds: bounds, willChangeScreens: false))
+        window.setFrameSynchronously(frame)
         guard let applied = readableFrame(window.axWindow) else { return .skip }
         _ = WindowEngine.handleSizeConstrainedWindow(
             window: window,
