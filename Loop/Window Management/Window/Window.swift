@@ -426,7 +426,7 @@ final class Window {
         }
     }
 
-    func setPosition(_ point: CGPoint) {
+    fileprivate func setPosition(_ point: CGPoint) {
         if isOwnWindow {
             Task { @MainActor in
                 guard let win = ownNSWindow() else { return }
@@ -453,7 +453,7 @@ final class Window {
         }
     }
 
-    func setSize(_ size: CGSize) {
+    fileprivate func setSize(_ size: CGSize) {
         if isOwnWindow {
             Task { @MainActor in
                 guard let win = ownNSWindow() else { return }
@@ -535,50 +535,79 @@ final class Window {
         return true
     }
 
+    /// The screen a frame is placed on, used to choose whether to resize or move first.
+    struct FramePlacement {
+        let bounds: CGRect
+        let willChangeScreens: Bool
+    }
+
+    /// - Parameter placement: When `nil`, the window is moved, then resized.
     func setFrame(
         _ rect: CGRect,
-        sizeFirst: Bool = false,
+        placement: FramePlacement? = nil,
         resolvedProperties: ResolvedProperties? = nil
     ) async {
         guard await !MainActor.run(resultType: Bool.self, body: { applyOwnWindowFrame(rect) }) else {
             return
         }
 
-        let enhancedUI = resolvedProperties?.isEnhancedUserInterface ?? enhancedUserInterface
         let shouldSetSize = resolvedProperties?.isResizable ?? true
 
-        if enhancedUI {
-            let appName = nsRunningApplication?.localizedName
-            log.info("\(appName ?? "This app")'s enhanced UI will be temporarily disabled while resizing.")
-            enhancedUserInterface = false
-        }
-
-        if sizeFirst, shouldSetSize {
-            setSize(rect.size)
-        }
-
-        setPosition(rect.origin)
-
-        if shouldSetSize {
-            setSize(rect.size)
-        }
-
-        if enhancedUI {
-            enhancedUserInterface = true
+        performFrameAdjustment(resolvedProperties: resolvedProperties) {
+            writeChangedFrame(rect, with: $0, placement: placement, shouldSetSize: shouldSetSize)
         }
     }
 
     func setFrameSynchronously(
         _ rect: CGRect,
-        sizeFirst: Bool = false,
         resolvedProperties: ResolvedProperties? = nil
     ) {
         guard !applyOwnWindowFrameSynchronously(rect) else {
             return
         }
 
-        let enhancedUI = resolvedProperties?.isEnhancedUserInterface ?? enhancedUserInterface
         let shouldSetSize = resolvedProperties?.isResizable ?? true
+
+        performFrameAdjustment(resolvedProperties: resolvedProperties) {
+            writeChangedFrame(rect, with: $0, placement: nil, shouldSetSize: shouldSetSize)
+        }
+    }
+
+    /// Only writes the parts of `rect` that differ from the current frame, as each write can make the app redraw.
+    private func writeChangedFrame(
+        _ rect: CGRect,
+        with writer: FrameWriter,
+        placement: FramePlacement?,
+        shouldSetSize: Bool
+    ) {
+        var current = frame
+        var origin = rect.origin
+
+        let sizeFirst = placement.map {
+            WindowEngine.shouldSizeFirst(from: current, to: rect, within: $0.bounds, willChangeScreens: $0.willChangeScreens)
+        } ?? false
+
+        if sizeFirst, shouldSetSize, !current.size.approximatelyEqual(to: rect.size, tolerance: 1) {
+            writer.setSize(rect.size)
+            current = frame
+            if let placement {
+                origin = WindowEngine.origin(afterAccepting: current.size, for: rect, within: placement.bounds)
+            }
+        }
+
+        if !current.origin.approximatelyEqual(to: origin, tolerance: 1) {
+            writer.setPosition(origin)
+        }
+
+        // Set again in case the old position clamped the size
+        if shouldSetSize, !current.size.approximatelyEqual(to: rect.size, tolerance: 1) {
+            writer.setSize(rect.size)
+        }
+    }
+
+    /// Runs frame writes with enhanced UI disabled, as some apps animate or ignore frame changes while it's on.
+    func performFrameAdjustment(resolvedProperties: ResolvedProperties? = nil, _ adjustment: (FrameWriter) -> ()) {
+        let enhancedUI = resolvedProperties?.isEnhancedUserInterface ?? enhancedUserInterface
 
         if enhancedUI {
             let appName = nsRunningApplication?.localizedName
@@ -586,15 +615,7 @@ final class Window {
             enhancedUserInterface = false
         }
 
-        if sizeFirst, shouldSetSize {
-            setSize(rect.size)
-        }
-
-        setPosition(rect.origin)
-
-        if shouldSetSize {
-            setSize(rect.size)
-        }
+        adjustment(FrameWriter(self))
 
         if enhancedUI {
             enhancedUserInterface = true
@@ -631,6 +652,7 @@ final class Window {
             let animation = WindowTransformAnimation(
                 rect,
                 window: self,
+                writer: FrameWriter(self),
                 bounds: bounds,
                 shouldSetSize: shouldSetSize
             ) { error in
@@ -643,6 +665,24 @@ final class Window {
 
             animation.start()
         }
+    }
+}
+
+/// Sets a window's position and size. Only handed out by `Window.performFrameAdjustment` and the resize animation,
+/// so a frame is never written with enhanced UI enabled.
+struct FrameWriter {
+    private let window: Window
+
+    fileprivate init(_ window: Window) {
+        self.window = window
+    }
+
+    func setPosition(_ point: CGPoint) {
+        window.setPosition(point)
+    }
+
+    func setSize(_ size: CGSize) {
+        window.setSize(size)
     }
 }
 

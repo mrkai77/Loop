@@ -193,12 +193,13 @@ enum WindowEngine {
             try await window.setFrameAnimated(targetFrame, bounds: bounds, resolvedProperties: resolvedProperties)
             actualFrame = window.frame
         } else {
-            await window.setFrame(targetFrame, sizeFirst: willChangeScreens, resolvedProperties: resolvedProperties)
+            let placement = Window.FramePlacement(bounds: bounds, willChangeScreens: willChangeScreens)
+            await window.setFrame(targetFrame, placement: placement, resolvedProperties: resolvedProperties)
             try Task.checkCancellation()
 
             var frameAfterResize = window.frame
             if !frameAfterResize.approximatelyEqual(to: targetFrame) {
-                await window.setFrame(targetFrame, resolvedProperties: resolvedProperties)
+                await window.setFrame(targetFrame, placement: placement, resolvedProperties: resolvedProperties)
                 try Task.checkCancellation()
                 frameAfterResize = window.frame
             }
@@ -209,7 +210,8 @@ enum WindowEngine {
             window: window,
             actualFrame: actualFrame,
             targetFrame: targetFrame,
-            bounds: bounds
+            bounds: bounds,
+            resolvedProperties: resolvedProperties
         )
     }
 
@@ -219,7 +221,8 @@ enum WindowEngine {
         window: Window,
         actualFrame: CGRect,
         targetFrame: CGRect,
-        bounds: CGRect
+        bounds: CGRect,
+        resolvedProperties: Window.ResolvedProperties?
     ) -> CGRect {
         guard !window.isOwnWindow, bounds != .zero else {
             return actualFrame
@@ -244,8 +247,78 @@ enum WindowEngine {
             return actualFrame
         }
 
-        window.setPosition(correctedFrame.origin)
+        window.performFrameAdjustment(resolvedProperties: resolvedProperties) { writer in
+            writer.setPosition(correctedFrame.origin)
+        }
         return correctedFrame
+    }
+
+    /// Whether to resize before moving, picking whichever order keeps more of the window on screen in between.
+    /// Based on Rectangle's `ImmediateFrameOrder` located here :)
+    ///  https://github.com/rxhanson/Rectangle/blob/adbc8a0560367a6c0a56b2e8ae6f39a24740ab14/Rectangle/WindowMover/StandardWindowMover.swift#L38-L52
+    static func shouldSizeFirst(
+        from current: CGRect,
+        to target: CGRect,
+        within bounds: CGRect,
+        willChangeScreens: Bool
+    ) -> Bool {
+        // Moving at the old size can resize the window against the Dock or the new screen's edge
+        if willChangeScreens {
+            return true
+        }
+
+        guard !current.size.approximatelyEqual(to: target.size, tolerance: 1) else {
+            return false
+        }
+
+        guard bounds.size.area > 0 else {
+            return false
+        }
+
+        // Same for a window that's already partly off screen
+        if !bounds.insetBy(dx: -1, dy: -1).contains(current) {
+            return true
+        }
+
+        let sizedFirst = overflow(of: CGRect(origin: current.origin, size: target.size), outside: bounds)
+        let movedFirst = overflow(of: CGRect(origin: target.origin, size: current.size), outside: bounds)
+        if abs(sizedFirst - movedFirst) > 1 {
+            return sizedFirst < movedFirst
+        }
+
+        return true
+    }
+
+    /// The origin to move to after sizing first, anchored to the size the app accepted.
+    /// A smaller size may only be the old position clamping it, so that's left to `handleSizeConstrainedWindow`.
+    static func origin(
+        afterAccepting acceptedSize: CGSize,
+        for targetFrame: CGRect,
+        within bounds: CGRect
+    ) -> CGPoint {
+        let placedSize = CGSize(
+            width: max(acceptedSize.width, targetFrame.width),
+            height: max(acceptedSize.height, targetFrame.height)
+        )
+
+        guard !placedSize.approximatelyEqual(to: targetFrame.size, tolerance: 2),
+              placedSize.width <= bounds.width,
+              placedSize.height <= bounds.height
+        else {
+            return targetFrame.origin
+        }
+
+        return anchoredFrame(
+            for: placedSize,
+            within: targetFrame,
+            targetEdges: targetFrame.getEdgesTouchingBounds(bounds),
+            bounds: bounds
+        ).origin
+    }
+
+    private static func overflow(of frame: CGRect, outside bounds: CGRect) -> CGFloat {
+        max(0, bounds.minX - frame.minX) + max(0, frame.maxX - bounds.maxX)
+            + max(0, bounds.minY - frame.minY) + max(0, frame.maxY - bounds.maxY)
     }
 
     static func anchoredFrame(

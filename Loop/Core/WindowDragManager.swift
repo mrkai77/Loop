@@ -240,7 +240,9 @@ final class WindowDragManager {
             newWindowFrame = newWindowFrame.pushInside(screen.displayBounds)
             await window.setFrame(newWindowFrame)
         } else {
-            window.setSize(initialFrame.size)
+            window.performFrameAdjustment { writer in
+                writer.setSize(initialFrame.size)
+            }
         }
 
         // If the window doesn't contain the cursor, keep the original maxX
