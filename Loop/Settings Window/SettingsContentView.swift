@@ -42,7 +42,6 @@ struct SettingsContentView: View {
             }
             .frame(width: 230)
             .padding(.top, titleBarHeight)
-            .luminareBackground()
 
             LuminarePane {
                 model.currentTab.view()
@@ -107,6 +106,9 @@ struct SettingsContentView: View {
                 .animation(animation, value: [showRadialMenu, showPreview])
                 .padding(12)
                 .frame(width: 520)
+                .background {
+                    BackdropBlurView(radius: 6)
+                }
             }
         }
         .luminareTint(overridingWith: accentColorController.color1)

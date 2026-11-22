@@ -83,14 +83,6 @@ final class SettingsWindowManager: ObservableObject {
                     .frame(height: 620)
             }
 
-            SkyLightToolBelt.setBackgroundBlur(
-                windowID: CGWindowID(window.windowNumber),
-                radius: 20
-            )
-
-            window.backgroundColor = .white.withAlphaComponent(0.001)
-            window.ignoresMouseEvents = false
-
             controller = NSWindowController(window: window)
         }
 

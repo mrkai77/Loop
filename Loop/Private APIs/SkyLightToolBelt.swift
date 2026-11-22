@@ -231,6 +231,14 @@ enum SkyLightToolBelt {
     }
 
     /// Sets the background blur radius of a window.
+    ///
+    /// You may need to call something like:
+    /// ```swift
+    /// window.backgroundColor = .white.withAlphaComponent(0.001)
+    /// window.ignoresMouseEvents = false
+    /// ```
+    /// to restore pointer interaction with the window.
+    ///
     /// - Parameters:
     ///   - windowID: The `CGWindowID` of the window to manipulate.
     ///   - radius: The desired blur radius.

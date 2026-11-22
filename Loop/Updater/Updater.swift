@@ -253,7 +253,7 @@ final class Updater: ObservableObject {
         guard updateState == .available else { return }
 
         if windowController?.window == nil {
-            windowController = .init(window: LuminareWindow(cornerRadius: 20) { UpdateView() })
+            windowController = .init(window: LuminareCustomCornerRadiusWindow(cornerRadius: 20) { UpdateView() })
         }
         windowController?.window?.makeKeyAndOrderFront(self)
         windowController?.window?.orderFrontRegardless()
