@@ -150,6 +150,10 @@ struct TargetOptions: ParsableArguments {
         if windowID != nil, bundleID != nil {
             throw ValidationError("--window-id and --bundle-id can’t be used together")
         }
+
+        if let bundleID, bundleID.trimmingCharacters(in: .whitespaces).isEmpty {
+            throw ValidationError("--bundle-id can’t be empty")
+        }
     }
 
     var queryItems: [URLQueryItem] {

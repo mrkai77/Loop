@@ -154,14 +154,6 @@ final class LoopSocketManager {
 
         LoopSocketIO.configure(clientFD, timeout: Self.clientTimeout)
 
-        // Only answer once the user has installed the tool, so running the copy inside Loop.app does nothing until they opt in.
-        // This isn't a security boundary: any app of this user can already send the same commands through loop:// URLs.
-        if let reason = commandLineToolRejectionReason() {
-            log.warn("Rejected socket connection: \(reason)")
-            respond(clientFD, LoopAutomationJSON.encodedFailure(.unavailable, message: reason))
-            return
-        }
-
         let request: String
         do {
             request = try LoopSocketIO.readToEnd(from: clientFD, limit: Self.maxRequestSize)
@@ -174,6 +166,15 @@ final class LoopSocketManager {
             return
         } catch {
             respond(clientFD, LoopAutomationJSON.encodedFailure(.invalidRequest, message: "Couldn’t read the request: \(error.localizedDescription)"))
+            return
+        }
+
+        // Only answer once the user has installed the tool, so running the copy inside Loop.app does nothing until they opt in.
+        // This isn't a security boundary: any app of this user can already send the same commands through loop:// URLs.
+        // Checked after reading the request, as closing before the CLI has written it would hide this reason behind a write error.
+        if let reason = commandLineToolRejectionReason() {
+            log.warn("Rejected socket connection: \(reason)")
+            respond(clientFD, LoopAutomationJSON.encodedFailure(.unavailable, message: reason))
             return
         }
 

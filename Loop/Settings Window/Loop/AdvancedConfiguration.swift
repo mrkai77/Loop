@@ -191,7 +191,7 @@ final class AdvancedConfigurationModel: ObservableObject {
         }
     }
 
-    private func refreshCommandLineToolInstallStatus() {
+    func refreshCommandLineToolInstallStatus() {
         do {
             commandLineToolInstallStatus = try commandLineToolInstaller.status()
         } catch {
@@ -243,6 +243,10 @@ struct AdvancedConfigurationView: View {
             permissionsSection
                 .onAppear(perform: model.startTracking)
                 .onDisappear(perform: model.stopTracking)
+                // Removing a conflicting file usually happens in another app, so check again on coming back
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                    model.refreshCommandLineToolInstallStatus()
+                }
             commandLineToolSection
         }
         .animation(luminareAnimation, value: enableRadialMenuCustomization)

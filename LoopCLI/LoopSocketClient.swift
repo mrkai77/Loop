@@ -54,7 +54,13 @@ final class LoopSocketClient {
             throw LoopAutomationError(.unavailable, message: "Loop closed the connection without responding")
         }
 
-        return CLIResponse(rawOutput: response)
+        // Cut short or from a different version, so `--json` never prints something scripts can't parse
+        let cliResponse = CLIResponse(rawOutput: response)
+        guard cliResponse.automationResponse != nil else {
+            throw LoopAutomationError(.unavailable, message: "Loop’s response couldn’t be read. Make sure Loop is up to date, then try again.")
+        }
+
+        return cliResponse
     }
 
     private static func connectionError(errno code: Int32) -> LoopAutomationError {

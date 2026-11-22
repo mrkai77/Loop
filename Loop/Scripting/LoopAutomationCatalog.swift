@@ -60,9 +60,20 @@ struct LoopAutomationCatalog {
 
     // MARK: - Built-in Actions
 
-    /// The Keybinds tab's action picker, minus actions that have to be configured first
+    /// The Keybinds tab's action picker, minus actions that have to be configured first.
+    /// The picker only offers as many desktops as there are right now, while this lists them all.
     static func builtInActions() -> [(direction: WindowDirection, category: String)] {
-        PickerSection.windowDirections.flatMap { section in
+        var sections = PickerSection.windowDirections.filter { section in
+            !section.items.contains(where: \.willChangeSpace)
+        }
+        let spaceSwitching = PickerSection(
+            String(localized: "Space Switching", comment: "Section header in the action picker of the Keybinds tab"),
+            WindowDirection.spaceSwitching
+        )
+        let afterScreenSwitching = sections.firstIndex { $0.items.contains(.nextScreen) }.map { $0 + 1 } ?? sections.endIndex
+        sections.insert(spaceSwitching, at: afterScreenSwitching)
+
+        return sections.flatMap { section in
             section.items
                 .filter(\.isRunnableOnItsOwn)
                 .map { ($0, section.title) }

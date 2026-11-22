@@ -178,8 +178,9 @@ final class LoopCommandHandler {
 
     /// Present but malformed values are errors, so a typo can't act on some other window
     private func targetParams(from queryItems: [URLQueryItem]) -> Result<TargetParams, LoopAutomationError> {
+        /// A parameter without a value, like `?windowID`, is present but empty
         func value(_ name: String) -> String? {
-            queryItems.first { $0.name.lowercased() == name.lowercased() }?.value
+            queryItems.first { $0.name.lowercased() == name.lowercased() }.map { $0.value ?? "" }
         }
 
         var params = TargetParams()
@@ -250,20 +251,28 @@ final class LoopCommandHandler {
 
     /// Routes from before the CLI, which shipped in the URL scheme's documentation
     private func legacyRequest(from components: [String]) -> Request? {
+        guard components.count == 2 else {
+            return Self.legacyRoute(from: components).map { .route($0) }
+        }
+
+        let command = components[0].lowercased()
+        let argument = components[1]
+
+        // `direction/` sent names starting with "custom" or "stash" to the custom action lookup, like `action/`
+        if command == "direction", ["custom", "stash"].contains(where: argument.lowercased().hasPrefix) {
+            return .keybindNamed(argument, orBuiltIn: true)
+        }
+
         if let route = Self.legacyRoute(from: components) {
             return .route(route)
         }
 
-        guard components.count == 2 else {
-            return nil
-        }
-
         // These matched keybinds by name, which isn't a route of its own anymore
-        switch components[0].lowercased() {
+        switch command {
         case "action":
-            return .keybindNamed(components[1], orBuiltIn: true)
+            return .keybindNamed(argument, orBuiltIn: true)
         case "keybind":
-            return .keybindNamed(components[1], orBuiltIn: false)
+            return .keybindNamed(argument, orBuiltIn: false)
         default:
             return nil
         }
@@ -371,9 +380,12 @@ final class LoopCommandHandler {
         }
     }
 
-    /// Runs the first keybind with this name, like `action/<name>` and `keybind/<name>` did
+    /// Runs the first keybind with this name, like `action/<name>` and `keybind/<name>` did.
+    /// `action/` only matched custom and stash actions by name, so a cycle can't take over a built-in action's name.
     private func runKeybind(named name: String, orBuiltIn: Bool, params: TargetParams, source: InvocationSource) async -> LoopAutomationResponse {
-        let bindings = LoopAutomationCatalog().keyBindings
+        let bindings = LoopAutomationCatalog().keyBindings.filter { binding in
+            !orBuiltIn || binding.action?.direction.isCustomizable == true
+        }
         if let binding = bindings.first(where: { $0.action?.name?.lowercased() == name.lowercased() }),
            let target = binding.target {
             return await run(target, params: params, source: source)
@@ -422,11 +434,15 @@ final class LoopCommandHandler {
             return LoopAutomationResponse(error: error)
         }
 
-        // The engine has no frame for screen switching actions, so like keybinds, apply what the window should look like there
+        // The engine has no frame for screen switching actions. Like keybinds, a cycle goes on to its next action on the new screen,
+        // and otherwise the window keeps what it looks like now.
         var appliedAction = resolvedAction
-        if resolvedAction.direction.willChangeScreen, let window,
-           let currentScreen = ScreenUtility.screenContaining(window) ?? NSScreen.main {
-            appliedAction = await LoopManager.actionAfterScreenSwitch(for: window, from: currentScreen)
+        if resolvedAction.direction.willChangeScreen, let window {
+            if let nextAction = Self.cycleAction(after: resolvedAction, in: action) {
+                appliedAction = nextAction
+            } else if let currentScreen = ScreenUtility.screenContaining(window) ?? NSScreen.main {
+                appliedAction = await LoopManager.actionAfterScreenSwitch(for: window, from: currentScreen)
+            }
         }
 
         log.info("Running \(target) (\(appliedAction)) on \(window?.description ?? "no window")")
@@ -439,9 +455,13 @@ final class LoopCommandHandler {
         }
 
         guard result.success else {
-            let message = appliedAction.direction.willFocusWindow
-                ? "No window to focus in that direction"
-                : "Couldn’t run \(target)"
+            let message = if appliedAction.direction.willFocusWindow {
+                "No window to focus in that direction"
+            } else if appliedAction.direction.spaceDestination != nil {
+                "There’s no desktop to move the window to"
+            } else {
+                "Couldn’t run \(target)"
+            }
             return failureResponse(.failed, message: message)
         }
 
@@ -455,6 +475,19 @@ final class LoopCommandHandler {
                 )
             )
         )
+    }
+
+    /// The action after a cycle's screen switching action, unless it switches screens too, which keybinds also stop at
+    private static func cycleAction(after action: WindowAction, in cycle: WindowAction) -> WindowAction? {
+        guard cycle.direction == .cycle,
+              let actions = cycle.cycle,
+              let index = actions.firstIndex(where: { $0.id == action.id })
+        else {
+            return nil
+        }
+
+        let next = actions[(index + 1) % actions.count]
+        return next.direction.willChangeScreen || next.direction.isNoOp ? nil : next
     }
 
     /// Picks the cycle's next action the way Loop's keybinds do, continuing from the window's current action
@@ -549,6 +582,10 @@ final class LoopCommandHandler {
     /// Like keybinds: the screen with the cursor (or the main screen), and for screen-changing actions, the one next to the window's
     private func resolveScreen(for action: WindowAction, window: Window?, params: TargetParams) -> Result<NSScreen, LoopAutomationError> {
         if action.direction.willChangeScreen {
+            guard params.screenID == nil else {
+                return .failure(LoopAutomationError(.invalidRequest, message: "\(action.direction.automationKey) picks its own screen, so it can’t be combined with a screen ID"))
+            }
+
             guard let window,
                   let currentScreen = ScreenUtility.screenContaining(window) ?? NSScreen.main,
                   let targetScreen = ScreenUtility.targetScreen(for: action.direction, from: currentScreen)

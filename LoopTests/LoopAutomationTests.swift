@@ -126,6 +126,14 @@ struct WindowDirectionAutomationKeyTests {
         #expect(LoopCommandHandler.legacyRoute(from: ["screen", "sideways"]) == nil)
     }
 
+    @Test @MainActor func everyDesktopIsListedWhateverTheCurrentCount() {
+        let keys = LoopAutomationCatalog.builtInActions().map(\.direction.automationKey)
+        for direction in WindowDirection.spaceSwitching {
+            #expect(keys.contains(direction.automationKey), "\(direction)")
+        }
+        #expect(Set(keys).count == keys.count)
+    }
+
     @Test @MainActor func onlyStandaloneActionsAreRunnableBuiltIns() {
         #expect(LoopAutomationCatalog.builtInAction(named: "left-half") == .leftHalf)
         #expect(LoopAutomationCatalog.builtInAction(named: "custom") == nil)

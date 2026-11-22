@@ -327,6 +327,7 @@ struct LoopAutomationFormatter {
         }
 
         let result = string
+            .replacingOccurrences(of: "\t", with: " ")
             .components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
