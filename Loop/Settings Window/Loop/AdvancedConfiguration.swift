@@ -122,7 +122,7 @@ final class AdvancedConfigurationModel: ObservableObject {
 
     var commandLineToolActionTitle: LocalizedStringKey {
         switch commandLineToolInstallStatus {
-        case .installedStale, .installedWithoutAdministrator:
+        case .installedStale, .installedMissing, .installedWithoutAdministrator:
             "Repair…"
         case .installedCurrent:
             "Uninstall…"
@@ -145,7 +145,7 @@ final class AdvancedConfigurationModel: ObservableObject {
         case .notInstalled:
             failureTitle = String(localized: "The command-line tool couldn’t be installed.")
             operation = commandLineToolInstaller.install
-        case .installedStale, .installedWithoutAdministrator:
+        case .installedStale, .installedMissing, .installedWithoutAdministrator:
             failureTitle = String(localized: "The command-line tool couldn’t be repaired.")
             operation = commandLineToolInstaller.install
         case .installedCurrent:

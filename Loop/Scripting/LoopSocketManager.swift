@@ -205,6 +205,8 @@ final class LoopSocketManager {
             "Loop only accepts commands while the command-line tool is installed. Install it in Loop’s Advanced settings."
         case .installedStale:
             "\(path) points to another copy of Loop. Click Repair in Loop’s Advanced settings."
+        case .installedMissing:
+            "\(path) points to a copy of Loop that was moved or deleted. Click Repair in Loop’s Advanced settings."
         case .installedWithoutAdministrator:
             "\(path) isn’t owned by an administrator, so another app could have created it. Click Repair in Loop’s Advanced settings."
         case .blocked:

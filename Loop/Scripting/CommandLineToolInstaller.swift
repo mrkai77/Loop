@@ -12,6 +12,8 @@ final class CommandLineToolInstaller {
         case notInstalled
         case installedCurrent
         case installedStale
+        /// The link points to a copy of Loop that was moved or deleted
+        case installedMissing
         case installedWithoutAdministrator
         case blocked
 
@@ -23,6 +25,8 @@ final class CommandLineToolInstaller {
                 nil
             case .installedStale:
                 "`\(symlinkPath)` points to another copy of Loop. Click Repair to use this one."
+            case .installedMissing:
+                "`\(symlinkPath)` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
             case .installedWithoutAdministrator:
                 "`\(symlinkPath)` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
             case .blocked:
@@ -52,7 +56,7 @@ final class CommandLineToolInstaller {
             let currentCLIURL = PrivilegedHelperConstants.commandLineToolURL(inBundle: Bundle.main.bundleURL)
 
             guard destinationURL.path == currentCLIURL.path else {
-                return .installedStale
+                return fileManager.fileExists(atPath: destinationURL.path) ? .installedStale : .installedMissing
             }
 
             return isOwnedByRoot ? .installedCurrent : .installedWithoutAdministrator
