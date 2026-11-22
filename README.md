@@ -114,25 +114,20 @@ To set Caps Lock as your trigger key, you have two options:
 
 #### c. Shell/AppleScript
 
-Loop can be controlled with the `loop` command, or with `loop://` URLs from other apps. Both run the same things:
-
-- **Built-in actions**, like `right-half`, `maximize` or `next-screen`. `loop list actions` shows them all.
-- **Your keybinds, gestures and radial menu actions**, written as `keybind:<id>`, `gesture:<id>` or `radial-menu:<id>`. `loop list keybinds`, `loop list gestures` and `loop list radial-menu` show each one's id. A custom action's id comes from its name, so "Portrait" is `keybind:portrait`.
+Loop can be controlled with the `loop` command, or with `loop://` URLs from other apps. Both run built-in actions like `right-half` or `next-screen`, and your own keybinds, gestures and radial menu actions, like `keybind:portrait`.
 
 ##### The `loop` command
 
-The `loop` command isn't installed by default. To install it, open Loop's settings, go to Advanced, and click Install… under Command-Line Tool. Loop asks for your password, since it adds `loop` to `/usr/local/bin`.
+The `loop` command isn't installed by default. To install it, open Loop's settings, go to Advanced, and click Install… under Command-Line Tool.
 
 ```bash
-loop list actions                # Built-in actions
-loop list keybinds               # Your keybinds, also gestures and radial-menu
-loop list windows                # Visible windows, also screens
+loop list actions          # Built-in actions
+loop list keybinds         # Your keybinds, also gestures and radial-menu
 loop run right-half
-loop run keybind:portrait        # One of your keybinds
-loop run radial-menu:top-cycle   # Cycles like the radial menu does
+loop run keybind:portrait
 ```
 
-Actions apply to the window a keybind would, following the "Target window" setting. To pick a different window or screen:
+Actions apply to the window a keybind would. To pick a different window or screen:
 
 ```bash
 loop run maximize --window-id 1234               # A window from list windows
@@ -140,36 +135,7 @@ loop run left-half --bundle-id com.apple.Safari  # An app's frontmost window, op
 loop run right-half --screen-id 2                # A screen from list screens
 ```
 
-Each command waits for Loop's reply, so commands in a script run in order:
-
-```bash
-#!/bin/bash
-loop run right-half && loop run maximize
-```
-
-From AppleScript, use the full path, since `do shell script` doesn't search `/usr/local/bin`:
-
-```applescript
-do shell script "/usr/local/bin/loop run left-half"
-```
-
-In a terminal, lists print as aligned tables. When piped, they print one tab-separated line per row with no header, and the first column is what you pass to `run`:
-
-```bash
-loop list keybinds | cut -f1   # keybind:maximize, keybind:portrait, ...
-```
-
-Color follows [`NO_COLOR`](https://no-color.org) and `CLICOLOR_FORCE`. Pass `--json` to print Loop's JSON response instead:
-
-```json
-{ "version": 1, "success": true, "result": { "kind": "run", ... }, "error": null }
-```
-
-Every key is always present, and is `null` when it has no value. On failure, `error` has a `message` and a `code`, such as `notFound`, `noWindow`, `excludedApp`, `unavailable` or `timeout`. Check the code rather than the message.
-
-Errors go to `stderr`. With `--json`, Loop's errors go to `stdout` as JSON instead, though mistyped commands and options still go to `stderr`.
-
-`loop` exits with `0` on success, `1` when a command fails, `64` for invalid usage, `69` when Loop can't be reached, and `75` when Loop doesn't respond in time. Run `loop help` for all commands and options, and `loop --version` for the version of Loop it came with.
+Run `loop help` for all commands and options.
 
 ##### URLs
 
@@ -182,12 +148,6 @@ loop://run/maximize?windowID=1234               # A window from list/windows
 loop://run/left-half?bundleID=com.apple.Safari  # A running app's frontmost window
 loop://run/right-half?screenID=2                # A screen from list/screens
 ```
-
-`windowID` and `bundleID` can't be combined. Unlike `--bundle-id`, a URL's `bundleID` won't open an app that isn't running. If a command fails, Loop shows an alert explaining why.
-
-List URLs, like `loop://list/keybinds` or `loop://list/windows`, open a Loop window with the result, and a toolbar button switches between readable text and JSON.
-
-URLs from earlier versions of Loop, like `loop://direction/right` or `loop://keybind/<name>`, still work.
 
 ### Keyboard Shortcuts
 

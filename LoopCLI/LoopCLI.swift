@@ -39,10 +39,8 @@ struct LoopCLICommand: ParsableCommand {
 
     /// The installed tool lives inside Loop.app, so this is the version of the Loop it belongs to
     private static var version: String {
-        let info = Bundle.main.infoDictionary
-        guard Bundle.main.bundleURL.pathExtension == "app",
-              let version = info?["CFBundleShortVersionString"] as? String
-        else {
+        let info = appBundle?.infoDictionary
+        guard let version = info?["CFBundleShortVersionString"] as? String else {
             return "unknown (not inside Loop.app)"
         }
 
@@ -51,6 +49,25 @@ struct LoopCLICommand: ParsableCommand {
         }
 
         return version
+    }
+
+    /// `Bundle.main` doesn't follow the `/usr/local/bin/loop` symlink, so this resolves the executable's real path first
+    private static var appBundle: Bundle? {
+        var size: UInt32 = 0
+        _NSGetExecutablePath(nil, &size)
+        var buffer = [CChar](repeating: 0, count: Int(size))
+        guard _NSGetExecutablePath(&buffer, &size) == 0 else {
+            return nil
+        }
+
+        // Loop.app/Contents/MacOS/loop-cli
+        let appURL = URL(fileURLWithPath: String(cString: buffer))
+            .resolvingSymlinksInPath()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+
+        return appURL.pathExtension == "app" ? Bundle(url: appURL) : nil
     }
 }
 
