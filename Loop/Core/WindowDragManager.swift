@@ -236,15 +236,13 @@ final class WindowDragManager {
 
         if let screen = NSScreen.screenWithMouse {
             var newWindowFrame = window.frame
-            let currentSize = newWindowFrame.size
             newWindowFrame.size = initialFrame.size
             newWindowFrame = newWindowFrame.pushInside(screen.displayBounds)
-            await window.setFrame(
-                newWindowFrame,
-                sizeFirst: WindowEngine.shouldSizeFirst(to: newWindowFrame.size, from: currentSize)
-            )
+            await window.setFrame(newWindowFrame)
         } else {
-            window.setSize(initialFrame.size)
+            window.performFrameAdjustment { writer in
+                writer.setSize(initialFrame.size)
+            }
         }
 
         // If the window doesn't contain the cursor, keep the original maxX

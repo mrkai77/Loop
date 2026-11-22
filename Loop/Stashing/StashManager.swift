@@ -107,13 +107,7 @@ final class StashManager {
             store.setStashedWindow(cgWindowID: updated.window.cgWindowID, to: updated)
 
             // Don't animate when configuration changes
-            await updated.window.setFrame(
-                updated.stashedFrame,
-                sizeFirst: WindowEngine.shouldSizeFirst(
-                    to: updated.stashedFrame.size,
-                    from: updated.window.size
-                )
-            )
+            await updated.window.setFrame(updated.stashedFrame)
         }
     }
 
@@ -254,13 +248,7 @@ extension StashManager {
                     bounds: .zero
                 )
             } else {
-                await window.window.setFrame(
-                    window.restoreFrame,
-                    sizeFirst: WindowEngine.shouldSizeFirst(
-                        to: window.restoreFrame.size,
-                        from: window.window.size
-                    )
-                )
+                await window.window.setFrame(window.restoreFrame)
             }
         }
 
@@ -287,13 +275,7 @@ extension StashManager {
         log.info("unstash \(window.window)")
 
         if resetFrame {
-            window.window.setFrameSynchronously(
-                window.restoreFrame,
-                sizeFirst: WindowEngine.shouldSizeFirst(
-                    to: window.restoreFrame.size,
-                    from: window.window.size
-                )
-            )
+            window.window.setFrameSynchronously(window.restoreFrame)
         }
 
         unmanage(windowID: window.window.cgWindowID)
@@ -338,10 +320,7 @@ private extension StashManager {
                     bounds: .zero
                 )
             } else {
-                await window.window.setFrame(
-                    frame,
-                    sizeFirst: WindowEngine.shouldSizeFirst(to: frame.size, from: window.window.size)
-                )
+                await window.window.setFrame(frame)
             }
         } catch is CancellationError {
             cancelTransition(windowID: windowID, transitionID: transitionID, fallbackRevealed: false)
@@ -385,10 +364,7 @@ private extension StashManager {
                     bounds: .zero
                 )
             } else {
-                await window.window.setFrame(
-                    frame,
-                    sizeFirst: WindowEngine.shouldSizeFirst(to: frame.size, from: window.window.size)
-                )
+                await window.window.setFrame(frame)
             }
         } catch is CancellationError {
             cancelTransition(windowID: windowID, transitionID: transitionID, fallbackRevealed: true)

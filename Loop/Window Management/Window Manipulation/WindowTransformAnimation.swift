@@ -27,6 +27,7 @@ final class WindowTransformAnimation: NSAnimation {
     private var targetFrame: CGRect
     private let originalFrame: CGRect
     private let window: Window
+    private let writer: FrameWriter
     private let bounds: CGRect
     private let shouldSetSize: Bool
     private let targetEdges: Edge.Set
@@ -44,6 +45,7 @@ final class WindowTransformAnimation: NSAnimation {
     init(
         _ newRect: CGRect,
         window: Window,
+        writer: FrameWriter,
         bounds: CGRect,
         shouldSetSize: Bool,
         completionHandler: @escaping (Error?) -> ()
@@ -52,6 +54,7 @@ final class WindowTransformAnimation: NSAnimation {
         self.targetFrame = newRect
         self.originalFrame = originalFrame
         self.window = window
+        self.writer = writer
         self.bounds = bounds
         self.shouldSetSize = shouldSetSize
         self.targetEdges = newRect.getEdgesTouchingBounds(bounds)
@@ -140,7 +143,7 @@ final class WindowTransformAnimation: NSAnimation {
                 sizeToSet: sizeToSet
             ) {
                 if !lastWindowFrame.origin.approximatelyEqual(to: preResizeOrigin, tolerance: 1) {
-                    window.setPosition(preResizeOrigin)
+                    writer.setPosition(preResizeOrigin)
                     currentOrigin = preResizeOrigin
                 }
             } else if growsHorizontally || growsVertically {
@@ -152,12 +155,12 @@ final class WindowTransformAnimation: NSAnimation {
                     preResizeOrigin.y = requestedFrame.origin.y
                 }
                 if !lastWindowFrame.origin.approximatelyEqual(to: preResizeOrigin, tolerance: 1) {
-                    window.setPosition(preResizeOrigin)
+                    writer.setPosition(preResizeOrigin)
                     currentOrigin = preResizeOrigin
                 }
             }
 
-            window.setSize(sizeToSet)
+            writer.setSize(sizeToSet)
             if bounds != .zero {
                 let actualFrame = window.frame
                 updateConstraint(actualFrame: actualFrame, requestedFrame: requestedFrame, tolerance: resizeTolerance)
@@ -190,7 +193,7 @@ final class WindowTransformAnimation: NSAnimation {
         }
 
         if !currentOrigin.approximatelyEqual(to: newFrame.origin, tolerance: 1) {
-            window.setPosition(newFrame.origin)
+            writer.setPosition(newFrame.origin)
         }
 
         lastWindowFrame = window.frame

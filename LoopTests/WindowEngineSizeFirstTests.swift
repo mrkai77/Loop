@@ -8,95 +8,61 @@ import CoreGraphics
 import Testing
 
 struct WindowEngineSizeFirstTests {
-    @Test func sameScreenShrinkSizesFirst() {
-        #expect(
-            WindowEngine.shouldSizeFirst(
-                to: CGSize(width: 640, height: 900),
-                from: CGSize(width: 1920, height: 900)
-            )
-        )
-        #expect(
-            WindowEngine.shouldSizeFirst(
-                to: CGSize(width: 1920, height: 400),
-                from: CGSize(width: 1920, height: 900)
-            )
-        )
+    private let screen = CGRect(x: 0, y: 0, width: 1920, height: 1080)
+
+    private func sizesFirst(from current: CGRect, to target: CGRect) -> Bool {
+        WindowEngine.shouldSizeFirst(from: current, to: target, within: screen, willChangeScreens: false)
     }
 
-    @Test func shrinkingEitherAxisSizesFirst() {
-        #expect(
-            WindowEngine.shouldSizeFirst(
-                to: CGSize(width: 800, height: 1000),
-                from: CGSize(width: 1000, height: 500)
-            )
-        )
+    @Test func shrinkingTowardTheFarEdgeSizesFirst() {
+        // Moving first would slide the full-width window 1280 points off the right edge
+        #expect(sizesFirst(
+            from: CGRect(x: 0, y: 0, width: 1920, height: 1080),
+            to: CGRect(x: 1280, y: 0, width: 640, height: 1080)
+        ))
     }
 
-    @Test func sameScreenGrowthMovesFirst() {
-        #expect(
-            !WindowEngine.shouldSizeFirst(
-                to: CGSize(width: 1920, height: 900),
-                from: CGSize(width: 640, height: 900)
-            )
-        )
-        #expect(
-            !WindowEngine.shouldSizeFirst(
-                to: CGSize(width: 1280, height: 900),
-                from: CGSize(width: 640, height: 400)
-            )
-        )
+    @Test func growingFromTheFarEdgeMovesFirst() {
+        // Sizing first would grow the right third 1280 points off the right edge
+        #expect(!sizesFirst(
+            from: CGRect(x: 1280, y: 0, width: 640, height: 1080),
+            to: CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        ))
     }
 
-    @Test func equalSizeMovesFirst() {
-        let size = CGSize(width: 800, height: 600)
-        #expect(!WindowEngine.shouldSizeFirst(to: size, from: size))
+    @Test func mixedResizePicksTheOrderThatSticksOutLess() {
+        // Sizing first hangs 600 points off the bottom, moving first 1080 points off the right
+        #expect(sizesFirst(
+            from: CGRect(x: 0, y: 600, width: 1900, height: 400),
+            to: CGRect(x: 1100, y: 0, width: 800, height: 1080)
+        ))
     }
 
-    @Test func screenChangeSizesFirstEvenWhenGrowingOrUnchanged() {
-        #expect(
-            WindowEngine.shouldSizeFirst(
-                to: CGSize(width: 1920, height: 1080),
-                from: CGSize(width: 640, height: 400),
-                willChangeScreens: true
-            )
-        )
-        let size = CGSize(width: 800, height: 600)
-        #expect(WindowEngine.shouldSizeFirst(to: size, from: size, willChangeScreens: true))
+    @Test func eitherOrderOnScreenSizesFirst() {
+        #expect(sizesFirst(
+            from: CGRect(x: 0, y: 0, width: 640, height: 1080),
+            to: CGRect(x: 960, y: 0, width: 960, height: 1080)
+        ))
     }
 
-    @Test func pureShrinkUsesTheTargetSizeBeforeMoving() {
-        let size = WindowEngine.sizeBeforeMove(
-            target: CGSize(width: 640, height: 400),
-            current: CGSize(width: 1920, height: 900),
-            sizeFirst: false
-        )
-        #expect(size == CGSize(width: 640, height: 400))
+    @Test func partlyOffScreenWindowSizesFirst() {
+        #expect(sizesFirst(
+            from: CGRect(x: 1500, y: 0, width: 960, height: 1080),
+            to: CGRect(x: 0, y: 0, width: 1920, height: 1080)
+        ))
     }
 
-    @Test func mixedResizeShrinksInPlaceAndDefersGrowth() {
-        let size = WindowEngine.sizeBeforeMove(
-            target: CGSize(width: 800, height: 1000),
-            current: CGSize(width: 1000, height: 500),
-            sizeFirst: false
-        )
-        #expect(size == CGSize(width: 800, height: 500))
+    @Test func largerAcceptedSizeStaysAnchoredToTheTargetEdge() {
+        // A window with an 800-point minimum width snapped to the right third keeps its right edge on the screen's
+        let target = CGRect(x: 1280, y: 0, width: 640, height: 1080)
+        let origin = WindowEngine.origin(afterAccepting: CGSize(width: 800, height: 1080), for: target, within: screen)
+        #expect(origin == CGPoint(x: 1120, y: 0))
     }
 
-    @Test func screenChangeGrowthUsesTheFullTargetSize() {
-        let size = WindowEngine.sizeBeforeMove(
-            target: CGSize(width: 1920, height: 1080),
-            current: CGSize(width: 640, height: 400),
-            sizeFirst: true
-        )
-        #expect(size == CGSize(width: 1920, height: 1080))
-    }
-
-    @Test func sameScreenGrowthDoesNotSizeBeforeMoving() {
-        let size = WindowEngine.sizeBeforeMove(
-            target: CGSize(width: 1280, height: 900),
-            current: CGSize(width: 640, height: 400),
-            sizeFirst: false
-        )
-        #expect(size == nil)
+    @Test func smallerAcceptedSizeIsPlacedAtTheTargetSize() {
+        // May only be the old position clamping it, so it's corrected after the move instead
+        let target = CGRect(x: 1280, y: 0, width: 640, height: 1080)
+        let origin = WindowEngine.origin(afterAccepting: CGSize(width: 640, height: 500), for: target, within: screen)
+        #expect(origin == target.origin)
     }
 }
