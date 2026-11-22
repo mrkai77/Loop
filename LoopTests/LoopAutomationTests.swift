@@ -235,3 +235,62 @@ struct LoopAutomationJSONTests {
         #expect(decoded.error?.code == .notFound)
     }
 }
+
+struct LoopAutomationFormatterTests {
+    private let bindings = LoopAutomationResult.bindingList(LoopBindingListResult(
+        bindingKind: .keybind,
+        bindings: [
+            LoopBindingSummary(kind: .keybind, id: "maximize", target: "keybind:maximize", action: LoopBoundAction(key: "maximize", name: "Maximize"), linkedTarget: nil, trigger: "Trigger + ↩", isActive: true, note: nil),
+            LoopBindingSummary(kind: .keybind, id: "halves", target: "keybind:halves", action: LoopBoundAction(key: "cycle", name: "Halves"), linkedTarget: nil, trigger: nil, isActive: false, note: "No keys")
+        ]
+    ))
+
+    @Test func tablesAlignUnderAHeaderAndHideEmptyColumns() {
+        let text = LoopAutomationFormatter(layout: .table(maxWidth: nil)).format(bindings).plainText
+        #expect(text == """
+        TARGET             ACTION     TRIGGER       NOTE
+        keybind:maximize   Maximize   Trigger + ↩
+        keybind:halves     Halves                   No keys
+        """)
+    }
+
+    @Test func pipedOutputIsTabSeparatedWithStableColumns() {
+        let text = LoopAutomationFormatter(layout: .tabSeparated).format(bindings).plainText
+        #expect(text == "keybind:maximize\tMaximize\tTrigger + ↩\t\t\nkeybind:halves\tHalves\t\t\tNo keys")
+    }
+
+    @Test func emptyListsOnlyExplainThemselvesInATable() {
+        let empty = LoopAutomationResult.bindingList(LoopBindingListResult(bindingKind: .gesture, bindings: []))
+        #expect(LoopAutomationFormatter(layout: .table(maxWidth: nil)).format(empty).plainText == "No gestures")
+        #expect(LoopAutomationFormatter(layout: .tabSeparated).format(empty).isEmpty)
+    }
+
+    @Test func theFirstColumnStaysEvenWithoutAnyValues() {
+        let gestures = LoopAutomationResult.bindingList(LoopBindingListResult(
+            bindingKind: .gesture,
+            bindings: [
+                LoopBindingSummary(kind: .gesture, id: nil, target: nil, action: nil, linkedTarget: nil, trigger: "2-finger Radial Menu, Title bar", isActive: true, note: "Can’t be run")
+            ]
+        ))
+        #expect(LoopAutomationFormatter(layout: .table(maxWidth: nil)).format(gestures).plainText == """
+        TARGET   ACTION                  TRIGGER                           NOTE
+        —        Opens the radial menu   2-finger Radial Menu, Title bar   Can’t be run
+        """)
+    }
+
+    @Test func wideCharactersCountAsTwoColumns() {
+        #expect(LoopAutomationFormatter.displayWidth(of: "日本語") == 6)
+        #expect(LoopAutomationFormatter.displayWidth(of: "🪟 ↩") == 4)
+        #expect(LoopAutomationFormatter.truncated("Built-in Retina Display", toWidth: 10) == "Built-in…")
+        #expect(LoopAutomationFormatter.truncated("日本語レイアウト", toWidth: 7) == "日本語…")
+    }
+
+    @Test func flexibleColumnsShrinkToFitTheTerminal() {
+        let windows = LoopAutomationResult.windowList(LoopWindowListResult(windows: [
+            LoopWindowSummary(id: 1, bundleID: "com.apple.Safari", appName: "Safari", title: String(repeating: "Long title ", count: 10), frame: LoopRect(x: 0, y: 0, width: 800, height: 600))
+        ]))
+        let lines = LoopAutomationFormatter(layout: .table(maxWidth: 80)).format(windows).plainText.split(separator: "\n")
+        #expect(lines.allSatisfy { LoopAutomationFormatter.displayWidth(of: String($0)) <= 80 })
+        #expect(lines.last?.hasSuffix("…") == true)
+    }
+}

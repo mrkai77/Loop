@@ -19,7 +19,7 @@ struct LoopCLICommand: ParsableCommand {
         commandName: executableName,
         abstract: "Command-line interface for the Loop window manager.",
         discussion: """
-        Successful commands print human-readable text to stdout. Pass --json for JSON instead. Errors go to stderr, except with --json, where Loop's error is printed to stdout as JSON. Mistyped commands and options always print to stderr.
+        Successful commands print to stdout: aligned tables in a terminal, and tab-separated lines without a header when piped. Pass --json for JSON instead. Errors go to stderr, except with --json, where Loop's error is printed to stdout as JSON. Mistyped commands and options always print to stderr.
 
         Exit codes: 0 on success, 1 when a command fails, 64 for invalid usage, 69 when Loop can't be reached, and 75 when Loop doesn't respond in time.
 
@@ -89,11 +89,15 @@ extension CLIRequestCommand {
             throw ExitCode(response.automationError?.code ?? .failed)
         }
 
-        print(formatter.format(response))
+        if let output = formatter.format(response) {
+            print(output)
+        }
     }
 
     private func printError(_ message: String) {
-        FileHandle.standardError.write(Data("Error: \(message)\n".utf8))
+        let label = LoopAutomationText("Error:", style: .failure)
+        let styledLabel = CLIOutputFormatter.usesColor(on: STDERR_FILENO) ? label.ansiText : label.plainText
+        FileHandle.standardError.write(Data("\(styledLabel) \(message)\n".utf8))
     }
 }
 

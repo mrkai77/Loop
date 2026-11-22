@@ -132,7 +132,10 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
                 attributes[.foregroundColor] = NSColor.secondaryLabelColor
             case .heading:
                 attributes[.font] = boldFont
-                attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue
+            case .success:
+                attributes[.foregroundColor] = NSColor.systemGreen
+            case .failure:
+                attributes[.foregroundColor] = NSColor.systemRed
             }
 
             result.append(NSAttributedString(string: run.text, attributes: attributes))

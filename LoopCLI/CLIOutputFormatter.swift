@@ -10,22 +10,51 @@ import Foundation
 
 struct CLIOutputFormatter {
     private let executableName: String
-    /// Only on a terminal, and only when `NO_COLOR` isn't set to anything (https://no-color.org)
-    private let usesANSIStyle = isatty(STDOUT_FILENO) != 0
-        && (ProcessInfo.processInfo.environment["NO_COLOR"] ?? "").isEmpty
-        && ProcessInfo.processInfo.environment["TERM"]?.lowercased() != "dumb"
 
     init(executableName: String) {
         self.executableName = executableName
     }
 
-    func format(_ response: CLIResponse) -> String {
-        guard let result = response.result else {
-            return response.rawOutput
+    /// Tables on a terminal, and tab-separated lines when piped, like `gh`
+    private static var layout: LoopAutomationFormatter.Layout {
+        isatty(STDOUT_FILENO) != 0 ? .table(maxWidth: terminalWidth) : .tabSeparated
+    }
+
+    private static var terminalWidth: Int? {
+        var size = winsize()
+        if ioctl(STDOUT_FILENO, TIOCGWINSZ, &size) == 0, size.ws_col > 0 {
+            return Int(size.ws_col)
         }
 
-        let text = LoopAutomationFormatter().format(result)
-        return usesANSIStyle ? text.ansiText : text.plainText
+        return ProcessInfo.processInfo.environment["COLUMNS"].flatMap(Int.init)
+    }
+
+    /// Follows https://no-color.org and https://bixense.com/clicolors, and leaves dumb terminals alone
+    static func usesColor(on fileDescriptor: Int32) -> Bool {
+        let environment = ProcessInfo.processInfo.environment
+        guard (environment["NO_COLOR"] ?? "").isEmpty, environment["TERM"]?.lowercased() != "dumb" else {
+            return false
+        }
+
+        if let force = environment["CLICOLOR_FORCE"], !force.isEmpty, force != "0" {
+            return true
+        }
+
+        return isatty(fileDescriptor) != 0
+    }
+
+    /// `nil` when there's nothing to print, like an empty list that's piped
+    func format(_ response: CLIResponse) -> String? {
+        guard let result = response.result else {
+            return response.rawOutput.isEmpty ? nil : response.rawOutput
+        }
+
+        let text = LoopAutomationFormatter(layout: Self.layout).format(result)
+        guard !text.isEmpty else {
+            return nil
+        }
+
+        return Self.usesColor(on: STDOUT_FILENO) ? text.ansiText : text.plainText
     }
 
     /// Loop's message, plus the commands that might help, as CLI invocations

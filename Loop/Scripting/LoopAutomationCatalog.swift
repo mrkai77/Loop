@@ -125,7 +125,7 @@ struct LoopAutomationCatalog {
         return gestures.map { gesture in
             let isActive = activeIDs.contains(gesture.id)
             let note: String? = if gesture.actionType == nil {
-                "Opens the radial menu, so it can’t be run"
+                "Can’t be run"
             } else if let missingLink = gesture.actionType.flatMap(missingLinkNote) {
                 missingLink
             } else if gesture.kind == nil {

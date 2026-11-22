@@ -179,7 +179,13 @@ loop run left-half --screen-id 2
 loop list windows --json
 ```
 
-Commands print readable text by default. Pass `--json` to print Loop's JSON response instead:
+In a terminal, lists print as aligned tables. When piped, they print one tab-separated line per row without a header, so the first column is what to pass to `run`:
+
+```bash
+loop list keybinds | cut -f1      # keybind:maximize, keybind:portrait, ...
+```
+
+Color follows [`NO_COLOR`](https://no-color.org) and `CLICOLOR_FORCE`. Pass `--json` to print Loop's JSON response instead:
 
 ```json
 { "version": 1, "success": true, "result": { "kind": "run", ... }, "error": null }
