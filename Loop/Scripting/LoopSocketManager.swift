@@ -18,11 +18,15 @@ import Scribe
 /// Example: `loop://exec/preset/right_half?bundleID=com.apple.Safari`
 @Loggable
 final class LoopSocketManager {
+    static let shared = LoopSocketManager()
+
     private let socketPath = LoopSocketPath.path
     private let commandLineToolInstaller = CommandLineToolInstaller()
 
-    /// Only touched by `start()` and `stop()`, which run on the main thread
+    /// Only touched by `start()` and `shutdown()`, which run on the main thread
     private var listener: DispatchSourceRead?
+    /// The socket file this instance bound, so shutting down never removes a newer instance's socket
+    private var boundSocketFile: (device: dev_t, inode: ino_t)?
 
     private let acceptQueue = DispatchQueue(
         label: "com.MrKai77.Loop.server.accept",
@@ -37,8 +41,11 @@ final class LoopSocketManager {
     )
 
     private static let maxRequestSize = 4096
-    /// The CLI sends its request right after connecting, so this only has to cover a stalled client
-    private static let requestReadTimeout: Duration = .seconds(5)
+    /// The CLI sends its request right after connecting and reads the response straight away,
+    /// so this only has to cover a stalled client
+    private static let clientTimeout: Duration = .seconds(5)
+
+    private init() {}
 
     func start() {
         guard listener == nil else { return }
@@ -71,6 +78,11 @@ final class LoopSocketManager {
         // Set permissions to owner-only
         chmod(socketPath, 0o600)
 
+        var socketFile = stat()
+        if lstat(socketPath, &socketFile) == 0 {
+            boundSocketFile = (socketFile.st_dev, socketFile.st_ino)
+        }
+
         guard listen(serverFD, 5) == 0 else {
             log.error("Failed to listen on socket: \(String(cString: strerror(errno)))")
             close(serverFD)
@@ -94,10 +106,18 @@ final class LoopSocketManager {
         log.info("Listening on \(socketPath)")
     }
 
-    func stop() {
+    func shutdown() {
         listener?.cancel()
         listener = nil
-        unlink(socketPath)
+
+        // A newer instance may already have replaced the socket file while this one was quitting
+        var socketFile = stat()
+        if let boundSocketFile, lstat(socketPath, &socketFile) == 0,
+           socketFile.st_dev == boundSocketFile.device, socketFile.st_ino == boundSocketFile.inode {
+            unlink(socketPath)
+        }
+        boundSocketFile = nil
+
         log.info("Server stopped")
     }
 
@@ -132,7 +152,7 @@ final class LoopSocketManager {
             return
         }
 
-        LoopSocketIO.configure(clientFD, receiveTimeout: Self.requestReadTimeout)
+        LoopSocketIO.configure(clientFD, timeout: Self.clientTimeout)
 
         // Installing the tool needs an administrator, so it doubles as consent to be controlled
         if let reason = commandLineToolRejectionReason() {
@@ -145,6 +165,12 @@ final class LoopSocketManager {
         do {
             request = try LoopSocketIO.readToEnd(from: clientFD, limit: Self.maxRequestSize)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
+        } catch POSIXError.EAGAIN {
+            respond(clientFD, LoopAutomationJSON.encodedFailure(message: "Loop didn’t receive the full request in time"))
+            return
+        } catch POSIXError.EMSGSIZE {
+            respond(clientFD, LoopAutomationJSON.encodedFailure(message: "The request is too long"))
+            return
         } catch {
             respond(clientFD, LoopAutomationJSON.encodedFailure(message: "Couldn’t read the request: \(error.localizedDescription)"))
             return

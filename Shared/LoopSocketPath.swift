@@ -48,10 +48,12 @@ enum LoopSocketPath {
 
 /// One request per connection: the client writes its request and shuts down writing, then Loop writes its response and closes
 enum LoopSocketIO {
-    /// Also stops writes to a closed peer from raising `SIGPIPE`
-    static func configure(_ fileDescriptor: Int32, receiveTimeout: Duration) {
-        var timeout = timeval(tv_sec: Int(receiveTimeout.components.seconds), tv_usec: 0)
+    /// Times out both directions, so neither side blocks forever on a stalled peer.
+    /// Also stops writes to a closed peer from raising `SIGPIPE`.
+    static func configure(_ fileDescriptor: Int32, timeout: Duration) {
+        var timeout = timeval(tv_sec: Int(timeout.components.seconds), tv_usec: 0)
         setsockopt(fileDescriptor, SOL_SOCKET, SO_RCVTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
+        setsockopt(fileDescriptor, SOL_SOCKET, SO_SNDTIMEO, &timeout, socklen_t(MemoryLayout<timeval>.size))
 
         var noSIGPIPE: Int32 = 1
         setsockopt(fileDescriptor, SOL_SOCKET, SO_NOSIGPIPE, &noSIGPIPE, socklen_t(MemoryLayout<Int32>.size))

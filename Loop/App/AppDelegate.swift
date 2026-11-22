@@ -13,7 +13,6 @@ import UserNotifications
 
 @Loggable
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let loopSocketManager = LoopSocketManager()
     private var pendingSettingsWindowOpen: Task<(), Never>?
 
     private static let terminateNotificationName = Notification.Name("com.MrKai77.Loop.terminate")
@@ -67,6 +66,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let stalePIDs = broadcastTerminateToOtherInstances()
             await waitForInstancesToExit(pids: stalePIDs, timeout: .seconds(3))
             LoopManager.shared.start()
+            // After older instances exit, as they remove their socket file while quitting
+            LoopSocketManager.shared.start()
             WindowDragManager.shared.addObservers()
             StashManager.shared.start()
             AccessibilityManager.requestAccess()
@@ -76,9 +77,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             await Updater.shared.fetchLatestInfo()
             await Updater.shared.showUpdateWindowIfEligible()
         }
-
-        // Start the Unix socket listener for loop-cli
-        loopSocketManager.start()
     }
 
     /// Subscribes to the terminate notification so this instance shuts down when a newer Loop instance launches.
@@ -183,7 +181,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LoopManager.shared.shutdown()
         WindowDragManager.shared.shutdown()
         StashManager.shared.shutdown()
-        loopSocketManager.stop()
+        LoopSocketManager.shared.shutdown()
         return .terminateNow
     }
 
@@ -199,7 +197,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         Task { @MainActor in
             let result = await LoopCommandHandler.shared.handle(url)
-            log.info("Response: \(result.jsonResponse)")
+            log.debug("Response: \(result.jsonResponse)")
             result.presentIfNeeded()
         }
     }

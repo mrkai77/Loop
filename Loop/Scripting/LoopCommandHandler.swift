@@ -2,7 +2,7 @@
 //  LoopCommandHandler.swift
 //  Loop
 //
-//  Created by Kami on 06/03/2025.
+//  Created by Kami on 2025-03-06.
 //
 
 /*
@@ -167,14 +167,12 @@ final class LoopCommandHandler {
             source: source,
             kind: .write,
             components: [],
-            response: failureResponse(message: "Command timed out")
+            response: failureResponse(message: "Command timed out, so the action may still complete")
         )
     }
 
     @discardableResult
     func handleRequestURLString(_ request: String, source: InvocationSource) async -> CommandExecutionResult {
-        log.info("Processing request string: \(request)")
-
         guard let url = URL(string: request) else {
             return makeExecutionResult(
                 source: source,

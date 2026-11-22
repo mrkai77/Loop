@@ -38,7 +38,7 @@ final class LoopSocketClient {
             throw SocketRuntimeError(message: "Loop is not running")
         }
 
-        LoopSocketIO.configure(fileDescriptor, receiveTimeout: Self.receiveTimeout)
+        LoopSocketIO.configure(fileDescriptor, timeout: Self.receiveTimeout)
 
         do {
             try LoopSocketIO.write(request.url.absoluteString, to: fileDescriptor)
