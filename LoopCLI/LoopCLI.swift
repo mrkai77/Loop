@@ -17,30 +17,44 @@ struct LoopCLICommand: ParsableCommand {
 
     static let configuration = CommandConfiguration(
         commandName: executableName,
-        abstract: "Command-line interface for Loop window manager.",
+        abstract: "Command-line interface for the Loop window manager.",
         discussion: """
-        Successful commands print human-readable text by default. Use --json to print raw JSON.
-        Failures print plain-text errors to stderr.
+        Successful commands print human-readable text to stdout. Pass --json for JSON instead. Errors go to stderr, except with --json, where Loop's error is printed to stdout as JSON. Mistyped commands and options always print to stderr.
 
-        Action names are the ones shown by `\(executableName) list actions`.
+        Exit codes: 0 on success, 1 when a command fails, 64 for invalid usage, 69 when Loop can't be reached, and 75 when Loop doesn't respond in time.
 
         Examples:
-          \(executableName) list windows
-          \(executableName) list screens
-          \(executableName) list actions --preset
-          \(executableName) list actions --custom
-          \(executableName) exec --preset right_half
-          \(executableName) exec --custom "My Layout"
-          \(executableName) exec --id 123e4567-e89b-12d3-a456-426614174000
-          \(executableName) exec --preset maximize --window-id 1234
-          \(executableName) exec --preset left_half --bundle-id com.apple.Safari
+          \(executableName) list actions
+          \(executableName) list keybinds
+          \(executableName) run right-half
+          \(executableName) run keybind:portrait
+          \(executableName) run radial-menu:top-cycle --bundle-id com.apple.Safari
+          \(executableName) run maximize --window-id 1234
+          \(executableName) run left-half --screen-id 2
           \(executableName) list windows --json
         """,
-        subcommands: [ListCommand.self, ExecCommand.self]
+        version: version,
+        subcommands: [ListCommand.self, RunCommand.self]
     )
+
+    /// The installed tool lives inside Loop.app, so this is the version of the Loop it belongs to
+    private static var version: String {
+        let info = Bundle.main.infoDictionary
+        guard Bundle.main.bundleURL.pathExtension == "app",
+              let version = info?["CFBundleShortVersionString"] as? String
+        else {
+            return "unknown (not inside Loop.app)"
+        }
+
+        if let build = info?["CFBundleVersion"] as? String {
+            return "\(version) (\(build))"
+        }
+
+        return version
+    }
 }
 
-// MARK: - Request commands
+// MARK: - Requests
 
 protocol CLIRequestCommand: ParsableCommand {
     var outputOptions: OutputOptions { get }
@@ -52,47 +66,68 @@ extension CLIRequestCommand {
         let response: CLIResponse
         do {
             response = try LoopSocketClient().send(makeRequest())
-        } catch {
-            guard outputOptions.json else { throw error }
-            print(LoopAutomationJSON.encodedFailure(message: error.localizedDescription))
-            throw ExitCode.failure
+        } catch let error as LoopAutomationError {
+            if outputOptions.json {
+                print(LoopAutomationJSON.encodeString(LoopAutomationResponse(error: error)))
+            } else {
+                printError(error.message)
+            }
+            throw ExitCode(error.code)
         }
 
         if outputOptions.json {
             print(response.rawOutput)
-            if !response.isSuccess { throw ExitCode.failure }
+            if !response.isSuccess {
+                throw ExitCode(response.automationError?.code ?? .failed)
+            }
             return
         }
 
         let formatter = CLIOutputFormatter(executableName: LoopCLICommand.executableName)
         guard response.isSuccess else {
-            throw formatter.error(from: response)
+            printError(formatter.errorMessage(from: response))
+            throw ExitCode(response.automationError?.code ?? .failed)
         }
 
         print(formatter.format(response))
     }
+
+    private func printError(_ message: String) {
+        FileHandle.standardError.write(Data("Error: \(message)\n".utf8))
+    }
 }
 
-// MARK: - Shared options
+extension ExitCode {
+    /// `sysexits.h` codes for Loop being unreachable or slow, so scripts can tell them apart from a failed command
+    init(_ code: LoopAutomationErrorCode) {
+        switch code {
+        case .unavailable: self = ExitCode(69)
+        case .timeout: self = ExitCode(75)
+        default: self = .failure
+        }
+    }
+}
+
+// MARK: - Shared Options
 
 struct OutputOptions: ParsableArguments {
-    @Flag(name: .customLong("json"), help: "Print raw JSON instead of human-readable text")
+    @Flag(name: .customLong("json"), help: "Print JSON instead of human-readable text")
     var json = false
 }
 
 struct TargetOptions: ParsableArguments {
-    @Option(name: .customLong("window-id"), help: "Target a specific window by ID (from `list windows`)")
+    @Option(name: .customLong("window-id"), help: ArgumentHelp("Act on a window from '\(LoopCLICommand.executableName) list windows'", valueName: "id"))
     var windowID: UInt32?
 
-    @Option(name: .customLong("bundle-id"), help: "Target an app by bundle identifier (launches if needed)")
+    @Option(name: .customLong("bundle-id"), help: ArgumentHelp("Act on an app's frontmost window, opening the app if needed", valueName: "bundle-id"))
     var bundleID: String?
 
-    @Option(name: .customLong("screen-id"), help: "Target a specific screen by ID (from `list screens`)")
+    @Option(name: .customLong("screen-id"), help: ArgumentHelp("Use a screen from '\(LoopCLICommand.executableName) list screens'", valueName: "id"))
     var screenID: UInt32?
 
     func validate() throws {
         if windowID != nil, bundleID != nil {
-            throw ValidationError("--window-id and --bundle-id are mutually exclusive")
+            throw ValidationError("--window-id and --bundle-id can’t be used together")
         }
     }
 

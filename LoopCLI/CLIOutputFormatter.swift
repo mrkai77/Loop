@@ -10,8 +10,9 @@ import Foundation
 
 struct CLIOutputFormatter {
     private let executableName: String
+    /// Only on a terminal, and only when `NO_COLOR` isn't set to anything (https://no-color.org)
     private let usesANSIStyle = isatty(STDOUT_FILENO) != 0
-        && ProcessInfo.processInfo.environment["NO_COLOR"] == nil
+        && (ProcessInfo.processInfo.environment["NO_COLOR"] ?? "").isEmpty
         && ProcessInfo.processInfo.environment["TERM"]?.lowercased() != "dumb"
 
     init(executableName: String) {
@@ -27,7 +28,8 @@ struct CLIOutputFormatter {
         return usesANSIStyle ? text.ansiText : text.plainText
     }
 
-    func error(from response: CLIResponse) -> CLICommandError {
+    /// Loop's message, plus the commands that might help, as CLI invocations
+    func errorMessage(from response: CLIResponse) -> String {
         var lines: [String] = []
 
         if let errorMessage = response.automationError?.message, !errorMessage.isEmpty {
@@ -48,22 +50,10 @@ struct CLIOutputFormatter {
             lines.append("Available commands: \(displayedRoutes.joined(separator: ", "))")
         }
 
-        return CLICommandError(message: lines.joined(separator: "\n"))
+        return lines.joined(separator: "\n")
     }
 
     private func displayString(for route: String) -> String {
         LoopRoute(string: route)?.commandLineInvocation(executableName: executableName) ?? route
-    }
-}
-
-struct CLICommandError: LocalizedError, CustomStringConvertible {
-    let message: String
-
-    var errorDescription: String? {
-        message
-    }
-
-    var description: String {
-        message
     }
 }

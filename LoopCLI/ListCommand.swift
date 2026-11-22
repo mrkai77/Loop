@@ -10,56 +10,18 @@ import ArgumentParser
 struct ListCommand: ParsableCommand, CLIRequestCommand {
     static let configuration = CommandConfiguration(
         commandName: "list",
-        abstract: "List windows, screens, or executable actions"
+        abstract: "List windows, screens, actions, keybinds, gestures or radial menu actions"
     )
 
-    @Argument(help: "What to list")
-    var subject: ListSubject
-
-    @Flag
-    var filter: ActionFilter?
+    @Argument(help: ArgumentHelp("What to list", valueName: "subject"))
+    var subject: LoopListSubject
 
     @OptionGroup
     var outputOptions: OutputOptions
 
-    func validate() throws {
-        if subject != .actions, filter != nil {
-            throw ValidationError("--preset and --custom are only valid with `list actions`")
-        }
-    }
-
     func makeRequest() -> CLIRequest {
-        let route: LoopRoute = switch subject {
-        case .windows:
-            .listWindows
-        case .screens:
-            .listScreens
-        case .actions:
-            switch filter {
-            case .preset: .listActions(.presetOnly)
-            case .custom: .listActions(.customOnly)
-            case nil: .listActions(.all)
-            }
-        }
-
-        return CLIRequest(route: route)
+        CLIRequest(route: .list(subject))
     }
 }
 
-enum ListSubject: String, CaseIterable, ExpressibleByArgument {
-    case windows
-    case screens
-    case actions
-}
-
-enum ActionFilter: String, EnumerableFlag {
-    case preset
-    case custom
-
-    static func help(for value: ActionFilter) -> ArgumentHelp? {
-        switch value {
-        case .preset: "List only preset actions"
-        case .custom: "List only custom actions"
-        }
-    }
-}
+extension LoopListSubject: ExpressibleByArgument {}

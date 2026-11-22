@@ -114,18 +114,23 @@ To set Caps Lock as your trigger key, you have two options:
 
 #### c. Shell/AppleScript
 
-Loop can be controlled from the shell or AppleScript using its URL scheme. Action names are the ones listed by `loop://list/actions`. Pass `-g` to `open` so Loop stays in the background and the action applies to the window you're using:
+Loop can be controlled from the shell or AppleScript using its URL scheme, or the `loop` command (see below). Both run the same things:
+
+- **Built-in actions**, by the key `loop list actions` shows, like `right-half`, `maximize` or `next-screen`.
+- **Your keybinds, gestures and radial menu actions**, written like `keybind:<id>`, `gesture:<id>` or `radial-menu:<id>`. `loop list keybinds`, `loop list gestures` and `loop list radial-menu` show each one's id. A custom action's id comes from its name, so "Portrait" is `keybind:portrait`.
+
+Pass `-g` to `open` so Loop stays in the background and the action applies to the window you're using:
 
 ```bash
 # Shell examples
-open -g "loop://exec/preset/right_half"   # Move window to right half
-open -g "loop://exec/preset/maximize"     # Maximize window
-open -g "loop://exec/preset/next_screen"  # Move to next screen
-open -g "loop://exec/custom/my_layout"    # Run one of your custom actions
-open -g "loop://exec/id/123e4567-e89b-12d3-a456-426614174000"  # Run an action by its UUID
+open -g "loop://run/right-half"         # Move window to right half
+open -g "loop://run/maximize"           # Maximize window
+open -g "loop://run/next-screen"        # Move to next screen
+open -g "loop://run/keybind:portrait"       # Run one of your keybinds
+open -g "loop://run/radial-menu:top-cycle"  # Run a radial menu action, cycling like the radial menu does
 
 # AppleScript example
-osascript -e 'do shell script "open -g loop://exec/preset/left_half"'
+osascript -e 'do shell script "open -g loop://run/left-half"'
 ```
 
 You can also create custom scripts to chain multiple actions:
@@ -133,48 +138,56 @@ You can also create custom scripts to chain multiple actions:
 ```bash
 #!/bin/bash
 # Example: Move window right and then maximize
-open -g "loop://exec/preset/right_half"
+open -g "loop://run/right-half"
 sleep 0.5
-open -g "loop://exec/preset/maximize"
+open -g "loop://run/maximize"
 ```
 
-Actions apply to the frontmost window by default. To target something else, add a query parameter:
+Actions apply to the same window a keybind would, following the "Target window" setting. To target something else, add a query parameter:
 
 ```bash
-open -g "loop://exec/preset/maximize?windowID=1234"               # A specific window, from list/windows
-open -g "loop://exec/preset/left_half?bundleID=com.apple.Safari"  # An app's window, opening the app if needed
-open -g "loop://exec/preset/right_half?screenID=2"                # A specific screen, from list/screens
+open -g "loop://run/maximize?windowID=1234"               # A specific window, from list/windows
+open -g "loop://run/left-half?bundleID=com.apple.Safari"  # A running app's frontmost window
+open -g "loop://run/right-half?screenID=2"                # A specific screen, from list/screens
 ```
 
-`windowID` and `bundleID` can't be combined. If a command fails, Loop shows an alert explaining why.
+`windowID` and `bundleID` can't be combined. Through a URL, `bundleID` only targets apps that are already running. If a command fails, Loop shows an alert explaining why.
 
 List commands open a Loop output window, with a toolbar button to switch between readable text and JSON:
 
 ```bash
-open "loop://list/windows"         # List visible windows
-open "loop://list/screens"         # List connected screens
-open "loop://list/actions"         # List all actions
-open "loop://list/actions/preset"  # List preset actions
-open "loop://list/actions/custom"  # List custom actions
+open "loop://list/windows"      # Visible windows
+open "loop://list/screens"      # Connected screens
+open "loop://list/actions"      # Built-in actions
+open "loop://list/keybinds"         # Your keybinds
+open "loop://list/gestures"     # Your trackpad gestures
+open "loop://list/radial-menu"  # Your radial menu actions
 ```
+
+URLs from earlier versions of Loop, like `loop://direction/right` or `loop://keybind/<name>`, still work.
 
 For use in scripts and the terminal, install the `loop` command from Loop's Advanced settings:
 
 ```bash
-loop list windows
-loop list screens
-loop list actions --preset
-loop list actions --custom
-loop exec --preset right_half
-loop exec --custom "My Layout"
-loop exec --id 123e4567-e89b-12d3-a456-426614174000
-loop exec --preset maximize --window-id 1234
-loop exec --preset left_half --bundle-id com.apple.Safari
-loop exec --preset right_half --screen-id 2
+loop list actions
+loop list keybinds
+loop run right-half
+loop run keybind:portrait
+loop run radial-menu:top-cycle --bundle-id com.apple.Safari  # Opens Safari if it isn't running
+loop run maximize --window-id 1234
+loop run left-half --screen-id 2
 loop list windows --json
 ```
 
-Commands print readable text by default. Pass `--json` to print the raw JSON response instead: `{ "success": true, "result": { ... } }` on success, or `{ "success": false, "error": { ... } }` on failure. Without `--json`, errors are printed to `stderr`; with it, the error JSON goes to `stdout`. Run `loop help` to see all commands and options.
+Commands print readable text by default. Pass `--json` to print Loop's JSON response instead:
+
+```json
+{ "version": 1, "success": true, "result": { "kind": "run", ... }, "error": null }
+```
+
+Every key is always present, with `null` when it has no value. On failure, `error` has a `message` and a `code`, such as `notFound`, `noWindow`, `excludedApp`, `unavailable` or `timeout`, which is safer to check than the message. Without `--json`, errors go to `stderr`. With it, Loop's error JSON goes to `stdout`, while mistyped commands and options still print to `stderr`.
+
+`loop` exits with `0` on success, `1` when a command fails, `64` for invalid usage, `69` when Loop can't be reached, and `75` when Loop doesn't respond in time. Run `loop help` to see all commands and options, and `loop --version` for the version of Loop it belongs to.
 
 ### Keyboard Shortcuts
 

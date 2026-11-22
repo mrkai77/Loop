@@ -7,39 +7,36 @@
 
 import Foundation
 
+/// What `list` can show
+enum LoopListSubject: String, CaseIterable, Codable {
+    case windows
+    case screens
+    case actions
+    case keybinds
+    case gestures
+    case radialMenu = "radial-menu"
+}
+
 /// Every command the automation API accepts, so the app, the CLI and error suggestions spell routes the same way
 enum LoopRoute: Hashable {
-    case listWindows
-    case listScreens
-    case listActions(LoopActionListFilter)
-    case exec(LoopActionKind, name: String)
-    case execID(String)
+    case list(LoopListSubject)
+    case run(LoopTarget)
 
     var components: [String] {
         switch self {
-        case .listWindows:
-            ["list", "windows"]
-        case .listScreens:
-            ["list", "screens"]
-        case .listActions(.all):
-            ["list", "actions"]
-        case .listActions(.presetOnly):
-            ["list", "actions", "preset"]
-        case .listActions(.customOnly):
-            ["list", "actions", "custom"]
-        case let .exec(kind, name):
-            ["exec", kind.rawValue, name]
-        case let .execID(id):
-            ["exec", "id", id]
+        case let .list(subject):
+            ["list", subject.rawValue]
+        case let .run(target):
+            ["run", target.description]
         }
     }
 
-    /// Unencoded, for showing to people, e.g. `loop://exec/custom/<name>`. Use `url(queryItems:)` to send a route
+    /// Unencoded, for showing to people, e.g. `loop://run/keybind:portrait`. Use `url(queryItems:)` to send a route
     var displayString: String {
         "loop://" + components.joined(separator: "/")
     }
 
-    /// Encodes "/" too, so a name like "Left 1/3" stays one path component
+    /// Encodes "/" too, so an id stays one path component
     func url(queryItems: [URLQueryItem] = []) -> URL {
         var allowedCharacters = CharacterSet.urlPathAllowed
         allowedCharacters.remove("/")
@@ -60,28 +57,21 @@ enum LoopRoute: Hashable {
     }
 
     init?(components: [String]) {
-        guard components.count >= 2 else { return nil }
+        guard components.count == 2 else {
+            return nil
+        }
 
-        let command = components[0].lowercased()
-        let subject = components[1].lowercased()
-        let argument = components.count == 3 ? components[2] : nil
-
-        switch (command, subject, argument?.lowercased()) {
-        case ("list", "windows", nil) where components.count == 2:
-            self = .listWindows
-        case ("list", "screens", nil) where components.count == 2:
-            self = .listScreens
-        case ("list", "actions", nil) where components.count == 2:
-            self = .listActions(.all)
-        case ("list", "actions", "preset"):
-            self = .listActions(.presetOnly)
-        case ("list", "actions", "custom"):
-            self = .listActions(.customOnly)
-        case ("exec", "id", _?):
-            self = .execID(components[2])
-        case let ("exec", kind, _?):
-            guard let kind = LoopActionKind(rawValue: kind) else { return nil }
-            self = .exec(kind, name: components[2])
+        switch components[0].lowercased() {
+        case "list":
+            guard let subject = LoopListSubject(rawValue: components[1].lowercased()) else {
+                return nil
+            }
+            self = .list(subject)
+        case "run":
+            guard let target = LoopTarget(components[1]) else {
+                return nil
+            }
+            self = .run(target)
         default:
             return nil
         }
@@ -89,34 +79,31 @@ enum LoopRoute: Hashable {
 
     /// Accepts both `displayString` and encoded URLs
     init?(string: String) {
+        guard let components = Self.pathComponents(of: string) else {
+            return nil
+        }
+
+        self.init(components: components)
+    }
+
+    /// Splits before decoding, so an encoded "/" stays inside its component
+    static func pathComponents(of string: String) -> [String]? {
         guard let range = string.range(of: "loop://", options: [.anchored, .caseInsensitive]) else {
             return nil
         }
 
         let path = string[range.upperBound...].split(separator: "?", maxSplits: 1).first ?? ""
-        let components = path
+        return path
             .split(separator: "/", omittingEmptySubsequences: true)
             .map { $0.removingPercentEncoding ?? String($0) }
-
-        self.init(components: components)
     }
 
     func commandLineInvocation(executableName: String) -> String {
         switch self {
-        case .listWindows:
-            "\(executableName) list windows"
-        case .listScreens:
-            "\(executableName) list screens"
-        case .listActions(.all):
-            "\(executableName) list actions"
-        case .listActions(.presetOnly):
-            "\(executableName) list actions --preset"
-        case .listActions(.customOnly):
-            "\(executableName) list actions --custom"
-        case let .exec(kind, name):
-            "\(executableName) exec --\(kind.rawValue) \(Self.shellQuoted(name))"
-        case let .execID(id):
-            "\(executableName) exec --id \(id)"
+        case let .list(subject):
+            "\(executableName) list \(subject.rawValue)"
+        case let .run(target):
+            "\(executableName) run \(Self.shellQuoted(target.description))"
         }
     }
 

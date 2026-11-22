@@ -19,14 +19,14 @@ enum LoopAutomationJSON {
 
     static func encodeString(_ response: LoopAutomationResponse) -> String {
         guard let data = try? makeEncoder().encode(response) else {
-            return #"{"error":{"message":"Couldn’t encode the response"},"success":false}"#
+            return #"{"error":{"availableRoutes":null,"code":"failed","message":"Couldn’t encode the response","replacementRoute":null},"result":null,"success":false,"version":1}"#
         }
 
         return String(decoding: data, as: UTF8.self)
     }
 
-    static func encodedFailure(message: String) -> String {
-        encodeString(LoopAutomationResponse(error: LoopAutomationError(message: message)))
+    static func encodedFailure(_ code: LoopAutomationErrorCode, message: String) -> String {
+        encodeString(LoopAutomationResponse(error: LoopAutomationError(code, message: message)))
     }
 
     static func decodeResponse(from string: String) throws -> LoopAutomationResponse {

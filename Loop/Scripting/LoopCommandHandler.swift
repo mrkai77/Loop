@@ -5,39 +5,13 @@
 //  Created by Kami on 2025-03-06.
 //
 
-/*
- Loop Automation API
- ===================
-
- Public URL commands:
- - loop://list/windows
- - loop://list/screens
- - loop://list/actions
- - loop://list/actions/preset
- - loop://list/actions/custom
- - loop://exec/preset/<name>
- - loop://exec/custom/<name>
- - loop://exec/id/<uuid>
-
- Socket / CLI transport:
- - loop-cli parses CLI arguments locally and sends canonical loop:// URLs over the socket
-
- Response JSON:
- - success responses use `{ "success": true, "result": { ... } }`
- - failures use `{ "success": false, "error": { "message": "...", ... } }`
-
- Query parameters:
- - ?windowID=<id>
- - ?bundleID=<id>
- - ?screenID=<id>
- */
-
 import AppKit
 import Defaults
 import Foundation
 import Scribe
 
 /// Handles Loop automation commands for both the URL scheme and `loop-cli`.
+/// Routes are `loop://list/<subject>` and `loop://run/<target>`, with `?windowID=`, `?bundleID=` and `?screenID=`.
 @Loggable
 @MainActor
 final class LoopCommandHandler {
@@ -49,11 +23,6 @@ final class LoopCommandHandler {
     enum InvocationSource {
         case urlScheme
         case cli
-    }
-
-    enum CommandKind {
-        case read
-        case write
     }
 
     struct CommandExecutionResult {
@@ -103,50 +72,29 @@ final class LoopCommandHandler {
         }
     }
 
-    /// Parameters parsed from URL query string / CLI flags for targeting specific windows and screens.
+    /// Parsed from the query string, which the CLI builds from `--window-id`, `--bundle-id` and `--screen-id`
     private struct TargetParams {
         var windowID: CGWindowID?
         var bundleID: String?
         var screenID: CGDirectDisplayID?
     }
 
-    private struct ActionDescriptor {
-        let action: WindowAction
-        let kind: LoopActionKind
-        let name: String
-        let title: String
-
-        var publicDescriptor: LoopActionDescriptor {
-            // Preset actions are rebuilt for every request, so only custom actions have stable IDs
-            let id = kind == .custom ? action.id : nil
-
-            return LoopActionDescriptor(
-                id: id,
-                kind: kind,
-                title: title,
-                name: name,
-                route: LoopRoute.exec(kind, name: name).displayString,
-                idRoute: id.map { LoopRoute.execID($0.uuidString.lowercased()).displayString }
-            )
-        }
+    /// A route, plus how it was asked for, so older URLs keep working without being suggested
+    private enum Request {
+        case route(LoopRoute)
+        /// `action/<name>` and `keybind/<name>` from older versions, which matched keybinds by name
+        case keybindNamed(String, orBuiltIn: Bool)
     }
 
     // MARK: - Constants
 
-    private static let listRoutes: [LoopRoute] = [
-        .listWindows,
-        .listScreens,
-        .listActions(.all),
-        .listActions(.presetOnly),
-        .listActions(.customOnly)
-    ]
+    private static let listRoutes: [LoopRoute] = LoopListSubject.allCases.map { .list($0) }
 
-    private static let exampleExecRoutes: [LoopRoute] = [
-        .exec(.preset, name: "right_half"),
-        .exec(.preset, name: "maximize"),
-        .exec(.preset, name: "next_screen"),
-        .exec(.custom, name: "my_layout"),
-        .execID("<uuid>")
+    private static let exampleRunRoutes: [LoopRoute] = [
+        .run(.action("right-half")),
+        .run(.action("next-screen")),
+        .run(.binding(.keybind, id: "<id>")),
+        .run(.binding(.radialMenu, id: "<id>"))
     ]
 
     /// How long to wait for an app launched by bundle ID to show a window
@@ -165,9 +113,9 @@ final class LoopCommandHandler {
 
         return result ?? makeExecutionResult(
             source: source,
-            kind: .write,
-            components: [],
-            response: failureResponse(message: "Command timed out, so the action may still complete")
+            isRead: false,
+            title: nil,
+            response: failureResponse(.timeout, message: "Command timed out, so the action may still complete")
         )
     }
 
@@ -176,9 +124,9 @@ final class LoopCommandHandler {
         guard let url = URL(string: request) else {
             return makeExecutionResult(
                 source: source,
-                kind: .write,
-                components: [],
-                response: failureResponse(message: "Invalid request URL: \(request)")
+                isRead: false,
+                title: nil,
+                response: failureResponse(.invalidRequest, message: "Invalid request URL: \(request)")
             )
         }
 
@@ -186,28 +134,82 @@ final class LoopCommandHandler {
     }
 
     private func process(_ url: URL, source: InvocationSource) async -> CommandExecutionResult {
-        guard url.scheme?.lowercased() == "loop" else {
+        guard url.scheme?.lowercased() == "loop",
+              let components = LoopRoute.pathComponents(of: url.absoluteString)
+        else {
             return makeExecutionResult(
                 source: source,
-                kind: .write,
-                components: [],
-                response: failureResponse(
-                    message: "URLs must start with loop://"
-                )
+                isRead: false,
+                title: nil,
+                response: failureResponse(.invalidRequest, message: "URLs must start with loop://")
             )
         }
 
-        let urlComponents = URLComponents(url: url, resolvingAgainstBaseURL: false)
-        let queryItems = urlComponents?.queryItems
+        let title = components.joined(separator: " ")
 
-        let params = TargetParams(
-            windowID: queryItems?.first(where: { $0.name == "windowID" })?.value.flatMap(UInt32.init),
-            bundleID: queryItems?.first(where: { $0.name == "bundleID" })?.value,
-            screenID: queryItems?.first(where: { $0.name == "screenID" })?.value.flatMap(UInt32.init)
-        )
+        let params: TargetParams
+        switch targetParams(from: URLComponents(url: url, resolvingAgainstBaseURL: false)?.queryItems ?? []) {
+        case let .success(parsed):
+            params = parsed
+        case let .failure(error):
+            return makeExecutionResult(source: source, isRead: false, title: title, response: LoopAutomationResponse(error: error))
+        }
 
-        let components = (url.host.map { [$0] } ?? []) + url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
-        return await execute(components, params: params, source: source)
+        guard let request = request(from: components) else {
+            return makeExecutionResult(source: source, isRead: false, title: title, response: invalidRouteResponse(components))
+        }
+
+        let response: LoopAutomationResponse
+        let isRead: Bool
+        switch request {
+        case let .route(.list(subject)):
+            response = listResponse(subject)
+            isRead = true
+        case let .route(.run(target)):
+            response = await run(target, params: params, source: source)
+            isRead = false
+        case let .keybindNamed(name, orBuiltIn):
+            response = await runKeybind(named: name, orBuiltIn: orBuiltIn, params: params, source: source)
+            isRead = false
+        }
+
+        return makeExecutionResult(source: source, isRead: isRead, title: title, response: response)
+    }
+
+    /// Present but malformed values are errors, so a typo can't act on some other window
+    private func targetParams(from queryItems: [URLQueryItem]) -> Result<TargetParams, LoopAutomationError> {
+        func value(_ name: String) -> String? {
+            queryItems.first { $0.name.lowercased() == name.lowercased() }?.value
+        }
+
+        var params = TargetParams()
+
+        if let windowID = value("windowID") {
+            guard let parsed = CGWindowID(windowID) else {
+                return .failure(LoopAutomationError(.invalidRequest, message: "Invalid window ID: \(windowID)", replacementRoute: LoopRoute.list(.windows).displayString))
+            }
+            params.windowID = parsed
+        }
+
+        if let bundleID = value("bundleID") {
+            guard !bundleID.isEmpty else {
+                return .failure(LoopAutomationError(.invalidRequest, message: "Empty bundle ID"))
+            }
+            params.bundleID = bundleID
+        }
+
+        if let screenID = value("screenID") {
+            guard let parsed = CGDirectDisplayID(screenID) else {
+                return .failure(LoopAutomationError(.invalidRequest, message: "Invalid screen ID: \(screenID)", replacementRoute: LoopRoute.list(.screens).displayString))
+            }
+            params.screenID = parsed
+        }
+
+        if params.windowID != nil, params.bundleID != nil {
+            return .failure(LoopAutomationError(.invalidRequest, message: "windowID and bundleID can’t be used together"))
+        }
+
+        return .success(params)
     }
 
     /// Returns `nil` if `operation` doesn't finish in time. It keeps running after that, since AX calls can't be cancelled
@@ -236,112 +238,103 @@ final class LoopCommandHandler {
         }
     }
 
-    // MARK: - Command Execution
+    // MARK: - Routing
 
-    private func execute(
-        _ components: [String],
-        params: TargetParams,
-        source: InvocationSource
-    ) async -> CommandExecutionResult {
-        if params.windowID != nil, params.bundleID != nil {
-            return makeExecutionResult(
-                source: source,
-                kind: .write,
-                components: components,
-                response: failureResponse(message: "windowID and bundleID are mutually exclusive")
-            )
+    private func request(from components: [String]) -> Request? {
+        if let route = LoopRoute(components: components) {
+            return .route(route)
         }
 
-        let response: LoopAutomationResponse = if let route = LoopRoute(components: components) {
-            await self.response(for: route, params: params)
-        } else {
-            invalidRouteResponse(components)
-        }
-
-        return makeExecutionResult(
-            source: source,
-            kind: components.first?.lowercased() == "list" ? .read : .write,
-            components: components,
-            response: response
-        )
+        return legacyRequest(from: components)
     }
 
-    private func response(for route: LoopRoute, params: TargetParams) async -> LoopAutomationResponse {
-        switch route {
-        case .listWindows:
-            return buildWindowListResponse()
+    /// Routes from before the CLI, which shipped in the URL scheme's documentation
+    private func legacyRequest(from components: [String]) -> Request? {
+        if let route = Self.legacyRoute(from: components) {
+            return .route(route)
+        }
 
-        case .listScreens:
-            return buildScreenListResponse()
+        guard components.count == 2 else {
+            return nil
+        }
 
-        case let .listActions(filter):
-            return buildActionsResponse(filter: filter)
-
-        case let .exec(.preset, name):
-            guard let descriptor = presetActionDescriptor(name: name) else {
-                return failureResponse(
-                    message: "Unknown preset action: \(name)",
-                    replacementRoute: .listActions(.presetOnly)
-                )
-            }
-
-            return await executeAction(descriptor, params: params)
-
-        case let .exec(.custom, name):
-            let slug = slugifyDisplayString(name)
-            guard let descriptor = customActionDescriptors().first(where: { $0.name == slug }) else {
-                return failureResponse(
-                    message: "Unknown custom action: \(name)",
-                    replacementRoute: .listActions(.customOnly)
-                )
-            }
-
-            return await executeAction(descriptor, params: params)
-
-        case let .execID(token):
-            guard let identifier = UUID(uuidString: token) else {
-                return failureResponse(
-                    message: "Invalid UUID: \(token)",
-                    replacementRoute: .listActions(.all)
-                )
-            }
-
-            guard let descriptor = customActionDescriptors().first(where: { $0.action.id == identifier }) else {
-                return failureResponse(
-                    message: "Unknown action ID: \(token)",
-                    replacementRoute: .listActions(.all)
-                )
-            }
-
-            return await executeAction(descriptor, params: params)
+        // These matched keybinds by name, which isn't a route of its own anymore
+        switch components[0].lowercased() {
+        case "action":
+            return .keybindNamed(components[1], orBuiltIn: true)
+        case "keybind":
+            return .keybindNamed(components[1], orBuiltIn: false)
+        default:
+            return nil
         }
     }
 
-    // MARK: - List Commands
-
-    private func buildActionsResponse(filter: LoopActionListFilter) -> LoopAutomationResponse {
-        let presetCategories: [LoopActionCategory] = filter == .customOnly ? [] : presetSections().map { section in
-            LoopActionCategory(
-                name: section.title,
-                actions: section.items.map { presetActionDescriptor(for: $0).publicDescriptor }
-            )
+    /// The older routes that map straight onto a current one, like `direction/right`
+    static func legacyRoute(from components: [String]) -> LoopRoute? {
+        guard components.count == 2 else {
+            return nil
         }
 
-        let customActions: [LoopActionDescriptor] = filter == .presetOnly ? [] : customActionDescriptors().map(\.publicDescriptor)
+        let argument = components[1]
 
-        return LoopAutomationResponse(
-            result: .actionList(
+        switch components[0].lowercased() {
+        case "direction":
+            return WindowDirection.matchingDirectionCommand(argument)
+                .map { .run(.action($0.automationKey)) }
+        case "screen":
+            switch argument.lowercased() {
+            case "next": return .run(.action(WindowDirection.nextScreen.automationKey))
+            case "previous": return .run(.action(WindowDirection.previousScreen.automationKey))
+            default: return nil
+            }
+        case "list":
+            switch argument.lowercased() {
+            case "actions", "all": return .list(.actions)
+            default: return nil
+            }
+        default:
+            return nil
+        }
+    }
+
+    // MARK: - List
+
+    private func listResponse(_ subject: LoopListSubject) -> LoopAutomationResponse {
+        let result: LoopAutomationResult = switch subject {
+        case .windows:
+            .windowList(LoopWindowListResult(windows: listedWindows().map(windowSummary)))
+        case .screens:
+            .screenList(LoopScreenListResult(screens: NSScreen.screens.map(screenSummary)))
+        case .actions:
+            .actionList(
                 LoopActionListResult(
-                    filter: filter,
-                    presetCategories: presetCategories,
-                    customActions: customActions
+                    actions: LoopAutomationCatalog.builtInActions().map {
+                        LoopActionSummary(key: $0.direction.automationKey, name: $0.direction.name, category: $0.category)
+                    }
                 )
+            )
+        case .keybinds:
+            bindingList(.keybind)
+        case .gestures:
+            bindingList(.gesture)
+        case .radialMenu:
+            bindingList(.radialMenu)
+        }
+
+        return LoopAutomationResponse(result: result)
+    }
+
+    private func bindingList(_ kind: LoopBindingKind) -> LoopAutomationResult {
+        .bindingList(
+            LoopBindingListResult(
+                bindingKind: kind,
+                bindings: LoopAutomationCatalog().bindings(of: kind).map(\.summary)
             )
         )
     }
 
-    private func buildWindowListResponse() -> LoopAutomationResponse {
-        let visibleWindows = WindowUtility.windowList().filter { window in
+    private func listedWindows() -> [Window] {
+        WindowUtility.windowList().filter { window in
             guard let app = window.nsRunningApplication else {
                 return false
             }
@@ -351,310 +344,117 @@ final class LoopCommandHandler {
                 && !window.isApplicationHidden
                 && !window.minimized
         }
-
-        return LoopAutomationResponse(
-            result: .windowList(
-                LoopWindowListResult(
-                    windows: visibleWindows.map(windowSummary)
-                )
-            )
-        )
     }
 
-    private func buildScreenListResponse() -> LoopAutomationResponse {
-        let screens = NSScreen.screens
-        return LoopAutomationResponse(
-            result: .screenList(
-                LoopScreenListResult(
-                    screens: screens.map(screenSummary)
-                )
-            )
-        )
+    // MARK: - Run
+
+    private func run(_ target: LoopTarget, params: TargetParams, source: InvocationSource) async -> LoopAutomationResponse {
+        switch target {
+        case let .action(key):
+            guard let direction = LoopAutomationCatalog.builtInAction(named: key) else {
+                return failureResponse(.notFound, message: "Unknown action: \(key)", replacementRoute: .list(.actions))
+            }
+
+            return await run(WindowAction(direction), target: .action(direction.automationKey), params: params, source: source)
+
+        case let .binding(kind, id):
+            let bindings = LoopAutomationCatalog().bindings(of: kind)
+            guard let binding = bindings.first(where: { $0.id?.lowercased() == id.lowercased() }) else {
+                return failureResponse(.notFound, message: "Unknown \(Self.noun(for: kind)): \(id)", replacementRoute: .list(Self.listSubject(for: kind)))
+            }
+
+            guard let action = binding.action, !action.direction.isNoOp else {
+                return failureResponse(.notFound, message: "\(target) doesn’t run an action")
+            }
+
+            return await run(action, target: target, params: params, source: source)
+        }
     }
 
-    // MARK: - Write Commands
-
-    private func executeAction(
-        _ descriptor: ActionDescriptor,
-        params: TargetParams
-    ) async -> LoopAutomationResponse {
-        let resolvedWindow = await resolveWindow(params: params)
-
-        guard let resolvedAction = await resolveCycle(descriptor.action, for: resolvedWindow),
-              !resolvedAction.direction.isNoOp
-        else {
-            return failureResponse(message: "Can’t run this action: \(descriptor.name)")
+    /// Runs the first keybind with this name, like `action/<name>` and `keybind/<name>` did
+    private func runKeybind(named name: String, orBuiltIn: Bool, params: TargetParams, source: InvocationSource) async -> LoopAutomationResponse {
+        let bindings = LoopAutomationCatalog().keyBindings
+        if let binding = bindings.first(where: { $0.action?.name?.lowercased() == name.lowercased() }),
+           let target = binding.target {
+            return await run(target, params: params, source: source)
         }
 
-        if !resolvedAction.direction.willFocusWindow, resolvedWindow == nil {
-            return failureResponse(message: windowResolveError(params))
+        if orBuiltIn, let direction = LoopAutomationCatalog.builtInAction(named: name) {
+            return await run(.action(direction.automationKey), params: params, source: source)
         }
 
-        let targetScreen: NSScreen
-        switch resolveTargetScreen(for: resolvedAction, window: resolvedWindow, params: params) {
-        case let .success(screen):
-            targetScreen = screen
+        return failureResponse(.notFound, message: "Unknown keybind: \(name)", replacementRoute: .list(.keybinds))
+    }
+
+    /// Picks the window and screen the way keybinds do, unless the request names them
+    private func run(_ action: WindowAction, target: LoopTarget, params: TargetParams, source: InvocationSource) async -> LoopAutomationResponse {
+        let window: Window?
+        switch await resolveWindow(params: params, canLaunchApps: source == .cli) {
+        case let .success(resolved):
+            window = resolved
         case let .failure(error):
             return LoopAutomationResponse(error: error)
         }
 
+        if let window {
+            guard !window.isAppExcluded else {
+                return failureResponse(.excludedApp, message: "\(appName(of: window)) is excluded in Loop’s settings")
+            }
+
+            guard !(window.fullscreen && Defaults[.ignoreFullscreen]) else {
+                return failureResponse(.fullscreenWindow, message: "The window is in full screen, and Loop is set to ignore those")
+            }
+        }
+
+        guard let resolvedAction = await resolveCycle(action, for: window), !resolvedAction.direction.isNoOp else {
+            return failureResponse(.failed, message: "\(target) has nothing to run")
+        }
+
+        if window == nil, !resolvedAction.direction.willFocusWindow {
+            return failureResponse(.noWindow, message: "No window to act on")
+        }
+
+        let screen: NSScreen
+        switch resolveScreen(for: resolvedAction, window: window, params: params) {
+        case let .success(resolved):
+            screen = resolved
+        case let .failure(error):
+            return LoopAutomationResponse(error: error)
+        }
+
+        // The engine has no frame for screen switching actions, so like keybinds, apply what the window should look like there
+        var appliedAction = resolvedAction
+        if resolvedAction.direction.willChangeScreen, let window,
+           let currentScreen = ScreenUtility.screenContaining(window) ?? NSScreen.main {
+            appliedAction = await LoopManager.actionAfterScreenSwitch(for: window, from: currentScreen)
+        }
+
+        log.info("Running \(target) (\(appliedAction)) on \(window?.description ?? "no window")")
+
+        let result: WindowActionEngine.Result
         do {
-            try await performAction(resolvedAction, on: resolvedWindow, screen: targetScreen)
+            result = try await WindowActionEngine.shared.apply(appliedAction, window: window, screen: screen)
         } catch {
-            return failureResponse(message: "Couldn’t run \(descriptor.name): \(error.localizedDescription)")
+            return failureResponse(.failed, message: "Couldn’t run \(target): \(error.localizedDescription)")
         }
 
+        guard result.success else {
+            let message = appliedAction.direction.willFocusWindow
+                ? "No window to focus in that direction"
+                : "Couldn’t run \(target)"
+            return failureResponse(.failed, message: message)
+        }
+
+        let actedOn = result.newTargetWindow ?? window
         return LoopAutomationResponse(
-            result: .execution(
-                LoopExecutionResult(
-                    action: descriptor.publicDescriptor,
-                    targetWindow: resolvedWindow.map(windowSummary)
+            result: .run(
+                LoopRunResult(
+                    target: target.description,
+                    action: LoopAutomationCatalog.boundAction(action),
+                    window: actedOn.map(windowSummary)
                 )
             )
         )
-    }
-
-    // MARK: - Action Catalog
-
-    /// The Keybinds tab's action picker, minus actions that have to be configured first, like stash
-    private func presetSections() -> [PickerSection<WindowDirection>] {
-        PickerSection.windowDirections.compactMap { section in
-            let items = section.items.filter { !$0.isCustomizable }
-            return items.isEmpty ? nil : PickerSection(section.title, items)
-        }
-    }
-
-    private func presetActionDescriptor(for direction: WindowDirection) -> ActionDescriptor {
-        ActionDescriptor(
-            action: WindowAction(direction),
-            kind: .preset,
-            name: canonicalDirectionName(for: direction),
-            title: direction.name
-        )
-    }
-
-    /// Accepts the listed name or its display name, e.g. `right_half` or "Right Half"
-    private func presetActionDescriptor(name: String) -> ActionDescriptor? {
-        let slug = slugifyDisplayString(name)
-        return presetSections()
-            .flatMap(\.items)
-            .first { canonicalDirectionName(for: $0) == slug }
-            .map(presetActionDescriptor(for:))
-    }
-
-    private func customActionDescriptors() -> [ActionDescriptor] {
-        let candidates: [(WindowAction, String, String)] = Defaults[.keybinds].compactMap { action in
-            guard
-                !action.keybind.isEmpty,
-                isExecutableCustomAction(action)
-            else {
-                return nil
-            }
-
-            let displayName = action.getName().trimmingCharacters(in: .whitespacesAndNewlines)
-            guard !displayName.isEmpty else {
-                return nil
-            }
-
-            return (action, displayName, slugifyDisplayString(displayName))
-        }
-
-        let groupedByBaseName = Dictionary(grouping: candidates, by: \.2)
-
-        return candidates.map { action, displayName, baseName in
-            let finalName: String = if groupedByBaseName[baseName, default: []].count > 1 {
-                "\(baseName)_\(shortIdentifier(for: action.id))"
-            } else {
-                baseName
-            }
-
-            return ActionDescriptor(
-                action: action,
-                kind: .custom,
-                name: finalName,
-                title: displayName
-            )
-        }
-    }
-
-    // MARK: - Response Helpers
-
-    /// Explains why `components` isn't a valid route
-    private func invalidRouteResponse(_ components: [String]) -> LoopAutomationResponse {
-        guard let command = components.first?.lowercased() else {
-            return failureResponse(
-                message: "No command given",
-                availableRoutes: Self.listRoutes + Self.exampleExecRoutes
-            )
-        }
-
-        let arguments = Array(components.dropFirst())
-
-        switch command {
-        case "list":
-            return failureResponse(
-                message: arguments.isEmpty ? "No list type given" : "Unknown list type: \(arguments.joined(separator: "/"))",
-                availableRoutes: Self.listRoutes
-            )
-
-        case "exec":
-            return invalidExecRouteResponse(arguments)
-
-        case "preset", "custom", "id":
-            return failureResponse(
-                message: "Unknown command: \(command)",
-                replacementRoute: LoopRoute(components: ["exec"] + components)
-            )
-
-        default:
-            return failureResponse(
-                message: "Unknown command: \(command)",
-                availableRoutes: Self.listRoutes + Self.exampleExecRoutes
-            )
-        }
-    }
-
-    private func invalidExecRouteResponse(_ arguments: [String]) -> LoopAutomationResponse {
-        switch arguments.first?.lowercased() {
-        case "preset":
-            failureResponse(
-                message: "Running a preset action requires exactly one name",
-                replacementRoute: .listActions(.presetOnly)
-            )
-        case "custom":
-            failureResponse(
-                message: "Running a custom action requires exactly one name",
-                replacementRoute: .listActions(.customOnly)
-            )
-        case "id":
-            failureResponse(
-                message: "Running an action by ID requires exactly one UUID",
-                replacementRoute: .listActions(.all)
-            )
-        case let type:
-            failureResponse(
-                message: type.map { "Unknown action type: \($0)" } ?? "No action type given",
-                availableRoutes: Self.exampleExecRoutes
-            )
-        }
-    }
-
-    private func failureResponse(
-        message: String,
-        replacementRoute: LoopRoute? = nil,
-        availableRoutes: [LoopRoute] = []
-    ) -> LoopAutomationResponse {
-        LoopAutomationResponse(
-            error: LoopAutomationError(
-                message: message,
-                replacementRoute: replacementRoute?.displayString,
-                availableRoutes: availableRoutes.isEmpty ? nil : availableRoutes.map(\.displayString)
-            )
-        )
-    }
-
-    private func makeExecutionResult(
-        source: InvocationSource,
-        kind: CommandKind,
-        components: [String],
-        response: LoopAutomationResponse
-    ) -> CommandExecutionResult {
-        let jsonResponse = LoopAutomationJSON.encodeString(response)
-
-        guard source == .urlScheme else {
-            return CommandExecutionResult(jsonResponse: jsonResponse, presentation: nil)
-        }
-
-        let presentation: CommandExecutionResult.Presentation? = switch kind {
-        case .read:
-            .output(
-                title: outputTitle(for: components),
-                text: response.result.map { LoopAutomationFormatter().format($0) }
-                    ?? LoopAutomationText(response.error?.message ?? jsonResponse)
-            )
-        case .write:
-            response.error.map { .failureAlert(message: $0.message) }
-        }
-
-        return CommandExecutionResult(jsonResponse: jsonResponse, presentation: presentation)
-    }
-
-    private func outputTitle(for components: [String]) -> String {
-        let commandPath = components.joined(separator: " ")
-        return commandPath.isEmpty
-            ? String(localized: "Loop Output")
-            : String(localized: "Loop Output: \(commandPath)", comment: "Output window title; the value is the command that was run, such as “list windows”")
-    }
-
-    private func windowSummary(_ window: Window) -> LoopWindowSummary {
-        let app = window.nsRunningApplication
-        return LoopWindowSummary(
-            id: window.cgWindowID,
-            bundleID: app?.bundleIdentifier ?? "",
-            appName: app?.localizedName ?? "",
-            title: window.title ?? "",
-            frame: LoopRect(window.frame)
-        )
-    }
-
-    private func screenSummary(_ screen: NSScreen) -> LoopScreenSummary {
-        LoopScreenSummary(
-            id: screen.displayID ?? 0,
-            name: screen.localizedName,
-            frame: LoopRect(screen.frame),
-            isMain: screen == NSScreen.main
-        )
-    }
-
-    // MARK: - Name and ID Helpers
-
-    private func slugifyDisplayString(_ string: String, treatCamelCaseAsWords: Bool = false) -> String {
-        let source = if treatCamelCaseAsWords {
-            string
-                .replacingOccurrences(
-                    of: "([A-Z]+)([A-Z][a-z])",
-                    with: "$1_$2",
-                    options: .regularExpression
-                )
-                .replacingOccurrences(
-                    of: "([a-z0-9])([A-Z])",
-                    with: "$1_$2",
-                    options: .regularExpression
-                )
-        } else {
-            string
-        }
-
-        let slug = source
-            .replacingOccurrences(of: "[^A-Za-z0-9]+", with: "_", options: .regularExpression)
-            .replacingOccurrences(of: "_{2,}", with: "_", options: .regularExpression)
-            .trimmingCharacters(in: CharacterSet(charactersIn: "_"))
-            .lowercased()
-
-        return slug.isEmpty ? "unnamed" : slug
-    }
-
-    private func canonicalDirectionName(for direction: WindowDirection) -> String {
-        slugifyDisplayString(direction.rawValue, treatCamelCaseAsWords: true)
-    }
-
-    private func shortIdentifier(for uuid: UUID) -> String {
-        String(uuid.uuidString.replacingOccurrences(of: "-", with: "").lowercased().prefix(8))
-    }
-
-    // MARK: - Execution Helpers
-
-    private func isExecutableCustomAction(_ action: WindowAction) -> Bool {
-        switch action.direction {
-        case .noAction, .noSelection:
-            false
-        case .cycle:
-            !(action.cycle?.isEmpty ?? true)
-        case .stash:
-            action.stashEdge != nil
-        default:
-            true
-        }
     }
 
     /// Picks the cycle's next action the way Loop's keybinds do, continuing from the window's current action
@@ -678,86 +478,54 @@ final class LoopCommandHandler {
         return context.commitCycleAction(proposal, in: action)
     }
 
-    private func performAction(_ action: WindowAction, on window: Window?, screen: NSScreen) async throws {
-        if let window {
-            log.info("Focusing window: \(window.description)")
-            await window.focus()
-        }
+    // MARK: - Window and Screen
 
-        log.info("Executing action: \(action) on \(window?.title ?? "unknown")")
-        _ = try await WindowActionEngine.shared.apply(
-            action,
-            window: window,
-            screen: screen
-        )
-
-        if let window {
-            log.info("New window frame: \(window.frame)")
-        }
-    }
-
-    private func resolveTargetScreen(
-        for action: WindowAction,
-        window: Window?,
-        params: TargetParams
-    ) -> Result<NSScreen, LoopAutomationError> {
-        if action.direction.willChangeScreen {
-            guard let window else {
-                return .failure(LoopAutomationError(message: windowResolveError(params)))
-            }
-
-            guard let currentScreen = ScreenUtility.screenContaining(window) ?? NSScreen.main else {
-                return .failure(LoopAutomationError(message: "No current screen found"))
-            }
-
-            guard let targetScreen = ScreenUtility.targetScreen(for: action.direction, from: currentScreen) else {
-                return .failure(LoopAutomationError(message: "No target screen found for \(action.direction.name)"))
-            }
-
-            return .success(targetScreen)
-        }
-
-        guard let screen = resolveScreen(screenID: params.screenID) else {
-            return .failure(LoopAutomationError(message: params.screenID.map { "No screen found with ID \($0)" } ?? "No current screen found"))
-        }
-
-        return .success(screen)
-    }
-
-    // MARK: - Window/Screen Helpers
-
-    /// Resolves the target window from targeting parameters.
-    /// Priority: windowID > bundleID > frontmost window.
-    private func resolveWindow(params: TargetParams) async -> Window? {
+    /// With no window named, uses the user's "Target window" setting like keybinds do
+    private func resolveWindow(params: TargetParams, canLaunchApps: Bool) async -> Result<Window?, LoopAutomationError> {
         if let windowID = params.windowID {
-            return try? Window.fromWindowID(windowID)
+            guard let window = try? Window.fromWindowID(windowID) else {
+                return .failure(LoopAutomationError(.notFound, message: "No window found with ID \(windowID)", replacementRoute: LoopRoute.list(.windows).displayString))
+            }
+            return .success(window)
         }
+
         if let bundleID = params.bundleID {
-            return await resolveWindowByBundleID(bundleID)
+            return await resolveWindow(bundleID: bundleID, canLaunchApps: canLaunchApps).map { $0 as Window? }
         }
-        return try? WindowUtility.frontmostWindow()
+
+        return .success(WindowUtility.userDefinedTargetWindow())
     }
 
-    /// Resolves a window by bundle ID, launching the app if needed.
-    private func resolveWindowByBundleID(_ bundleID: String) async -> Window? {
-        if let app = NSWorkspace.shared.runningApplications.first(where: { $0.bundleIdentifier == bundleID }) {
-            return try? Window(pid: app.processIdentifier)
+    /// Only the CLI launches apps, so a `loop://` link can't open one
+    private func resolveWindow(bundleID: String, canLaunchApps: Bool) async -> Result<Window, LoopAutomationError> {
+        let runningApps = NSWorkspace.shared.runningApplications.filter { $0.bundleIdentifier == bundleID }
+
+        if !runningApps.isEmpty {
+            // Prefer the frontmost instance when there's more than one
+            let app = runningApps.first(where: \.isActive) ?? runningApps[0]
+            if let window = try? Window(pid: app.processIdentifier) {
+                return .success(window)
+            }
+
+            return .failure(LoopAutomationError(.noWindow, message: "\(app.localizedName ?? bundleID) has no open windows"))
+        }
+
+        guard canLaunchApps else {
+            return .failure(LoopAutomationError(.notFound, message: "\(bundleID) isn’t running"))
         }
 
         guard let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID) else {
-            log.error("No app found for bundle ID: \(bundleID)")
-            return nil
+            return .failure(LoopAutomationError(.notFound, message: "No app found with bundle ID \(bundleID)"))
         }
 
-        let config = NSWorkspace.OpenConfiguration()
-        config.activates = true
+        let configuration = NSWorkspace.OpenConfiguration()
+        configuration.activates = true
 
         let app: NSRunningApplication
         do {
-            app = try await NSWorkspace.shared.openApplication(at: appURL, configuration: config)
+            app = try await NSWorkspace.shared.openApplication(at: appURL, configuration: configuration)
         } catch {
-            log.error("Failed to launch \(bundleID): \(error.localizedDescription)")
-            return nil
+            return .failure(LoopAutomationError(.failed, message: "Couldn’t open \(bundleID): \(error.localizedDescription)"))
         }
 
         let clock = ContinuousClock()
@@ -765,37 +533,180 @@ final class LoopCommandHandler {
 
         while clock.now < deadline {
             if let window = try? Window(pid: app.processIdentifier) {
-                return window
+                return .success(window)
             }
 
             do {
                 try await Task.sleep(for: .milliseconds(100))
             } catch {
-                return nil
+                break
             }
         }
 
-        log.error("App launched but no window appeared: \(bundleID)")
-        return nil
+        return .failure(LoopAutomationError(.noWindow, message: "\(app.localizedName ?? bundleID) opened, but didn’t show a window in time"))
     }
 
-    /// Resolves a screen by display ID, falling back to the main screen.
-    private func resolveScreen(screenID: CGDirectDisplayID?) -> NSScreen? {
-        if let screenID {
-            return NSScreen.screens.first { $0.displayID == screenID }
+    /// Like keybinds: the screen with the cursor (or the main screen), and for screen-changing actions, the one next to the window's
+    private func resolveScreen(for action: WindowAction, window: Window?, params: TargetParams) -> Result<NSScreen, LoopAutomationError> {
+        if action.direction.willChangeScreen {
+            guard let window,
+                  let currentScreen = ScreenUtility.screenContaining(window) ?? NSScreen.main,
+                  let targetScreen = ScreenUtility.targetScreen(for: action.direction, from: currentScreen)
+            else {
+                return .failure(LoopAutomationError(.failed, message: "No other screen to move to"))
+            }
+
+            return .success(targetScreen)
         }
-        return NSScreen.main
+
+        if let screenID = params.screenID {
+            guard let screen = NSScreen.screens.first(where: { $0.displayID == screenID }) else {
+                return .failure(LoopAutomationError(.notFound, message: "No screen found with ID \(screenID)", replacementRoute: LoopRoute.list(.screens).displayString))
+            }
+            return .success(screen)
+        }
+
+        guard let screen = Defaults[.useScreenWithCursor] ? NSScreen.screenWithMouse : NSScreen.main else {
+            return .failure(LoopAutomationError(.failed, message: "No screen found"))
+        }
+
+        return .success(screen)
     }
 
-    /// Builds a human-readable error message for window resolution failure.
-    private func windowResolveError(_ params: TargetParams) -> String {
-        if let windowID = params.windowID {
-            return "No window found with ID \(windowID)"
+    // MARK: - Responses
+
+    /// Explains why `components` isn't a valid route
+    private func invalidRouteResponse(_ components: [String]) -> LoopAutomationResponse {
+        guard let command = components.first?.lowercased() else {
+            return failureResponse(.invalidRequest, message: "No command given", availableRoutes: Self.listRoutes + Self.exampleRunRoutes)
         }
-        if let bundleID = params.bundleID {
-            return "Couldn’t find or open app: \(bundleID)"
+
+        let arguments = components.dropFirst()
+
+        switch command {
+        case "list":
+            return failureResponse(
+                .invalidRequest,
+                message: arguments.isEmpty ? "No list type given" : "Unknown list type: \(arguments.joined(separator: "/"))",
+                availableRoutes: Self.listRoutes
+            )
+        case "run":
+            return failureResponse(
+                .invalidRequest,
+                message: arguments.isEmpty ? "No action given" : "Invalid action: \(arguments.joined(separator: "/"))",
+                availableRoutes: Self.exampleRunRoutes
+            )
+        default:
+            return failureResponse(.invalidRequest, message: "Unknown command: \(command)", availableRoutes: Self.listRoutes + Self.exampleRunRoutes)
         }
-        return "No frontmost window found"
+    }
+
+    private func failureResponse(
+        _ code: LoopAutomationErrorCode,
+        message: String,
+        replacementRoute: LoopRoute? = nil,
+        availableRoutes: [LoopRoute] = []
+    ) -> LoopAutomationResponse {
+        LoopAutomationResponse(
+            error: LoopAutomationError(
+                code,
+                message: message,
+                replacementRoute: replacementRoute?.displayString,
+                availableRoutes: availableRoutes.isEmpty ? nil : availableRoutes.map(\.displayString)
+            )
+        )
+    }
+
+    private func makeExecutionResult(
+        source: InvocationSource,
+        isRead: Bool,
+        title: String?,
+        response: LoopAutomationResponse
+    ) -> CommandExecutionResult {
+        let jsonResponse = LoopAutomationJSON.encodeString(response)
+
+        guard source == .urlScheme else {
+            return CommandExecutionResult(jsonResponse: jsonResponse, presentation: nil)
+        }
+
+        let presentation: CommandExecutionResult.Presentation? = if isRead {
+            .output(
+                title: outputTitle(for: title),
+                text: response.result.map { LoopAutomationFormatter().format($0) }
+                    ?? LoopAutomationText(response.error?.message ?? jsonResponse)
+            )
+        } else {
+            response.error.map { .failureAlert(message: $0.message) }
+        }
+
+        return CommandExecutionResult(jsonResponse: jsonResponse, presentation: presentation)
+    }
+
+    private func outputTitle(for command: String?) -> String {
+        guard let command, !command.isEmpty else {
+            return String(localized: "Loop Output")
+        }
+
+        return String(localized: "Loop Output: \(command)", comment: "Output window title; the value is the command that was run, such as “list windows”")
+    }
+
+    // MARK: - Summaries
+
+    private func windowSummary(_ window: Window) -> LoopWindowSummary {
+        let app = window.nsRunningApplication
+        return LoopWindowSummary(
+            id: window.cgWindowID,
+            bundleID: app?.bundleIdentifier,
+            appName: app?.localizedName,
+            title: window.title,
+            frame: LoopRect(window.frame)
+        )
+    }
+
+    private func screenSummary(_ screen: NSScreen) -> LoopScreenSummary {
+        LoopScreenSummary(
+            id: screen.displayID ?? 0,
+            name: screen.localizedName,
+            frame: LoopRect(screen.frame),
+            isMain: screen == NSScreen.main
+        )
+    }
+
+    private func appName(of window: Window) -> String {
+        window.nsRunningApplication?.localizedName ?? "This app"
+    }
+
+    private static func noun(for kind: LoopBindingKind) -> String {
+        switch kind {
+        case .keybind: "keybind"
+        case .gesture: "gesture"
+        case .radialMenu: "radial menu action"
+        }
+    }
+
+    private static func listSubject(for kind: LoopBindingKind) -> LoopListSubject {
+        switch kind {
+        case .keybind: .keybinds
+        case .gesture: .gestures
+        case .radialMenu: .radialMenu
+        }
+    }
+}
+
+extension WindowDirection {
+    /// Also accepts `left`, `right`, `top` and `bottom` for the halves, like `loop://direction/` always has
+    static func matchingDirectionCommand(_ name: String) -> WindowDirection? {
+        if let direction = matching(name) {
+            return direction
+        }
+
+        switch name.lowercased() {
+        case "left": return .leftHalf
+        case "right": return .rightHalf
+        case "top": return .topHalf
+        case "bottom": return .bottomHalf
+        default: return matching(name.lowercased().replacingOccurrences(of: "half", with: ""))
+        }
     }
 }
 

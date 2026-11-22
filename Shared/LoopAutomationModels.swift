@@ -8,22 +8,15 @@
 import CoreGraphics
 import Foundation
 
-enum LoopActionKind: String, Codable {
-    case preset
-    case custom
-}
-
-enum LoopActionListFilter: String, Codable {
-    case all
-    case presetOnly
-    case customOnly
-}
+// Every key is always present, with `null` for missing values, so scripts can rely on the shape.
+// `key`, `id`, `target` and `code` values are stable; `name`, `title`, `category` and `trigger` are display text.
 
 enum LoopAutomationResultKind: String, Codable {
     case windowList
     case screenList
     case actionList
-    case execution
+    case bindingList
+    case run
 }
 
 struct LoopRect: Codable {
@@ -51,10 +44,19 @@ struct LoopRect: Codable {
 
 struct LoopWindowSummary: Codable {
     let id: UInt32
-    let bundleID: String
-    let appName: String
-    let title: String
+    let bundleID: String?
+    let appName: String?
+    let title: String?
     let frame: LoopRect
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(bundleID, forKey: .bundleID)
+        try container.encode(appName, forKey: .appName)
+        try container.encode(title, forKey: .title)
+        try container.encode(frame, forKey: .frame)
+    }
 }
 
 struct LoopScreenSummary: Codable {
@@ -64,22 +66,48 @@ struct LoopScreenSummary: Codable {
     let isMain: Bool
 }
 
-struct LoopActionDescriptor: Codable {
-    let id: UUID?
-    let kind: LoopActionKind
-    let title: String
+/// A built-in action that `run` can trigger by its `key`
+struct LoopActionSummary: Codable {
+    let key: String
     let name: String
-    let route: String
-    let idRoute: String?
-
-    var idString: String? {
-        id?.uuidString.lowercased()
-    }
+    let category: String
 }
 
-struct LoopActionCategory: Codable {
+/// The action a binding runs
+struct LoopBoundAction: Codable {
+    /// A built-in action's key, or `custom`, `cycle` or `stash`
+    let key: String
     let name: String
-    let actions: [LoopActionDescriptor]
+}
+
+/// A keybind, gesture or radial menu action
+struct LoopBindingSummary: Codable {
+    let kind: LoopBindingKind
+    /// `nil` for gestures that open the radial menu, as they don't run an action themselves
+    let id: String?
+    /// What to pass to `run`, such as `keybind:portrait`
+    let target: String?
+    let action: LoopBoundAction?
+    /// Set when the action comes from another binding, such as `keybind:portrait`
+    let linkedTarget: String?
+    /// How it's triggered, such as the keys, the gesture or the radial menu slot
+    let trigger: String?
+    /// Whether the keybind or gesture currently triggers anything. Inactive bindings can still be run.
+    let isActive: Bool
+    /// Why it isn't active, or why it can't be run
+    let note: String?
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(kind, forKey: .kind)
+        try container.encode(id, forKey: .id)
+        try container.encode(target, forKey: .target)
+        try container.encode(action, forKey: .action)
+        try container.encode(linkedTarget, forKey: .linkedTarget)
+        try container.encode(trigger, forKey: .trigger)
+        try container.encode(isActive, forKey: .isActive)
+        try container.encode(note, forKey: .note)
+    }
 }
 
 struct LoopWindowListResult: Codable {
@@ -91,21 +119,33 @@ struct LoopScreenListResult: Codable {
 }
 
 struct LoopActionListResult: Codable {
-    let filter: LoopActionListFilter
-    let presetCategories: [LoopActionCategory]
-    let customActions: [LoopActionDescriptor]
+    let actions: [LoopActionSummary]
 }
 
-struct LoopExecutionResult: Codable {
-    let action: LoopActionDescriptor
-    let targetWindow: LoopWindowSummary?
+struct LoopBindingListResult: Codable {
+    let bindingKind: LoopBindingKind
+    let bindings: [LoopBindingSummary]
+}
+
+struct LoopRunResult: Codable {
+    let target: String
+    let action: LoopBoundAction
+    let window: LoopWindowSummary?
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(target, forKey: .target)
+        try container.encode(action, forKey: .action)
+        try container.encode(window, forKey: .window)
+    }
 }
 
 enum LoopAutomationResult: Codable {
     case windowList(LoopWindowListResult)
     case screenList(LoopScreenListResult)
     case actionList(LoopActionListResult)
-    case execution(LoopExecutionResult)
+    case bindingList(LoopBindingListResult)
+    case run(LoopRunResult)
 
     private enum CodingKeys: String, CodingKey {
         case kind
@@ -119,8 +159,10 @@ enum LoopAutomationResult: Codable {
             .screenList
         case .actionList:
             .actionList
-        case .execution:
-            .execution
+        case .bindingList:
+            .bindingList
+        case .run:
+            .run
         }
     }
 
@@ -135,8 +177,10 @@ enum LoopAutomationResult: Codable {
             self = try .screenList(LoopScreenListResult(from: decoder))
         case .actionList:
             self = try .actionList(LoopActionListResult(from: decoder))
-        case .execution:
-            self = try .execution(LoopExecutionResult(from: decoder))
+        case .bindingList:
+            self = try .bindingList(LoopBindingListResult(from: decoder))
+        case .run:
+            self = try .run(LoopRunResult(from: decoder))
         }
     }
 
@@ -151,42 +195,90 @@ enum LoopAutomationResult: Codable {
             try result.encode(to: encoder)
         case let .actionList(result):
             try result.encode(to: encoder)
-        case let .execution(result):
+        case let .bindingList(result):
+            try result.encode(to: encoder)
+        case let .run(result):
             try result.encode(to: encoder)
         }
     }
 }
 
+/// Stable reasons for a failure, so scripts don't have to match on messages
+enum LoopAutomationErrorCode: String, Codable {
+    /// The request isn't a valid command, or one of its values is malformed
+    case invalidRequest
+    /// The action, binding, window, screen or app doesn't exist
+    case notFound
+    /// The action needs a window, and there isn't one to act on
+    case noWindow
+    /// The window belongs to an app excluded in Loop's settings
+    case excludedApp
+    /// The window is in full screen, and Loop is set to ignore those
+    case fullscreenWindow
+    /// Loop couldn't be reached, or isn't accepting commands yet
+    case unavailable
+    /// The command didn't finish in time, and may still complete
+    case timeout
+    /// The command ran but didn't succeed
+    case failed
+}
+
 struct LoopAutomationError: Codable, Error {
+    let code: LoopAutomationErrorCode
     let message: String
+    /// A route to run instead, such as the list of what exists
     let replacementRoute: String?
     let availableRoutes: [String]?
 
     init(
+        _ code: LoopAutomationErrorCode,
         message: String,
         replacementRoute: String? = nil,
         availableRoutes: [String]? = nil
     ) {
+        self.code = code
         self.message = message
         self.replacementRoute = replacementRoute
         self.availableRoutes = availableRoutes
     }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(code, forKey: .code)
+        try container.encode(message, forKey: .message)
+        try container.encode(replacementRoute, forKey: .replacementRoute)
+        try container.encode(availableRoutes, forKey: .availableRoutes)
+    }
 }
 
 struct LoopAutomationResponse: Codable {
+    /// Bumped when the shape changes in a way that could break scripts
+    static let currentVersion = 1
+
+    let version: Int
     let success: Bool
     let result: LoopAutomationResult?
     let error: LoopAutomationError?
 
     init(result: LoopAutomationResult) {
+        self.version = Self.currentVersion
         self.success = true
         self.result = result
         self.error = nil
     }
 
     init(error: LoopAutomationError) {
+        self.version = Self.currentVersion
         self.success = false
         self.result = nil
         self.error = error
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(version, forKey: .version)
+        try container.encode(success, forKey: .success)
+        try container.encode(result, forKey: .result)
+        try container.encode(error, forKey: .error)
     }
 }

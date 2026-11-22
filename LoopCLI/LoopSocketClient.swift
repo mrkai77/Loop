@@ -8,21 +8,15 @@
 import Foundation
 
 final class LoopSocketClient {
-    private struct SocketRuntimeError: LocalizedError {
-        let message: String
-
-        var errorDescription: String? {
-            message
-        }
-    }
-
     /// Past Loop's own command timeout, so Loop can still report it
     private static let receiveTimeout = LoopAutomationJSON.commandTimeout + .seconds(5)
+    /// Far past any real response, so a misbehaving peer can't use up memory
+    private static let maxResponseSize = 16 * 1024 * 1024
 
-    func send(_ request: CLIRequest) throws -> CLIResponse {
+    func send(_ request: CLIRequest) throws(LoopAutomationError) -> CLIResponse {
         let fileDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)
         guard fileDescriptor >= 0 else {
-            throw SocketRuntimeError(message: "Failed to create socket")
+            throw LoopAutomationError(.unavailable, message: "Couldn’t create a socket: \(Self.currentErrorDescription)")
         }
         defer { close(fileDescriptor) }
 
@@ -31,11 +25,11 @@ final class LoopSocketClient {
         }
 
         guard let connectResult else {
-            throw SocketRuntimeError(message: "Socket path too long: \(LoopSocketPath.path)")
+            throw LoopAutomationError(.unavailable, message: "Loop’s socket path is too long: \(LoopSocketPath.path)")
         }
 
         guard connectResult == 0 else {
-            throw SocketRuntimeError(message: "Loop is not running")
+            throw Self.connectionError(errno: errno)
         }
 
         LoopSocketIO.configure(fileDescriptor, timeout: Self.receiveTimeout)
@@ -44,23 +38,37 @@ final class LoopSocketClient {
             try LoopSocketIO.write(request.url.absoluteString, to: fileDescriptor)
             shutdown(fileDescriptor, SHUT_WR)
         } catch {
-            throw SocketRuntimeError(message: "Failed to send request: \(error.localizedDescription)")
+            throw LoopAutomationError(.unavailable, message: "Couldn’t send the command to Loop: \(error.localizedDescription)")
         }
 
         let response: String
         do {
-            response = try LoopSocketIO.readToEnd(from: fileDescriptor)
+            response = try LoopSocketIO.readToEnd(from: fileDescriptor, limit: Self.maxResponseSize)
         } catch POSIXError.EAGAIN {
-            throw SocketRuntimeError(message: "Loop didn’t respond in time")
+            throw LoopAutomationError(.timeout, message: "Loop didn’t respond in time, so the action may still complete")
         } catch {
-            throw SocketRuntimeError(message: "Failed to read Loop’s response: \(error.localizedDescription)")
+            throw LoopAutomationError(.unavailable, message: "Couldn’t read Loop’s response: \(error.localizedDescription)")
         }
 
         guard !response.isEmpty else {
-            throw SocketRuntimeError(message: "Empty response from Loop")
+            throw LoopAutomationError(.unavailable, message: "Loop closed the connection without responding")
         }
 
         return CLIResponse(rawOutput: response)
+    }
+
+    private static func connectionError(errno code: Int32) -> LoopAutomationError {
+        switch code {
+        case ENOENT, ECONNREFUSED:
+            // No socket at all also covers versions of Loop from before the command-line tool
+            LoopAutomationError(.unavailable, message: "Couldn’t reach Loop. Make sure Loop is open and up to date, then try again.")
+        default:
+            LoopAutomationError(.unavailable, message: "Couldn’t connect to Loop at \(LoopSocketPath.path): \(String(cString: strerror(code)))")
+        }
+    }
+
+    private static var currentErrorDescription: String {
+        String(cString: strerror(errno))
     }
 }
 

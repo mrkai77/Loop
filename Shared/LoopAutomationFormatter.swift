@@ -73,9 +73,11 @@ struct LoopAutomationFormatter {
         case let .screenList(result):
             list(result.screens.map(screenItem), emptyMessage: "No screens")
         case let .actionList(result):
-            formatActions(result)
-        case let .execution(result):
-            render(executionItem(result))
+            formatActions(result.actions)
+        case let .bindingList(result):
+            list(result.bindings.map(bindingItem), emptyMessage: emptyMessage(for: result.bindingKind))
+        case let .run(result):
+            render(runItem(result))
         }
     }
 
@@ -105,63 +107,86 @@ struct LoopAutomationFormatter {
         return items.map(render).joined(separator: "\n")
     }
 
-    private func section(_ title: String, items: [Item], emptyMessage: String) -> LoopAutomationText {
-        LoopAutomationText(title, style: .heading) + LoopAutomationText("\n") + list(items, emptyMessage: emptyMessage)
+    private func section(_ title: String, items: [Item]) -> LoopAutomationText {
+        LoopAutomationText(title, style: .heading) + LoopAutomationText("\n") + list(items, emptyMessage: "")
     }
 
     // MARK: - Results
 
-    private func formatActions(_ result: LoopActionListResult) -> LoopAutomationText {
-        var sections: [LoopAutomationText] = []
+    /// Grouped by category, in the order they arrive
+    private func formatActions(_ actions: [LoopActionSummary]) -> LoopAutomationText {
+        guard !actions.isEmpty else {
+            return LoopAutomationText("No actions", style: .secondary)
+        }
 
-        if result.filter != .customOnly {
-            for category in result.presetCategories where !category.actions.isEmpty {
-                sections.append(section(category.name, items: category.actions.map(actionItem), emptyMessage: ""))
+        var categories: [(name: String, actions: [LoopActionSummary])] = []
+        for action in actions {
+            if let index = categories.firstIndex(where: { $0.name == action.category }) {
+                categories[index].actions.append(action)
+            } else {
+                categories.append((action.category, [action]))
             }
         }
 
-        if result.filter != .presetOnly {
-            sections.append(section("Custom", items: result.customActions.map(actionItem), emptyMessage: "No custom actions"))
-        }
+        return categories
+            .map { section(sanitized($0.name), items: $0.actions.map(actionItem)) }
+            .joined(separator: "\n\n")
+    }
 
-        return sections.joined(separator: "\n\n")
+    private func emptyMessage(for kind: LoopBindingKind) -> String {
+        switch kind {
+        case .keybind: "No keybinds"
+        case .gesture: "No gestures"
+        case .radialMenu: "No radial menu actions"
+        }
     }
 
     private func windowItem(_ window: LoopWindowSummary) -> Item {
         Item(
             name: windowName(appName: window.appName, title: window.title),
-            details: ["ID \(window.id)", window.bundleID, frameString(window.frame)]
+            details: ["ID \(window.id)", window.bundleID ?? "", frameString(window.frame)]
         )
     }
 
     private func screenItem(_ screen: LoopScreenSummary) -> Item {
         Item(
             name: nonEmpty(screen.name) ?? "Screen",
-            details: ["ID \(screen.id)", screen.isMain ? "main" : "", frameString(screen.frame)]
+            details: ["ID \(screen.id)", screen.isMain ? "Main" : "", frameString(screen.frame)]
         )
     }
 
-    private func actionItem(_ action: LoopActionDescriptor) -> Item {
-        Item(
-            name: sanitized(action.name),
-            details: [sanitized(action.title), action.idString.map { "ID \($0)" } ?? ""]
+    private func actionItem(_ action: LoopActionSummary) -> Item {
+        Item(name: action.key, details: [sanitized(action.name)])
+    }
+
+    private func bindingItem(_ binding: LoopBindingSummary) -> Item {
+        let fallbackName = binding.kind == .gesture && binding.id == nil ? "Opens the radial menu" : "No action"
+        let name = binding.action.flatMap { nonEmpty($0.name) } ?? fallbackName
+        return Item(
+            name: name,
+            details: [
+                binding.target ?? "",
+                binding.linkedTarget.map { "Linked to \($0)" } ?? "",
+                binding.trigger.map(sanitized) ?? "",
+                binding.note ?? ""
+            ]
         )
     }
 
-    private func executionItem(_ result: LoopExecutionResult) -> Item {
-        let action = sanitized(result.action.name)
+    private func runItem(_ result: LoopRunResult) -> Item {
+        let action = nonEmpty(result.action.name) ?? result.action.key
 
-        guard let window = result.targetWindow else {
-            return Item(name: "Ran \(action)", details: [])
+        guard let window = result.window else {
+            return Item(name: "Ran \(action)", details: [result.target])
         }
 
         let target = nonEmpty(window.appName).map { " on \($0)" } ?? ""
-        return Item(name: "Ran \(action)\(target)", details: ["ID \(window.id)", window.bundleID])
+        return Item(name: "Ran \(action)\(target)", details: [result.target, "Window \(window.id)"])
     }
 
     // MARK: - Text
 
-    private func windowName(appName: String, title: String) -> String {
+    private func windowName(appName: String?, title: String?) -> String {
         switch (nonEmpty(appName), nonEmpty(title)) {
         case let (appName?, title?):
             "\(appName) - \(title)"
@@ -189,7 +214,11 @@ struct LoopAutomationFormatter {
     }
 
     /// Trimmed and flattened to one line, or `nil` when empty
-    private func nonEmpty(_ string: String) -> String? {
+    private func nonEmpty(_ string: String?) -> String? {
+        guard let string else {
+            return nil
+        }
+
         let result = sanitized(string)
         return result.isEmpty ? nil : result
     }

@@ -15,7 +15,7 @@ import Scribe
 /// before the connection is closed.
 ///
 /// Request format: `loop://<route>[?windowID=<id>&bundleID=<id>&screenID=<id>]`
-/// Example: `loop://exec/preset/right_half?bundleID=com.apple.Safari`
+/// Example: `loop://run/right-half?bundleID=com.apple.Safari`
 @Loggable
 final class LoopSocketManager {
     static let shared = LoopSocketManager()
@@ -154,10 +154,11 @@ final class LoopSocketManager {
 
         LoopSocketIO.configure(clientFD, timeout: Self.clientTimeout)
 
-        // Installing the tool needs an administrator, so it doubles as consent to be controlled
+        // Only answer once the user has installed the tool, so running the copy inside Loop.app does nothing until they opt in.
+        // This isn't a security boundary: any app of this user can already send the same commands through loop:// URLs.
         if let reason = commandLineToolRejectionReason() {
             log.warn("Rejected socket connection: \(reason)")
-            respond(clientFD, LoopAutomationJSON.encodedFailure(message: reason))
+            respond(clientFD, LoopAutomationJSON.encodedFailure(.unavailable, message: reason))
             return
         }
 
@@ -166,18 +167,18 @@ final class LoopSocketManager {
             request = try LoopSocketIO.readToEnd(from: clientFD, limit: Self.maxRequestSize)
                 .trimmingCharacters(in: .whitespacesAndNewlines)
         } catch POSIXError.EAGAIN {
-            respond(clientFD, LoopAutomationJSON.encodedFailure(message: "Loop didn’t receive the full request in time"))
+            respond(clientFD, LoopAutomationJSON.encodedFailure(.invalidRequest, message: "Loop didn’t receive the full request in time"))
             return
         } catch POSIXError.EMSGSIZE {
-            respond(clientFD, LoopAutomationJSON.encodedFailure(message: "The request is too long"))
+            respond(clientFD, LoopAutomationJSON.encodedFailure(.invalidRequest, message: "The request is too long"))
             return
         } catch {
-            respond(clientFD, LoopAutomationJSON.encodedFailure(message: "Couldn’t read the request: \(error.localizedDescription)"))
+            respond(clientFD, LoopAutomationJSON.encodedFailure(.invalidRequest, message: "Couldn’t read the request: \(error.localizedDescription)"))
             return
         }
 
         guard !request.isEmpty else {
-            respond(clientFD, LoopAutomationJSON.encodedFailure(message: "Empty request"))
+            respond(clientFD, LoopAutomationJSON.encodedFailure(.invalidRequest, message: "Empty request"))
             return
         }
 
