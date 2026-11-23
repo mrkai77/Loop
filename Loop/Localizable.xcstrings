@@ -36154,8 +36154,25 @@
         }
       }
     },
+    "This action is linked to a gesture. Changes made to this action will affect both." : {
+      "comment" : "A tooltip on a keybind, gesture or radial menu action that links to a gesture, explaining that changes to its action also affect the gesture.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cette action est liée à un geste. Les modifications apportées à cette action affecteront les deux."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このアクションはジェスチャにリンクされています。このアクションを変更すると、両方に影響します。"
+          }
+        }
+      }
+    },
     "This action is linked to a keybind. Changes made to this action will affect both." : {
-      "comment" : "A tooltip explaining that changes to a radial menu action will also affect the corresponding keybind.",
+      "comment" : "A tooltip on a gesture or radial menu action that links to a keybind, explaining that changes to its action also affect the keybind.",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
@@ -36239,6 +36256,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "該操作關聯了按鍵綁定。對該操作的改動將同時影響兩邊。"
+          }
+        }
+      }
+    },
+    "This action is linked to a radial menu action. Changes made to this action will affect both." : {
+      "comment" : "A tooltip on a keybind, gesture or radial menu action that links to a radial menu action, explaining that changes to its action also affect the radial menu action.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Cette action est liée à une action du menu radial. Les modifications apportées à cette action affecteront les deux."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "このアクションは円形メニューのアクションにリンクされています。このアクションを変更すると、両方に影響します。"
           }
         }
       }
@@ -38016,6 +38050,23 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "解除安裝⋯"
+          }
+        }
+      }
+    },
+    "Unlink" : {
+      "comment" : "Button in the popover of a keybind, gesture or radial menu action that links to another, which unlinks it and keeps its action as its own",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Dissocier"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "リンクを解除"
           }
         }
       }
@@ -40588,6 +40639,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "你已經環繞了……呃…我數不過來了…"
+          }
+        }
+      }
+    },
+    "Your Gestures" : {
+      "comment" : "Section header in the action picker, listing the user’s gestures to link to",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vos gestes"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自分のジェスチャ"
+          }
+        }
+      }
+    },
+    "Your Keybinds" : {
+      "comment" : "Section header in the action picker, listing the user’s keybinds to link to",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Vos raccourcis"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自分のキー設定"
+          }
+        }
+      }
+    },
+    "Your Radial Menu" : {
+      "comment" : "Section header in the action picker, listing the user’s radial menu actions to link to",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Votre menu radial"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "自分の円形メニュー"
           }
         }
       }

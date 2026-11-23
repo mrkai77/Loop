@@ -52,7 +52,7 @@ final class RadialMenuViewModel: ObservableObject {
         guard Defaults[.enableGestures] else { return nil }
 
         return Defaults[.gestures].lazy.compactMap { gesture -> Angle? in
-            guard case let .singleAction(actionType) = gesture.action, actionType.id == action.id else { return nil }
+            guard case let .singleAction(actionType) = gesture.action, actionType.associatedActionId == action.id else { return nil }
             return gesture.kind?.radialMenuAngle
         }.first
     }

@@ -494,22 +494,12 @@ extension MultitouchTrigger {
         guard actions.indices.contains(index) else { return }
         let action = actions[index]
 
-        let resolvedAction: WindowAction = switch action.type {
-        case let .custom(windowAction):
-            windowAction
-        case let .keybindReference(id):
-            resolveKeybindReference(id)
-        }
-
-        changeAction(resolvedAction, reverse: reverse, canAdvanceCycle: canAdvanceCycle)
+        changeAction(resolve(action.type), reverse: reverse, canAdvanceCycle: canAdvanceCycle)
     }
 
     func resolvedWindowAction(from gesture: GestureBinding) -> WindowAction? {
         guard case let .singleAction(actionType) = gesture.action else { return nil }
-        switch actionType {
-        case let .custom(action): return action
-        case let .keybindReference(id): return resolveKeybindReference(id)
-        }
+        return resolve(actionType)
     }
 
     func triggerSingleAction(from gesture: GestureBinding, reverse: Bool = false, canAdvanceCycle: Bool = true) {
@@ -526,11 +516,11 @@ extension MultitouchTrigger {
         }
     }
 
-    private func resolveKeybindReference(_ id: UUID) -> WindowAction {
-        if let cached = windowActionCache.actionsByIdentifier[id] {
-            return cached
+    private func resolve(_ type: RadialMenuAction.ActionType) -> WindowAction {
+        if let action = type.resolvedAction(with: windowActionCache.linkResolver) {
+            return action
         }
-        log.warn("Gesture references keybind \(id) that no longer exists")
+        log.warn("Gesture links to \(type.link.map(String.init(describing:)) ?? "a binding") that no longer exists")
         return Self.failedToResolveKeybindAction
     }
 }

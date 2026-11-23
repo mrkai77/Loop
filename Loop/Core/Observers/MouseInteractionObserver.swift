@@ -153,12 +153,9 @@ final class MouseInteractionObserver {
                 newAction = radialMenuActions.last
             }
 
-            let resolvedAction: WindowAction? = switch newAction?.type {
-            case let .custom(windowAction):
-                windowAction
-            case let .keybindReference(id):
-                windowActionCache.actionsByIdentifier[id] ?? Self.failedToResolveKeybindAction
-            case nil:
+            let resolvedAction: WindowAction? = if let type = newAction?.type {
+                type.resolvedAction(with: windowActionCache.linkResolver) ?? Self.failedToResolveKeybindAction
+            } else {
                 .init(.noSelection)
             }
 

@@ -16,40 +16,61 @@ struct RadialMenuAction: Identifiable, Codable, Hashable, Defaults.Serializable 
     let id: UUID
     var type: ActionType
 
-    /// Used to describe the "link" to an existing keybind, or to contain a WindowAction.
+    /// An action of its own, or a link to a keybind, gesture or radial menu action.
+    /// Links to keybinds keep their own case, which older versions of Loop read. Other links are a `noAction` action with
+    /// `WindowAction.link` set, like linked keybinds, so older versions read them as doing nothing rather than dropping them.
     enum ActionType: Identifiable, Codable, Hashable {
         case custom(WindowAction)
         case keybindReference(UUID)
 
+        init(_ link: BindingLink) {
+            switch link.kind {
+            case .keybind:
+                self = .keybindReference(link.id)
+            case .gesture, .radialMenu:
+                var action = WindowAction(.noAction)
+                action.link = link
+                self = .custom(action)
+            }
+        }
+
         var id: UUID {
             switch self {
             case let .custom(windowAction):
-                windowAction.id
+                windowAction.link?.id ?? windowAction.id
             case let .keybindReference(id):
                 id
             }
         }
 
-        var resolvedAction: WindowAction? {
+        var link: BindingLink? {
             switch self {
-            case let .custom(windowAction):
-                windowAction
-            case let .keybindReference(id):
-                if let action = Defaults[.keybinds].first(where: { $0.id == id }) {
-                    action
-                } else {
-                    nil
-                }
+            case let .custom(action): action.link
+            case let .keybindReference(id): BindingLink(.keybind, id: id)
             }
         }
 
-        var isKeybindReference: Bool {
-            switch self {
-            case .custom:
-                false
-            case .keybindReference:
-                true
-            }
+        /// `nil` for a link
+        var customAction: WindowAction? {
+            if case let .custom(action) = self, action.link == nil { action } else { nil }
+        }
+
+        var resolvedAction: WindowAction? {
+            resolvedAction(with: BindingLinkResolver())
+        }
+
+        func resolvedAction(with resolver: BindingLinkResolver) -> WindowAction? {
+            link.map(resolver.action) ?? customAction
+        }
+
+        var isLink: Bool {
+            link != nil
+        }
+
+        /// The id of the action this runs, for the radial menu while it's open.
+        /// Links use the resolver the keybind cache keeps up to date, as reading settings here would decode them on every update.
+        var associatedActionId: UUID {
+            isLink ? resolvedAction(with: BindingLinkResolver.shared)?.id ?? id : id
         }
     }
 
@@ -66,16 +87,21 @@ struct RadialMenuAction: Identifiable, Codable, Hashable, Defaults.Serializable 
     }
 
     static func keybindReference(_ id: UUID) -> Self {
+        link(BindingLink(.keybind, id: id))
+    }
+
+    static func link(_ link: BindingLink) -> Self {
         self.init(
             id: .init(),
-            type: .keybindReference(id)
+            type: .init(link)
         )
     }
 
     // MARK: Computed Helpers
 
+    /// The id of the action this runs, so the radial menu can tell which slot is selected
     var associatedActionId: UUID {
-        type.id
+        type.associatedActionId
     }
 
     var resolved: WindowAction? {

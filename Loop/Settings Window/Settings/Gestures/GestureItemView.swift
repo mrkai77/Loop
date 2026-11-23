@@ -14,6 +14,8 @@ struct GestureItemView: View {
     @Environment(\.luminareSectionHorizontalPadding) private var horizontalPadding
 
     @Default(.keybinds) private var keybinds
+    @Default(.gestures) private var gestures
+    @Default(.radialMenuActions) private var radialMenuActions
 
     @State private var gesture: GestureBinding
     @Binding private var externalGesture: GestureBinding
@@ -37,29 +39,60 @@ struct GestureItemView: View {
         case .radialMenuActions:
             nil
         case let .singleAction(actionType):
-            actionType.resolvedAction
+            actionType.resolvedAction(with: linkResolver)
         }
     }
 
-    private var isKeybindReference: Bool {
+    private var linkResolver: BindingLinkResolver {
+        BindingLinkResolver(keybinds: keybinds, gestures: gestures, radialMenuActions: radialMenuActions)
+    }
+
+    private var link: BindingLink? {
         if case let .singleAction(actionType) = gesture.action {
-            return actionType.isKeybindReference
+            return actionType.link
         }
-        return false
+        return nil
     }
 
-    private var actionTypeBinding: Binding<RadialMenuAction.ActionType> {
+    private var pickerSelection: Binding<ActionPickerView.Item> {
         Binding(
             get: {
                 if case let .singleAction(actionType) = gesture.action {
-                    return actionType
+                    return actionType.pickerItem
                 }
-                return .custom(.init(.noAction))
+                return .direction(.noAction)
             },
             set: { newValue in
-                gesture.action = .singleAction(newValue)
+                // A linked gesture changes the binding it links to, and is unlinked with its link button
+                if case let .direction(direction) = newValue {
+                    if let link, BindingLinkResolver.save(direction, through: link) {
+                        // Leave it unchanged
+                    } else {
+                        gesture.action = .singleAction(.init(newValue))
+                    }
+                    configure(direction)
+                } else {
+                    gesture.action = .singleAction(.init(newValue))
+                }
             }
         )
+    }
+
+    private func configure(_ direction: WindowDirection) {
+        if direction.isCustomizable {
+            isConfiguringCustom = true
+        }
+        if direction == .cycle {
+            isConfiguringCycle = true
+        }
+    }
+
+    private func unlink() {
+        guard let link else {
+            return
+        }
+
+        gesture.action = .singleAction(.custom((linkResolver.action(for: link) ?? WindowAction(.noAction)).detached()))
     }
 
     private var actionBinding: Binding<WindowAction> {
@@ -68,15 +101,10 @@ struct GestureItemView: View {
                 resolvedAction ?? .init(.noAction)
             },
             set: { newAction in
-                if case let .singleAction(actionType) = gesture.action {
-                    switch actionType {
-                    case .custom:
-                        gesture.action = .singleAction(.custom(newAction))
-                    case let .keybindReference(id):
-                        if let index = Defaults[.keybinds].firstIndex(where: { $0.id == id }) {
-                            keybinds[index] = newAction
-                        }
-                    }
+                if let link {
+                    BindingLinkResolver.save(newAction, through: link)
+                } else if case .singleAction = gesture.action {
+                    gesture.action = .singleAction(.custom(newAction))
                 }
             }
         )
@@ -88,10 +116,8 @@ struct GestureItemView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 12) {
-                if isKeybindReference {
-                    Image(systemName: "keyboard")
-                        .foregroundStyle(.secondary)
-                        .help("This action is linked to a keybind. Changes made to this action will affect both.")
+                if let link {
+                    BindingLinkBadge(kind: link.kind, unlink: unlink)
                 }
 
                 gestureConfiguration
@@ -107,15 +133,9 @@ struct GestureItemView: View {
             .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, 12)
-        .onChange(of: resolvedAction?.direction) { _ in
-            if resolvedAction?.direction.isCustomizable == true {
-                isConfiguringCustom = true
-            }
-            if resolvedAction?.direction == .cycle {
-                isConfiguringCycle = true
-            }
-        }
         .onChange(of: gesture) { externalGesture = $0 }
+        // An edit made through a link from another row changes this one's binding directly
+        .onChange(of: externalGesture) { if $0 != gesture { gesture = $0 } }
     }
 
     private var actionSelection: some View {
@@ -127,7 +147,7 @@ struct GestureItemView: View {
                 shouldHideAnchor: true,
                 shouldAnimate: false
             ) {
-                RadialMenuActionPickerView(selection: actionTypeBinding)
+                ActionPickerView(selection: pickerSelection, owner: BindingLink(.gesture, id: gesture.id))
                     .frame(width: 300, height: 300)
             }
             .onChange(of: isActionPickerPresented) { _ in

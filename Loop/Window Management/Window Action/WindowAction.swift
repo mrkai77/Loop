@@ -97,6 +97,9 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
     var direction: WindowDirection
     var keybind: Set<CGKeyCode>
     var bypassTriggerKey: Bool?
+    /// Set on a keybind that runs another binding's action instead of its own. `direction` is `noAction` then,
+    /// so a version of Loop without links does nothing for it.
+    var link: BindingLink?
 
     // Custom Keybind Properties
     var name: String?
@@ -251,5 +254,20 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
 extension WindowAction: CustomStringConvertible {
     var description: String {
         "WindowAction(direction: \(direction), name: \(getName()))"
+    }
+}
+
+// MARK: - Unlinking
+
+extension WindowAction {
+    /// A copy with new ids for it and its cycle steps, so the two never share cycle progress or radial menu selection
+    func detached(id: UUID = UUID(), keybind: Set<CGKeyCode> = [], bypassTriggerKey: Bool? = nil) -> WindowAction {
+        var copy = self
+        copy.id = id
+        copy.keybind = keybind
+        copy.bypassTriggerKey = bypassTriggerKey
+        copy.link = nil
+        copy.cycle = cycle?.map { $0.detached() }
+        return copy
     }
 }

@@ -12,6 +12,8 @@ import SwiftUI
 struct KeybindItemView: View {
     @Default(.triggerKey) private var triggerKey
     @Default(.keybinds) private var keybinds
+    @Default(.gestures) private var gestures
+    @Default(.radialMenuActions) private var radialMenuActions
 
     @State private var action: WindowAction
     @Binding private var externalAction: WindowAction
@@ -46,6 +48,63 @@ struct KeybindItemView: View {
         }
     }
 
+    private var linkResolver: BindingLinkResolver {
+        BindingLinkResolver(keybinds: keybinds, gestures: gestures, radialMenuActions: radialMenuActions)
+    }
+
+    /// The action this runs. Editing a linked action edits the binding it comes from.
+    private var editableAction: Binding<WindowAction> {
+        guard let link = action.link else {
+            return $action
+        }
+
+        return Binding(
+            get: { linkResolver.action(for: link) ?? WindowAction(.noAction) },
+            set: { BindingLinkResolver.save($0, through: link) }
+        )
+    }
+
+    private var pickerSelection: Binding<ActionPickerView.Item> {
+        Binding(
+            get: { action.link.map(ActionPickerView.Item.link) ?? .direction(action.direction) },
+            set: { item in
+                switch item {
+                case let .direction(direction):
+                    // A linked keybind changes the binding it links to, and is unlinked with its link button
+                    if let link = action.link, BindingLinkResolver.save(direction, through: link) {
+                        // Leave it unchanged
+                    } else {
+                        action.link = nil
+                        action.direction = direction
+                    }
+                    configure(direction)
+                case let .link(link):
+                    action.link = link
+                    action.direction = .noAction
+                }
+            }
+        )
+    }
+
+    /// Opens the editor for an action picked in this row, but not for changes made from another row through a link
+    private func configure(_ direction: WindowDirection) {
+        if direction.isCustomizable {
+            isConfiguringCustom = true
+        }
+        if direction == .cycle {
+            isConfiguringCycle = true
+        }
+    }
+
+    private func unlink() {
+        guard let link = action.link else {
+            return
+        }
+
+        action = (linkResolver.action(for: link) ?? WindowAction(.noAction))
+            .detached(id: action.id, keybind: action.keybind, bypassTriggerKey: action.bypassTriggerKey)
+    }
+
     var body: some View {
         ZStack {
             actionSelection
@@ -55,15 +114,9 @@ struct KeybindItemView: View {
                 .frame(maxWidth: .infinity, alignment: .trailing)
         }
         .padding(.horizontal, 12)
-        .onChange(of: action.direction) { _ in
-            if action.direction.isCustomizable {
-                isConfiguringCustom = true
-            }
-            if action.direction == .cycle {
-                isConfiguringCycle = true
-            }
-        }
         .onChange(of: action) { externalAction = $0 }
+        // An edit made through a link from another row changes this one's binding directly
+        .onChange(of: externalAction) { if $0 != action { action = $0 } }
     }
 
     private var actionSelection: some View {
@@ -75,10 +128,20 @@ struct KeybindItemView: View {
                 shouldHideAnchor: true,
                 shouldAnimate: false
             ) {
-                DirectionPickerView(
-                    direction: $action.direction,
-                    isInCycle: cycleIndex != nil
-                )
+                Group {
+                    if cycleIndex == nil {
+                        ActionPickerView(selection: pickerSelection, owner: BindingLink(.keybind, id: action.id))
+                    } else {
+                        // Cycle steps are actions of their own, never links
+                        DirectionPickerView(
+                            direction: Binding(
+                                get: { action.direction },
+                                set: { action.direction = $0; configure($0) }
+                            ),
+                            isInCycle: true
+                        )
+                    }
+                }
                 .frame(width: 300, height: 300)
             }
             .onChange(of: isActionPickerPresented) { _ in
@@ -89,7 +152,9 @@ struct KeybindItemView: View {
     }
 
     private var actionIndicator: some View {
-        HStack(spacing: 2) {
+        let action = editableAction.wrappedValue
+
+        return HStack(spacing: 2) {
             Button {
                 isActionPickerPresented.toggle()
             } label: {
@@ -132,13 +197,13 @@ struct KeybindItemView: View {
                     .luminareModal(isPresented: $isConfiguringCustom) {
                         if action.direction == .custom {
                             CustomActionConfigurationView(
-                                action: $action,
+                                action: editableAction,
                                 isPresented: $isConfiguringCustom
                             )
                             .frame(width: 400)
                         } else {
                             StashActionConfigurationView(
-                                action: $action,
+                                action: editableAction,
                                 isPresented: $isConfiguringCustom
                             )
                             .frame(width: 400)
@@ -157,7 +222,7 @@ struct KeybindItemView: View {
                     .buttonStyle(.plain)
                     .luminareModal(isPresented: $isConfiguringCycle) {
                         CycleActionConfigurationView(
-                            action: $action,
+                            action: editableAction,
                             isPresented: $isConfiguringCycle
                         )
                         .frame(width: 400)
@@ -168,6 +233,11 @@ struct KeybindItemView: View {
             }
             .font(.title3)
             .foregroundStyle(.secondary)
+
+            if let link = self.action.link {
+                BindingLinkBadge(kind: link.kind, unlink: unlink)
+                    .padding(.leading, 6)
+            }
         }
     }
 

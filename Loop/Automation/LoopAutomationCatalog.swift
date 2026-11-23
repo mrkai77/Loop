@@ -45,14 +45,29 @@ struct LoopAutomationCatalog {
     let keybinds: [WindowAction]
     let radialMenuActions: [RadialMenuAction]
     let gestures: [GestureBinding]
+    private let resolver: BindingLinkResolver
+    /// Worked out before the rows, as a row's link needs the id of a binding in another list
+    private let keybindIDs: [String]
+    private let radialMenuIDs: [String]
+    private let gestureIDs: [UUID: String]
+
     init(
         keybinds: [WindowAction] = Defaults[.keybinds],
         radialMenuActions: [RadialMenuAction]? = nil,
         gestures: [GestureBinding] = Defaults[.gestures]
     ) {
+        let radialMenuActions = radialMenuActions ?? RadialMenuAction.userConfiguredActions
         self.keybinds = keybinds
-        self.radialMenuActions = radialMenuActions ?? RadialMenuAction.userConfiguredActions
+        self.radialMenuActions = radialMenuActions
         self.gestures = gestures
+        self.resolver = BindingLinkResolver(keybinds: keybinds, gestures: gestures, radialMenuActions: radialMenuActions)
+
+        self.keybindIDs = LoopAutomationIdentity.uniqueIDs(for: keybinds.map(Self.idStem))
+        self.radialMenuIDs = LoopAutomationIdentity.uniqueIDs(for: radialMenuActions.map { Self.idStem($0.type) })
+
+        let runnableGestures = gestures.filter { $0.actionType != nil }
+        let gestureIDs = LoopAutomationIdentity.uniqueIDs(for: runnableGestures.compactMap { $0.actionType.map(Self.idStem) })
+        self.gestureIDs = Dictionary(uniqueKeysWithValues: zip(runnableGestures.map(\.id), gestureIDs))
     }
 
     // MARK: - Built-in Actions
@@ -78,49 +93,43 @@ struct LoopAutomationCatalog {
     // MARK: - Bindings
 
     var keyBindings: [Binding] {
-        let ids = LoopAutomationIdentity.uniqueIDs(for: keybinds.map(Self.idStem))
-        return zip(keybinds, ids).map { action, id in
+        zip(keybinds, keybindIDs).map { action, id in
             Binding(
                 kind: .keybind,
                 id: id,
-                action: action,
-                linkedTarget: nil,
+                action: action.link.map(resolver.action) ?? action,
+                linkedTarget: linkedTarget(action.link),
                 trigger: action.keybind.isEmpty ? nil : Self.keybindDescription(action),
                 isActive: !action.keybind.isEmpty,
-                note: action.keybind.isEmpty ? "No keys" : nil
+                note: missingLinkNote(action.link) ?? (action.keybind.isEmpty ? "No keys" : nil)
             )
         }
     }
 
     var radialMenuBindings: [Binding] {
-        let ids = LoopAutomationIdentity.uniqueIDs(for: radialMenuActions.map { Self.idStem($0.type) })
-
-        return zip(radialMenuActions.indices, ids).map { index, id in
+        zip(radialMenuActions.indices, radialMenuIDs).map { index, id in
             let action = radialMenuActions[index]
             let isCenter = index == radialMenuActions.count - 1
             return Binding(
                 kind: .radialMenu,
                 id: id,
-                action: resolvedAction(action.type),
-                linkedTarget: linkedTarget(action.type),
+                action: action.type.resolvedAction(with: resolver),
+                linkedTarget: linkedTarget(action.type.link),
                 trigger: isCenter ? "Center" : "Slot \(index + 1)",
                 isActive: true,
-                note: missingLinkNote(action.type)
+                note: missingLinkNote(action.type.link)
             )
         }
     }
 
     var gestureBindings: [Binding] {
         let activeIDs = Set(GestureBinding.activeGestures(in: gestures).map(\.id))
-        let runnable = gestures.filter { $0.actionType != nil }
-        let ids = LoopAutomationIdentity.uniqueIDs(for: runnable.compactMap { $0.actionType.map(Self.idStem) })
-        let idsByGesture = Dictionary(uniqueKeysWithValues: zip(runnable.map(\.id), ids))
 
         return gestures.map { gesture in
             let isActive = activeIDs.contains(gesture.id)
             let note: String? = if gesture.actionType == nil {
                 "Can’t be run"
-            } else if let missingLink = gesture.actionType.flatMap(missingLinkNote) {
+            } else if let missingLink = missingLinkNote(gesture.actionType?.link) {
                 missingLink
             } else if gesture.kind == nil {
                 "No gesture"
@@ -132,9 +141,9 @@ struct LoopAutomationCatalog {
 
             return Binding(
                 kind: .gesture,
-                id: idsByGesture[gesture.id],
-                action: gesture.actionType.flatMap(resolvedAction),
-                linkedTarget: gesture.actionType.flatMap(linkedTarget),
+                id: gestureIDs[gesture.id],
+                action: gesture.actionType?.resolvedAction(with: resolver),
+                linkedTarget: linkedTarget(gesture.actionType?.link),
                 trigger: Self.gestureDescription(gesture),
                 isActive: isActive,
                 note: note
@@ -154,6 +163,10 @@ struct LoopAutomationCatalog {
 
     /// Like the settings file: a custom, stash or cycle action's name, else its action's key. Links are `link`.
     static func idStem(_ action: WindowAction) -> String {
+        if action.link != nil {
+            return "link"
+        }
+
         if [.custom, .stash, .cycle].contains(action.direction), let name = action.name {
             let stem = LoopAutomationIdentity.kebabCase(name)
             if !stem.isEmpty {
@@ -165,38 +178,45 @@ struct LoopAutomationCatalog {
     }
 
     static func idStem(_ type: RadialMenuAction.ActionType) -> String {
-        switch type {
-        case let .custom(action): idStem(action)
-        case .keybindReference: "link"
-        }
+        type.customAction.map(idStem) ?? "link"
     }
 
-    private func resolvedAction(_ type: RadialMenuAction.ActionType) -> WindowAction? {
-        switch type {
-        case let .custom(action):
-            action
-        case let .keybindReference(id):
-            keybinds.first { $0.id == id }
-        }
-    }
-
-    /// Settings keep a link after its keybind is deleted, and it then runs nothing
-    private func missingLinkNote(_ type: RadialMenuAction.ActionType) -> String? {
-        guard case let .keybindReference(id) = type, !keybinds.contains(where: { $0.id == id }) else {
+    /// Settings keep a link after the binding it links to is deleted or stops running an action, and it then runs nothing
+    private func missingLinkNote(_ link: BindingLink?) -> String? {
+        guard let link, resolver.action(for: link) == nil else {
             return nil
         }
 
-        return "Links to a keybind that was removed"
+        if resolver.canBeLinked(link) {
+            return "Links to something that doesn’t run an action"
+        }
+
+        if link.kind == .gesture, gestures.contains(where: { $0.id == link.id }) {
+            return "Links to a gesture that opens the radial menu"
+        }
+
+        return switch link.kind {
+        case .keybind: "Links to a keybind that was removed"
+        case .gesture: "Links to a gesture that was removed"
+        case .radialMenu: "Links to a radial menu action that was removed"
+        }
     }
 
-    private func linkedTarget(_ type: RadialMenuAction.ActionType) -> LoopTarget? {
-        guard case let .keybindReference(id) = type,
-              let index = keybinds.firstIndex(where: { $0.id == id })
-        else {
+    private func linkedTarget(_ link: BindingLink?) -> LoopTarget? {
+        guard let link else {
             return nil
         }
 
-        return keyBindings[index].target
+        let id: String? = switch link.kind {
+        case .keybind:
+            keybinds.firstIndex { $0.id == link.id }.map { keybindIDs[$0] }
+        case .gesture:
+            gestureIDs[link.id]
+        case .radialMenu:
+            radialMenuActions.firstIndex { $0.id == link.id }.map { radialMenuIDs[$0] }
+        }
+
+        return id.map { .binding(link.kind.loopBindingKind, id: $0) }
     }
 
     // MARK: - Triggers
@@ -278,6 +298,16 @@ extension GestureBinding {
         switch action {
         case .radialMenuActions: nil
         case let .singleAction(type): type
+        }
+    }
+}
+
+extension BindingLink.Kind {
+    var loopBindingKind: LoopBindingKind {
+        switch self {
+        case .keybind: .keybind
+        case .gesture: .gesture
+        case .radialMenu: .radialMenu
         }
     }
 }

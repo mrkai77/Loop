@@ -11,6 +11,8 @@ import SwiftUI
 
 struct RadialMenuActionItemView: View {
     @Default(.keybinds) private var keybinds
+    @Default(.gestures) private var gestures
+    @Default(.radialMenuActions) private var radialMenuActions
 
     @State private var action: RadialMenuAction
     @Binding private var externalAction: RadialMenuAction
@@ -32,24 +34,63 @@ struct RadialMenuActionItemView: View {
         self.moveDown = moveDown
     }
 
+    private var linkResolver: BindingLinkResolver {
+        BindingLinkResolver(keybinds: keybinds, gestures: gestures, radialMenuActions: radialMenuActions)
+    }
+
+    private var resolvedAction: WindowAction? {
+        action.type.resolvedAction(with: linkResolver)
+    }
+
     private var actionBinding: Binding<WindowAction> {
         Binding(
             get: {
-                action.resolved ?? .init(.noAction)
+                resolvedAction ?? .init(.noAction)
             },
             set: { newAction in
-                switch action.type {
-                case .custom:
+                if let link = action.type.link {
+                    BindingLinkResolver.save(newAction, through: link)
+                } else {
                     action.type = .custom(newAction)
-                case .keybindReference:
-                    guard let index = Defaults[.keybinds].firstIndex(where: { $0.id == action.associatedActionId }) else {
-                        return
-                    }
-
-                    keybinds[index] = newAction
                 }
             }
         )
+    }
+
+    private var pickerSelection: Binding<ActionPickerView.Item> {
+        Binding(
+            get: { action.type.pickerItem },
+            set: { item in
+                // A linked radial menu action changes the binding it links to, and is unlinked with its link button
+                if case let .direction(direction) = item {
+                    if let link = action.type.link, BindingLinkResolver.save(direction, through: link) {
+                        // Leave it unchanged
+                    } else {
+                        action.type = .init(item)
+                    }
+                    configure(direction)
+                } else {
+                    action.type = .init(item)
+                }
+            }
+        )
+    }
+
+    private func configure(_ direction: WindowDirection) {
+        if direction.isCustomizable {
+            isConfiguringCustom = true
+        }
+        if direction == .cycle {
+            isConfiguringCycle = true
+        }
+    }
+
+    private func unlink() {
+        guard let link = action.type.link else {
+            return
+        }
+
+        action.type = .custom((linkResolver.action(for: link) ?? WindowAction(.noAction)).detached())
     }
 
     var body: some View {
@@ -58,10 +99,8 @@ struct RadialMenuActionItemView: View {
 
             Spacer()
 
-            if action.type.isKeybindReference {
-                Image(systemName: "keyboard")
-                    .foregroundStyle(.secondary)
-                    .help("This action is linked to a keybind. Changes made to this action will affect both.")
+            if let link = action.type.link {
+                BindingLinkBadge(kind: link.kind, unlink: unlink)
             }
 
             HStack(spacing: 8) {
@@ -85,15 +124,9 @@ struct RadialMenuActionItemView: View {
             }
         }
         .padding(.horizontal, 12)
-        .onChange(of: action.resolved?.direction) { _ in
-            if action.resolved?.direction.isCustomizable == true {
-                isConfiguringCustom = true
-            }
-            if action.resolved?.direction == .cycle {
-                isConfiguringCycle = true
-            }
-        }
         .onChange(of: action) { externalAction = $0 }
+        // An edit made through a link from another row changes this one's binding directly
+        .onChange(of: externalAction) { if $0 != action { action = $0 } }
     }
 
     private var actionSelection: some View {
@@ -105,7 +138,7 @@ struct RadialMenuActionItemView: View {
                 shouldHideAnchor: true,
                 shouldAnimate: false
             ) {
-                RadialMenuActionPickerView(selection: $action.type)
+                ActionPickerView(selection: pickerSelection, owner: BindingLink(.radialMenu, id: action.id))
                     .frame(width: 300, height: 300)
             }
             .onChange(of: isActionPickerPresented) { _ in
@@ -121,7 +154,7 @@ struct RadialMenuActionItemView: View {
                 isActionPickerPresented.toggle()
             } label: {
                 HStack(spacing: 8) {
-                    if let action = action.resolved {
+                    if let action = resolvedAction {
                         IconView(action: action)
 
                         if let info = action.direction.infoText {
@@ -159,7 +192,7 @@ struct RadialMenuActionItemView: View {
             .padding(.leading, -4)
 
             Group {
-                if let resolvedAction = action.resolved {
+                if let resolvedAction {
                     if resolvedAction.direction.isCustomizable {
                         Button {
                             isConfiguringCustom = true

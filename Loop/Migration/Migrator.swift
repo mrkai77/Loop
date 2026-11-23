@@ -17,11 +17,13 @@ struct SavedKeybindsFormat: Codable {
     let triggerKey: Set<CGKeyCode>?
     let actions: [SavedWindowActionFormat]
 
+    /// Linked keybinds are saved as the action they run, as the file doesn't hold what they link to
     static func generateFromDefaults() -> SavedKeybindsFormat {
-        SavedKeybindsFormat(
+        let resolver = BindingLinkResolver()
+        return SavedKeybindsFormat(
             version: Bundle.main.appVersion,
             triggerKey: Defaults[.triggerKey],
-            actions: Defaults[.keybinds].map { SavedWindowActionFormat($0) }
+            actions: Defaults[.keybinds].map { SavedWindowActionFormat($0.resolvingLink(with: resolver)) }
         )
     }
 }

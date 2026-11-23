@@ -149,7 +149,7 @@ struct KeybindsConfigurationView: View {
             .onChange(of: model.selectedKeybinds, initial: true) {
                 if model.selectedKeybinds.count == 1, let action = model.selectedKeybinds.first {
                     windowModel.isPreviewingUserSelection = true
-                    windowModel.setPreviewedAction(to: action)
+                    windowModel.setPreviewedAction(to: action.resolvingLink(with: BindingLinkResolver()))
                 } else {
                     windowModel.isPreviewingUserSelection = false
                 }

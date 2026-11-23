@@ -11,11 +11,12 @@ import Scribe
 
 /// Caches the user's actions in a dictionary keyed by its keybind.
 /// This is called from `KeybindObserver`, to retrieve the user's actions in an efficient manner.
+/// Keybinds that link to another binding are stored as the action they run.
 @Loggable
 final class WindowActionCache {
     private(set) var actionsByKeybind: [Set<CGKeyCode>: WindowAction] = [:]
     private(set) var bypassedActionsByKeybind: [Set<CGKeyCode>: WindowAction] = [:]
-    private(set) var actionsByIdentifier: [UUID: WindowAction] = [:]
+    private(set) var linkResolver = BindingLinkResolver(keybinds: [], gestures: [], radialMenuActions: [])
 
     private var observationTask: Task<(), Never>?
 
@@ -23,9 +24,13 @@ final class WindowActionCache {
     /// Will automatically build cache, and update according to changes the user makes to Loop's keybinds.
     init() {
         self.observationTask = Task { [weak self] in
+            // Gestures and the radial menu too, as keybinds can link to them
             let updates = Defaults.updates(
                 .keybinds,
-                .cycleBackwardsOnShiftPressed
+                .cycleBackwardsOnShiftPressed,
+                .gestures,
+                .radialMenuActions,
+                .enableRadialMenuCustomization
             )
 
             for await _ in updates {
@@ -43,10 +48,13 @@ final class WindowActionCache {
 
     /// Rebuilds the cache and includes extra entries for cycle actions with shift keys if the user has enabled `cycleBackwardsOnShiftPressed`.
     private func regenerateCache() {
-        let keybinds: [WindowAction] = Defaults[.keybinds]
+        linkResolver = BindingLinkResolver()
+        BindingLinkResolver.shared = linkResolver
+        let keybinds = linkResolver.keybinds
+            .filter { !$0.keybind.isEmpty }
+            .map { $0.resolvingLink(with: linkResolver) }
 
-        regenerateActionsByKeybind(from: keybinds.filter { !$0.keybind.isEmpty })
-        regenerateActionsByIdentifier(from: keybinds)
+        regenerateActionsByKeybind(from: keybinds)
 
         log.info("Regenerated cache; normal: \(actionsByKeybind.count), bypassed: \(bypassedActionsByKeybind.count)")
     }
@@ -74,13 +82,6 @@ final class WindowActionCache {
 
         bypassedActionsByKeybind = Dictionary(
             bypassedActions.map { ($0.keybind, $0) },
-            uniquingKeysWith: { first, _ in first }
-        )
-    }
-
-    private func regenerateActionsByIdentifier(from keybinds: [WindowAction]) {
-        actionsByIdentifier = Dictionary(
-            keybinds.map { ($0.id, $0) },
             uniquingKeysWith: { first, _ in first }
         )
     }
