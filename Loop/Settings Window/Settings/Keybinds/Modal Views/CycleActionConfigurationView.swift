@@ -10,12 +10,14 @@ import Luminare
 import SwiftUI
 
 struct CycleActionConfigurationView: View {
+    @Environment(\.luminareAnimation) private var luminareAnimation
+
     @Binding private var windowAction: WindowAction
     @Binding private var isPresented: Bool
 
     @State private var action: WindowAction // this is so that onChange is called for each property
 
-    @State private var selectedKeybinds = Set<WindowAction>()
+    @State private var selectedSteps = Set<CycleStep>()
 
     init(action: Binding<WindowAction>, isPresented: Binding<Bool>) {
         self._windowAction = action
@@ -41,13 +43,13 @@ struct CycleActionConfigurationView: View {
                             action.cycle = []
                         }
 
-                        action.cycle?.insert(.init(.noAction), at: 0)
+                        action.cycle?.insert(CycleStep(target: .action(WindowAction(.noAction))), at: 0)
                     }
 
                     Button(String(localized: "Remove", comment: "Used to remove items from a list"), role: .destructive) {
-                        action.cycle?.removeAll(where: { selectedKeybinds.contains($0) })
+                        action.cycle?.removeAll(where: { selectedSteps.contains($0) })
                     }
-                    .disabled(selectedKeybinds.isEmpty)
+                    .disabled(selectedSteps.isEmpty)
                 }
                 .luminareRoundingBehavior(top: true)
 
@@ -60,14 +62,10 @@ struct CycleActionConfigurationView: View {
                             action.cycle = newValue
                         }
                     ),
-                    selection: $selectedKeybinds,
+                    selection: $selectedSteps,
                     id: \.id
                 ) { item in
-                    KeybindItemView(
-                        item,
-                        cycleIndex: action.cycle?.firstIndex(of: item.wrappedValue)
-                    )
-                    .environmentObject(KeybindsConfigurationModel())
+                    CycleStepItemView(step: item, index: action.cycle?.firstIndex(of: item.wrappedValue) ?? 0)
                 } emptyView: {
                     VStack {
                         Text("Nothing to cycle through")
@@ -91,10 +89,10 @@ struct CycleActionConfigurationView: View {
             .buttonStyle(.luminare(overrideUseMainStyle: true))
             .luminareCornerRadius(8)
         }
+        // The window resizes to fit, so adding or removing a step moves everything below the list
+        .animation(luminareAnimation, value: action.cycle?.count)
         .onAppear {
-            if action.cycle == nil {
-                action.cycle = []
-            }
+            action.fillDefaults()
         }
     }
 }

@@ -29,7 +29,7 @@ extension Defaults.Keys {
     static let radialMenuVisibility = Key<Bool>("radialMenuVisibility", default: true)
     static let radialMenuCornerRadius = Key<CGFloat>("radialMenuCornerRadius", default: 50)
     static let radialMenuThickness = Key<CGFloat>("radialMenuThickness", default: 22)
-    static let radialMenuActions = Key<[RadialMenuAction]>("radialMenuActions", default: RadialMenuAction.defaultRadialMenuActions)
+    static let radialMenuActions = Key<[RadialMenuBinding]>("radialMenuActions", default: RadialMenuBinding.defaults)
 
     // Preview
     static let previewVisibility = Key<Bool>("previewVisibility", default: true)
@@ -67,7 +67,7 @@ extension Defaults.Keys {
     static let middleClickTriggersLoop = Key<Bool>("middleClickTriggersLoop", default: false)
     static let enableTriggerDelayOnMiddleClick = Key<Bool>("enableTriggerDelayOnMiddleClick", default: false)
     static let cycleBackwardsOnShiftPressed = Key<Bool>("cycleBackwardsOnShiftPressed", default: true)
-    static let keybinds = Key<[WindowAction]>("keybinds", default: WindowAction.defaultKeybinds)
+    static let keybinds = Key<[Keybind]>("keybinds", default: Keybind.defaults)
 
     // Gestures
     static let enableGestures = Key<Bool>("enableGestures", default: false)

@@ -71,7 +71,7 @@ final class SettingsWindowManager: ObservableObject {
         self.radialMenuViewModel = .init(isSettingsPreview: true)
         self.previewViewModel = .init(isSettingsPreview: true)
 
-        if let firstAction = RadialMenuAction.userConfiguredActions.first?.resolved {
+        if let firstAction = RadialMenuBinding.userConfigured.first?.resolvedAction(with: .current) {
             setPreviewedAction(to: firstAction)
         }
     }
@@ -161,7 +161,7 @@ final class SettingsWindowManager: ObservableObject {
         if isPreviewingUserSelection {
             guard let parent = previewedParentAction,
                   parent.direction == .cycle,
-                  let cycle = parent.cycle,
+                  let cycle = parent.cycleActions,
                   let index = cycle.firstIndex(of: previewedAction)
             else {
                 return
@@ -170,8 +170,9 @@ final class SettingsWindowManager: ObservableObject {
             let nextIndex = (index + 1) % cycle.count
             setPreviewedAction(to: parent, cycleAction: cycle[nextIndex])
         } else {
-            let radialMenuActions: [WindowAction] = RadialMenuAction.userConfiguredActions
-                .compactMap(\.resolved)
+            let resolver = BindingLinkResolver.current
+            let radialMenuActions: [WindowAction] = resolver.radialMenuActions
+                .compactMap { $0.resolvedAction(with: resolver) }
 
             let nextAction = if let index = radialMenuActions.firstIndex(of: previewedParentAction ?? previewedAction) {
                 radialMenuActions[(index + 1) % radialMenuActions.count]
@@ -186,7 +187,7 @@ final class SettingsWindowManager: ObservableObject {
     func setPreviewedAction(to newAction: WindowAction, cycleAction: WindowAction? = nil) {
         if newAction.direction == .cycle {
             previewedParentAction = newAction
-            previewedAction = cycleAction ?? newAction.cycle?.first ?? .init(.noAction)
+            previewedAction = cycleAction ?? newAction.cycleActions?.first ?? .init(.noAction)
         } else {
             previewedParentAction = nil
             previewedAction = newAction

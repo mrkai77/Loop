@@ -22,8 +22,18 @@ struct CycleActionCoordinator {
         fileprivate let selection: CycleProgressStore.Selection
     }
 
+    /// The keys of the keybind that runs an action, which actions don't carry
+    typealias KeyLookup = (WindowAction) -> Set<CGKeyCode>
+
+    static let cachedKeys: KeyLookup = { WindowActionCache.shared.keys(for: $0) }
+
     private var progressStore = CycleProgressStore()
     private var keybindSequenceOriginAction: WindowAction?
+    private let keys: KeyLookup
+
+    init(keys: @escaping KeyLookup) {
+        self.keys = keys
+    }
 
     mutating func proposeAction(
         for targetWindowID: CGWindowID,
@@ -34,21 +44,23 @@ struct CycleActionCoordinator {
         restartAtBeginningWhenInterrupted: Bool,
         mode: SelectionMode
     ) -> Proposal? {
-        let currentActionBelongsToCycle = cycleAction.cycle?.contains {
+        let currentActionBelongsToCycle = cycleAction.cycleActions?.contains {
             $0.id == currentAction.id
         } == true
         let isInsideCycle = currentActionBelongsToCycle || Self.isRepeatingLongerKeybind(
             currentAction: currentAction,
             currentParentAction: currentParentAction,
             keybindSequenceOriginAction: keybindSequenceOriginAction,
-            in: cycleAction
+            in: cycleAction,
+            keys: keys
         )
         let restartAtBeginning = Self.shouldRestartAtBeginning(
             whenEnabled: restartAtBeginningWhenInterrupted,
             currentAction: currentAction,
             currentParentAction: currentParentAction,
             keybindSequenceOriginAction: keybindSequenceOriginAction,
-            in: cycleAction
+            in: cycleAction,
+            keys: keys
         )
 
         // Inside the cycle, progress continues from this session. Entering it starts from the window's recorded
@@ -102,8 +114,9 @@ struct CycleActionCoordinator {
     ) {
         let currentBindingAction = currentParentAction ?? currentAction
         let nextBindingAction = newParentAction ?? newAction
-        let continuesKeybindSequence = !currentBindingAction.keybind.isEmpty
-            && currentBindingAction.keybind.isStrictSubset(of: nextBindingAction.keybind)
+        let currentKeys = keys(currentBindingAction)
+        let continuesKeybindSequence = !currentKeys.isEmpty
+            && currentKeys.isStrictSubset(of: keys(nextBindingAction))
 
         if !continuesKeybindSequence {
             keybindSequenceOriginAction = currentBindingAction
@@ -115,19 +128,21 @@ struct CycleActionCoordinator {
         currentAction: WindowAction,
         currentParentAction: WindowAction?,
         keybindSequenceOriginAction: WindowAction?,
-        in cycleAction: WindowAction
+        in cycleAction: WindowAction,
+        keys: KeyLookup
     ) -> Bool {
         let isRepeatingLongerKeybind = isRepeatingLongerKeybind(
             currentAction: currentAction,
             currentParentAction: currentParentAction,
             keybindSequenceOriginAction: keybindSequenceOriginAction,
-            in: cycleAction
+            in: cycleAction,
+            keys: keys
         )
 
         return isEnabled && (
             !isRepeatingLongerKeybind && (
                 currentAction.direction == .noSelection ||
-                    cycleAction.cycle?.contains { $0.id == currentAction.id } != true
+                    cycleAction.cycleActions?.contains { $0.id == currentAction.id } != true
             )
         )
     }
@@ -137,11 +152,12 @@ struct CycleActionCoordinator {
         currentAction: WindowAction,
         currentParentAction: WindowAction?,
         keybindSequenceOriginAction: WindowAction?,
-        in cycleAction: WindowAction
+        in cycleAction: WindowAction,
+        keys: KeyLookup
     ) -> Bool {
-        let currentKeybind = currentParentAction?.keybind ?? currentAction.keybind
+        let currentKeys = keys(currentParentAction ?? currentAction)
         return keybindSequenceOriginAction?.id == cycleAction.id
-            && !currentKeybind.isEmpty
-            && currentKeybind.isStrictSubset(of: cycleAction.keybind)
+            && !currentKeys.isEmpty
+            && currentKeys.isStrictSubset(of: keys(cycleAction))
     }
 }

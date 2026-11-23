@@ -19,7 +19,6 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
     /// Initializes a `WindowAction` with the specified parameters. Only to be used when decoding from JSON.
     /// - Parameters:
     ///   - direction: the direction of the window action. If custom or cycle, use those and further specify the action with the parameters below.
-    ///   - keybind: the keybinds associated with this action. If empty, the action is not bound to any key.
     ///   - name: the name of the action. If `nil`, the name will be derived from the direction.
     ///   - unit: the unit of measurement for width and height.  This needs to be specified for custom actions.
     ///   - anchor: the anchor point for the action.  This needs to be specified for custom actions that use a `generic` ``positionMode``
@@ -32,7 +31,6 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
     ///   - cycle: The cycling window actions.
     init(
         _ direction: WindowDirection,
-        keybind: Set<CGKeyCode>,
         name: String? = nil,
         unit: CustomWindowActionUnit? = nil,
         anchor: CustomWindowActionAnchor? = nil,
@@ -42,12 +40,10 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
         yPoint: Double? = nil,
         positionMode: CustomWindowActionPositionMode? = nil,
         sizeMode: CustomWindowActionSizeMode? = nil,
-        cycle: [WindowAction]? = nil,
-        bypassTriggerKey: Bool? = nil
+        cycle: [WindowAction]? = nil
     ) {
         self.id = UUID()
         self.direction = direction
-        self.keybind = keybind
         self.name = name
         self.unit = unit
         self.anchor = anchor
@@ -57,13 +53,12 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
         self.xPoint = xPoint
         self.yPoint = yPoint
         self.sizeMode = sizeMode
-        self.cycle = cycle
-        self.bypassTriggerKey = bypassTriggerKey
+        self.cycle = cycle?.map(CycleStep.init)
     }
 
-    /// Initializes a `WindowAction` with the specified direction and an empty keybind.
+    /// Initializes a `WindowAction` with the specified direction.
     /// - Parameter direction: the direction of the window action.
-    init(_ direction: WindowDirection, keybind: Set<CGKeyCode> = []) {
+    init(_ direction: WindowDirection) {
         if direction == .noSelection {
             self.id = Self.sharedNoSelectionId
         } else {
@@ -71,35 +66,27 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
         }
 
         self.direction = direction
-        self.keybind = keybind
     }
 
     /// Initializes a cycle `WindowAction`. Used for user-defined cycles.
     /// - Parameters:
     ///   - name: the name of the cycle. If `nil`, a default name will be used (eg. "Cycle").
     ///   - cycle: the cycle of window actions. This is an array of `WindowAction` that will be cycled through when the action is triggered.
-    ///   - keybind: the keybinds associated with this action.
-    init(_ name: String? = nil, cycle: [WindowAction], keybind: Set<CGKeyCode> = []) {
+    init(_ name: String? = nil, cycle: [WindowAction]) {
         self.id = UUID()
         self.direction = .cycle
         self.name = name
-        self.cycle = cycle
-        self.keybind = keybind
+        self.cycle = cycle.map(CycleStep.init)
     }
 
-    /// Initializes a cycle without a name or keybind. Used in radial menu.
+    /// Initializes a cycle without a name. Used in radial menu.
     /// - Parameter cycle: the cycle of window actions.
     init(_ cycle: [WindowAction]) {
         self.init(nil, cycle: cycle)
     }
 
-    // Generic Properties
+    /// Generic Properties
     var direction: WindowDirection
-    var keybind: Set<CGKeyCode>
-    var bypassTriggerKey: Bool?
-    /// Set on a keybind that runs another binding's action instead of its own. `direction` is `noAction` then,
-    /// so a version of Loop without links does nothing for it.
-    var link: BindingLink?
 
     // Custom Keybind Properties
     var name: String?
@@ -113,12 +100,17 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
     var yPoint: Double?
 
     /// Custom Cycle Properties
-    var cycle: [WindowAction]?
+    var cycle: [CycleStep]?
+
+    /// The cycle's actions, without linked steps until `BindingLinkResolver` resolves them
+    var cycleActions: [WindowAction]? {
+        cycle?.compactMap(\.target.action)
+    }
 
     // MARK: - Methods
 
     var iconResolvedAction: WindowAction {
-        if direction == .cycle, let first = cycle?.first {
+        if direction == .cycle, let first = cycleActions?.first {
             first
         } else {
             self
@@ -127,8 +119,6 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
 
     struct SemanticKey: Hashable {
         let direction: WindowDirection
-        let keybind: Set<CGKeyCode>
-        let bypassTriggerKey: Bool?
         let name: String?
         let unit: CustomWindowActionUnit?
         let anchor: CustomWindowActionAnchor?
@@ -138,14 +128,17 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
         let positionMode: CustomWindowActionPositionMode?
         let xPoint: Double?
         let yPoint: Double?
-        let cycle: [Self]?
+        let cycle: [CycleStepKey]?
+    }
+
+    enum CycleStepKey: Hashable {
+        case action(SemanticKey)
+        case link(BindingLink)
     }
 
     var semanticKey: SemanticKey {
         .init(
             direction: direction,
-            keybind: keybind,
-            bypassTriggerKey: bypassTriggerKey,
             name: name,
             unit: unit,
             anchor: anchor,
@@ -155,7 +148,12 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
             positionMode: positionMode,
             xPoint: xPoint,
             yPoint: yPoint,
-            cycle: cycle?.map(\.semanticKey)
+            cycle: cycle?.map { step in
+                switch step.target {
+                case let .action(action): .action(action.semanticKey)
+                case let .link(link): .link(link)
+                }
+            }
         )
     }
 
@@ -225,10 +223,6 @@ struct WindowAction: Codable, Identifiable, Hashable, Equatable, Defaults.Serial
         return true
     }
 
-    var eligibleForReverseCycle: Bool {
-        direction == .cycle && !keybind.contains(.kVK_Shift)
-    }
-
     /// Determines the angle to show in the radial menu, if applicable.
     /// Examples of actions where the radial menu angle is not applicable:
     /// - No action (noAction)
@@ -257,32 +251,97 @@ extension WindowAction: CustomStringConvertible {
     }
 }
 
-// MARK: - Conflicts
+// MARK: - Coding
 
+/// Written with the same keys as before, including the `keybind` older versions require
 extension WindowAction {
-    /// The keys pressed to run this keybind, including the trigger key unless it bypasses it
-    func effectiveKeybind(triggerKey: Set<CGKeyCode>) -> Set<CGKeyCode> {
-        bypassTriggerKey == true ? keybind : triggerKey.union(keybind)
+    private enum CodingKeys: String, CodingKey {
+        case id, direction, keybind, name, unit, anchor, sizeMode, width, height, positionMode, xPoint, yPoint, cycle
     }
 
-    /// The IDs of keybinds that share their keys with another keybind.
-    /// None of them run, like gestures that are set up the same way, so which one wins never depends on their order.
-    static func conflictingIDs(in keybinds: [WindowAction], triggerKey: Set<CGKeyCode>) -> Set<UUID> {
-        let idsByKeys = Dictionary(grouping: keybinds.filter { !$0.keybind.isEmpty }) { $0.effectiveKeybind(triggerKey: triggerKey) }
-        return Set(idsByKeys.values.filter { $0.count > 1 }.flatMap { $0.map(\.id) })
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // Keybinds files and Rectangle imports have no ids
+        self.id = try container.decodeIfPresent(UUID.self, forKey: .id) ?? UUID()
+        self.direction = try container.decode(WindowDirection.self, forKey: .direction)
+        self.name = try container.decodeIfPresent(String.self, forKey: .name)
+        self.unit = try container.decodeIfPresent(CustomWindowActionUnit.self, forKey: .unit)
+        self.anchor = try container.decodeIfPresent(CustomWindowActionAnchor.self, forKey: .anchor)
+        self.sizeMode = try container.decodeIfPresent(CustomWindowActionSizeMode.self, forKey: .sizeMode)
+        self.width = try container.decodeIfPresent(Double.self, forKey: .width)
+        self.height = try container.decodeIfPresent(Double.self, forKey: .height)
+        self.positionMode = try container.decodeIfPresent(CustomWindowActionPositionMode.self, forKey: .positionMode)
+        self.xPoint = try container.decodeIfPresent(Double.self, forKey: .xPoint)
+        self.yPoint = try container.decodeIfPresent(Double.self, forKey: .yPoint)
+        self.cycle = try container.decodeIfPresent([CycleStep].self, forKey: .cycle)
+    }
+
+    func encode(to encoder: Encoder) throws {
+        try encode(to: encoder, keybind: [])
+    }
+
+    /// Writes the action with its keybind's keys, as the two are one object on disk
+    func encode(to encoder: Encoder, keybind: Set<CGKeyCode>) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(direction, forKey: .direction)
+        try container.encode(keybind, forKey: .keybind)
+        try container.encodeIfPresent(name, forKey: .name)
+        try container.encodeIfPresent(unit, forKey: .unit)
+        try container.encodeIfPresent(anchor, forKey: .anchor)
+        try container.encodeIfPresent(sizeMode, forKey: .sizeMode)
+        try container.encodeIfPresent(width, forKey: .width)
+        try container.encodeIfPresent(height, forKey: .height)
+        try container.encodeIfPresent(positionMode, forKey: .positionMode)
+        try container.encodeIfPresent(xPoint, forKey: .xPoint)
+        try container.encodeIfPresent(yPoint, forKey: .yPoint)
+        try container.encodeIfPresent(cycle, forKey: .cycle)
     }
 }
 
-// MARK: - Unlinking
+// MARK: - Defaults
 
 extension WindowAction {
-    /// A copy with new ids for it and its cycle steps, so the two never share cycle progress or radial menu selection
-    func detached(id: UUID = UUID(), keybind: Set<CGKeyCode> = [], bypassTriggerKey: Bool? = nil) -> WindowAction {
+    /// Fills in what a custom, stash or cycle action needs and doesn't have yet.
+    /// Picking an action does this, and its editor does it for older actions
+    mutating func fillDefaults() {
+        switch direction {
+        case .custom, .stash:
+            unit = unit ?? .percentage
+            sizeMode = sizeMode ?? .custom
+            width = width ?? 80
+            height = height ?? 80
+            positionMode = positionMode ?? .generic
+            // Stashed windows hide against a screen's edge, so they have no center anchor
+            anchor = anchor ?? (direction == .stash ? .topLeft : .center)
+        case .cycle:
+            cycle = cycle ?? []
+        default:
+            break
+        }
+    }
+
+    /// Runs `direction` instead, keeping the rest, so switching back restores a custom frame or cycle
+    mutating func pick(_ direction: WindowDirection) {
+        self.direction = direction
+        fillDefaults()
+    }
+}
+
+// MARK: - Identity
+
+extension WindowAction {
+    /// The action under its binding's id, as a keybind and its action share one
+    func withID(_ id: UUID) -> WindowAction {
         var copy = self
         copy.id = id
-        copy.keybind = keybind
-        copy.bypassTriggerKey = bypassTriggerKey
-        copy.link = nil
+        return copy
+    }
+
+    /// A copy with new ids for it and its steps, so the two never share cycle progress or radial menu selection
+    func detached() -> WindowAction {
+        var copy = self
+        copy.id = UUID()
         copy.cycle = cycle?.map { $0.detached() }
         return copy
     }

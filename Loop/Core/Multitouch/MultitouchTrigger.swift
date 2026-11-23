@@ -41,16 +41,17 @@ final class MultitouchTrigger {
     let targetResolver = MultitouchTargetResolver()
 
     private var gesturesObservationTask: Task<(), Never>?
-    private var radialMenuActionsObservationTask: Task<(), Never>?
     private var isStarted = false
 
     let swipeStepSize: CGFloat = 0.15
     /// Later pinch repeats are this far apart. The first action fires sooner.
     let magnifyStepSize: CGFloat = 0.2
 
-    var radialMenuActions = RadialMenuAction.userConfiguredActions
+    var radialMenuActions: [RadialMenuBinding] {
+        windowActionCache.linkResolver.radialMenuActions
+    }
 
-    private static let failedToResolveKeybindAction: WindowAction = .init(.noAction)
+    private static let unresolvedLinkAction: WindowAction = .init(.noAction)
 
     init(
         windowActionCache: WindowActionCache,
@@ -71,20 +72,11 @@ final class MultitouchTrigger {
         isStarted = true
 
         rebuildRecognizers()
-        radialMenuActions = RadialMenuAction.userConfiguredActions
 
         gesturesObservationTask = Task { [weak self] in
-            // Watch keybinds too, so gestures referencing a deleted keybind stay in sync.
-            for await _ in Defaults.updates(.gestures, .keybinds, initial: false) {
+            for await _ in Defaults.updates(.gestures, initial: false) {
                 guard !Task.isCancelled, let self else { break }
                 rebuildRecognizers()
-            }
-        }
-
-        radialMenuActionsObservationTask = Task { [weak self] in
-            for await _ in Defaults.updates(.enableRadialMenuCustomization, .radialMenuActions, initial: false) {
-                guard !Task.isCancelled, let self else { break }
-                radialMenuActions = RadialMenuAction.userConfiguredActions
             }
         }
     }
@@ -95,8 +87,6 @@ final class MultitouchTrigger {
 
         gesturesObservationTask?.cancel()
         gesturesObservationTask = nil
-        radialMenuActionsObservationTask?.cancel()
-        radialMenuActionsObservationTask = nil
 
         stopGestureMonitors()
         #if DEBUG
@@ -487,19 +477,19 @@ extension MultitouchTrigger {
 
     func triggerRadialMenuAction(
         at index: Int,
-        from actions: ArraySlice<RadialMenuAction>,
+        from actions: ArraySlice<RadialMenuBinding>,
         reverse: Bool = false,
         canAdvanceCycle: Bool = true
     ) {
         guard actions.indices.contains(index) else { return }
         let action = actions[index]
 
-        changeAction(resolve(action.type), reverse: reverse, canAdvanceCycle: canAdvanceCycle)
+        changeAction(resolve(action), reverse: reverse, canAdvanceCycle: canAdvanceCycle)
     }
 
     func resolvedWindowAction(from gesture: GestureBinding) -> WindowAction? {
-        guard case let .singleAction(actionType) = gesture.action else { return nil }
-        return resolve(actionType)
+        guard gesture.bindingTarget != nil else { return nil }
+        return resolve(gesture)
     }
 
     func triggerSingleAction(from gesture: GestureBinding, reverse: Bool = false, canAdvanceCycle: Bool = true) {
@@ -516,11 +506,11 @@ extension MultitouchTrigger {
         }
     }
 
-    private func resolve(_ type: RadialMenuAction.ActionType) -> WindowAction {
-        if let action = type.resolvedAction(with: windowActionCache.linkResolver) {
+    private func resolve(_ binding: some ActionBinding) -> WindowAction {
+        if let action = binding.resolvedAction(with: windowActionCache.linkResolver) {
             return action
         }
-        log.warn("Gesture links to \(type.link.map(String.init(describing:)) ?? "a binding") that no longer exists")
-        return Self.failedToResolveKeybindAction
+        log.warn("Binding links to \(binding.bindingTarget?.link.map(String.init(describing:)) ?? "a binding") that no longer exists")
+        return Self.unresolvedLinkAction
     }
 }

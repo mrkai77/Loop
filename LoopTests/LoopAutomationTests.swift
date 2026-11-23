@@ -27,8 +27,9 @@ struct LoopAutomationIdentityTests {
     }
 
     @Test func repeatedStemsGetNumberedInOrder() {
-        #expect(LoopAutomationIdentity.uniqueIDs(for: ["halves", "halves", "portrait", "halves"]) == ["halves", "halves-2", "portrait", "halves-3"])
-        #expect(LoopAutomationIdentity.uniqueIDs(for: ["link", "link-2", "link"]) == ["link", "link-2", "link-3"])
+        let halves = { Keybind(target: .action(WindowAction("Halves", cycle: [.init(.leftHalf)]))) }
+        let portrait = Keybind(target: .action(WindowAction(.custom, name: "Portrait")))
+        #expect(LoopAutomationIdentity.ids(for: [halves(), halves(), portrait, halves()]) == ["halves", "halves-2", "portrait", "halves-3"])
     }
 
     @Test func targetsParseLikeSettingsFileActions() {
@@ -140,63 +141,64 @@ struct LoopAutomationCatalogTests {
     @Test func keybindIDsComeFromNamesThenActionKeys() {
         let catalog = LoopAutomationCatalog(
             keybinds: [
-                WindowAction(.custom, keybind: [.kVK_ANSI_P], name: "Portrait"),
-                WindowAction(.custom, keybind: [], name: "Portrait"),
-                WindowAction("Halves", cycle: [.init(.leftHalf), .init(.rightHalf)]),
-                WindowAction(.leftHalf, keybind: [.kVK_LeftArrow]),
-                WindowAction(.custom, keybind: [], name: "日本語"),
-                WindowAction(.custom, keybind: [])
+                Keybind(keys: [.kVK_ANSI_P], target: .action(WindowAction(.custom, name: "Portrait"))),
+                Keybind(keys: [], target: .action(WindowAction(.custom, name: "Portrait"))),
+                Keybind(target: .action(WindowAction("Halves", cycle: [.init(.leftHalf), .init(.rightHalf)]))),
+                Keybind(keys: [.kVK_LeftArrow], target: .action(WindowAction(.leftHalf))),
+                Keybind(keys: [], target: .action(WindowAction(.custom, name: "日本語"))),
+                Keybind(keys: [], target: .action(WindowAction(.custom)))
             ],
             radialMenuActions: [],
             gestures: []
         )
 
-        let bindings = catalog.keyBindings
+        let bindings = catalog.keybindRows
         #expect(bindings.map(\.id) == ["portrait", "portrait-2", "halves", "left-half", "custom", "custom-2"])
         #expect(bindings.map(\.target?.description) == ["keybind:portrait", "keybind:portrait-2", "keybind:halves", "keybind:left-half", "keybind:custom", "keybind:custom-2"])
         #expect(bindings.map(\.isActive) == [true, false, false, true, false, false])
     }
 
     @Test func radialMenuLinksPointAtTheirKeybind() {
-        let portrait = WindowAction(.custom, keybind: [.kVK_ANSI_P], name: "Portrait")
+        let portrait = Keybind(keys: [.kVK_ANSI_P], target: .action(WindowAction(.custom, name: "Portrait")))
         let catalog = LoopAutomationCatalog(
             keybinds: [portrait],
-            radialMenuActions: [.keybindReference(portrait.id), .custom(WindowAction(.maximize))],
+            radialMenuActions: [RadialMenuBinding(target: .link(BindingLink(.keybind, id: portrait.id.uuidString))), RadialMenuBinding(target: .action(WindowAction(.maximize)))],
             gestures: []
         )
 
-        let bindings = catalog.radialMenuBindings
+        let bindings = catalog.radialMenuRows
         #expect(bindings.map(\.id) == ["link", "maximize"])
         #expect(bindings[0].linkedTarget == .binding(.keybind, id: "portrait"))
-        #expect(bindings[0].action?.id == portrait.id)
+        #expect(bindings[0].action?.name == "Portrait")
+        #expect(bindings[0].action?.id == catalog.radialMenuActions[0].id)
         #expect(bindings.map(\.trigger) == ["Slot 1", "Center"])
     }
 
     @Test func linksToRemovedKeybindsSayWhy() {
         let catalog = LoopAutomationCatalog(
             keybinds: [],
-            radialMenuActions: [.keybindReference(UUID()), .custom(WindowAction(.maximize))],
+            radialMenuActions: [RadialMenuBinding(target: .link(BindingLink(.keybind, id: UUID().uuidString))), RadialMenuBinding(target: .action(WindowAction(.maximize)))],
             gestures: []
         )
 
-        let removed = catalog.radialMenuBindings[0]
+        let removed = catalog.radialMenuRows[0]
         #expect(removed.action == nil)
         #expect(removed.note == "Links to a keybind that was removed")
-        #expect(catalog.radialMenuBindings[1].note == nil)
+        #expect(catalog.radialMenuRows[1].note == nil)
     }
 
     @Test func namesWithoutLatinLettersFallBackToTheActionKey() {
         let catalog = LoopAutomationCatalog(
             keybinds: [
-                WindowAction("上側サイクル", cycle: [.init(.topHalf), .init(.topThird)]),
-                WindowAction("右側サイクル", cycle: [.init(.rightHalf), .init(.rightThird)])
+                Keybind(target: .action(WindowAction("上側サイクル", cycle: [.init(.topHalf), .init(.topThird)]))),
+                Keybind(target: .action(WindowAction("右側サイクル", cycle: [.init(.rightHalf), .init(.rightThird)])))
             ],
-            radialMenuActions: [.custom(WindowAction("上側サイクル", cycle: [.init(.topHalf)]))],
+            radialMenuActions: [RadialMenuBinding(target: .action(WindowAction("上側サイクル", cycle: [.init(.topHalf)])))],
             gestures: []
         )
 
-        #expect(catalog.keyBindings.map(\.id) == ["cycle", "cycle-2"])
-        #expect(catalog.radialMenuBindings.map(\.id) == ["cycle"])
+        #expect(catalog.keybindRows.map(\.id) == ["cycle", "cycle-2"])
+        #expect(catalog.radialMenuRows.map(\.id) == ["cycle"])
     }
 
     @Test func gesturesThatOpenTheRadialMenuCantBeRun() {
@@ -205,15 +207,48 @@ struct LoopAutomationCatalogTests {
             radialMenuActions: [],
             gestures: [
                 GestureBinding(fingerCount: 3, kind: .radialMenu, action: .radialMenuActions),
-                GestureBinding(fingerCount: 3, kind: .swipeLeft, action: .singleAction(.custom(WindowAction(.leftHalf))), activationZone: .anywhere),
-                GestureBinding(fingerCount: 4, kind: nil, action: .singleAction(.custom(WindowAction(.leftHalf))))
+                GestureBinding(fingerCount: 3, kind: .swipeLeft, action: .singleAction(.action(WindowAction(.leftHalf))), activationZone: .anywhere),
+                GestureBinding(fingerCount: 4, kind: nil, action: .singleAction(.action(WindowAction(.leftHalf))))
             ]
         )
 
-        let bindings = catalog.gestureBindings
+        let bindings = catalog.gestureRows
         #expect(bindings.map(\.id) == [nil, "left-half", "left-half-2"])
         #expect(bindings[0].action == nil)
         #expect(bindings[2].isActive == false)
+    }
+
+    @Test func theCLIShowsLinksBetweenEveryKind() {
+        let swipe = GestureBinding(kind: .swipeUp, action: .singleAction(.action(WindowAction(.topHalf))))
+        let toGesture = Keybind(keys: [.kVK_ANSI_L], target: .link(BindingLink(.gesture, id: swipe.id.uuidString)))
+        let catalog = LoopAutomationCatalog(
+            keybinds: [toGesture],
+            radialMenuActions: [RadialMenuBinding(target: .link(BindingLink(.keybind, id: toGesture.id.uuidString))), RadialMenuBinding(target: .link(BindingLink(.gesture, id: UUID().uuidString)))],
+            gestures: [swipe]
+        )
+
+        let keybind = catalog.keybindRows[0]
+        #expect(keybind.id == "link")
+        #expect(keybind.linkedTarget == .binding(.gesture, id: "top-half"))
+        #expect(keybind.action?.direction == .topHalf)
+
+        let radial = catalog.radialMenuRows
+        #expect(radial[0].linkedTarget == .binding(.keybind, id: "link"))
+        #expect(radial[0].action?.direction == .topHalf)
+        #expect(radial[1].note == "Links to a gesture that was removed")
+    }
+
+    @Test func theCLIKeepsConfigIDsAndDerivesTheRest() {
+        var named = Keybind(target: .action(WindowAction(.maximize)))
+        named.configID = "left-half"
+        let catalog = LoopAutomationCatalog(
+            keybinds: [Keybind(target: .action(WindowAction(.leftHalf))), named, Keybind(target: .action(WindowAction(.maximize)))],
+            radialMenuActions: [],
+            gestures: []
+        )
+
+        #expect(catalog.keybindRows.map(\.id) == ["left-half-2", "left-half", "maximize"])
+        #expect(catalog.id(of: named.identity) == "left-half")
     }
 }
 

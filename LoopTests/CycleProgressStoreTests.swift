@@ -137,7 +137,7 @@ struct CycleProgressStoreTests {
             cycle: cycle,
             restartAtBeginning: true
         )
-        cycle.cycle = [second, first, third]
+        cycle.cycle = [second, first, third].map(CycleStep.init)
         let selection = try selection(from: &store, target: targetA, cycle: cycle)
 
         #expect(selection.action.id == third.id)
@@ -158,7 +158,7 @@ struct CycleProgressStoreTests {
             restartAtBeginning: true
         )
         _ = try commitNext(in: &store, target: targetA, cycle: cycle)
-        cycle.cycle = [first, third]
+        cycle.cycle = [first, third].map(CycleStep.init)
         let selection = try selection(
             from: &store,
             target: targetA,

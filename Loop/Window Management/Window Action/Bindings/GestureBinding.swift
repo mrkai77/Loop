@@ -8,8 +8,11 @@
 import Defaults
 import SwiftUI
 
-struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
+struct GestureBinding: ActionBinding, Codable, Defaults.Serializable {
+    static let bindingKind = LoopBindingKind.gesture
+
     let id: UUID
+    var configID: String?
     var fingerCount: Int
     /// `nil` until the user picks a gesture, like a keybind with no keys
     var kind: Kind?
@@ -18,12 +21,14 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
 
     init(
         id: UUID = .init(),
+        configID: String? = nil,
         fingerCount: Int = 2,
         kind: Kind? = nil,
-        action: Action = .singleAction(.custom(.init(.noAction))),
+        action: Action = .singleAction(.action(WindowAction(.noAction))),
         activationZone: ActivationZone = .titlebar
     ) {
         self.id = id
+        self.configID = configID
         self.fingerCount = fingerCount
         self.kind = kind
         self.action = action
@@ -85,10 +90,9 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
     }
 
     enum Action: Codable, Hashable {
-        /// Uses `RadialMenuAction.userConfiguredActions` for radial menu swipe mode.
+        /// Uses `RadialMenuBinding.userConfigured` for radial menu swipe mode.
         case radialMenuActions
-        /// A single action, either custom or referencing a keybind.
-        case singleAction(RadialMenuAction.ActionType)
+        case singleAction(BindingTarget)
     }
 
     enum ActivationZone: String, Codable, Hashable, CaseIterable {
@@ -111,9 +115,25 @@ struct GestureBinding: Identifiable, Codable, Hashable, Defaults.Serializable {
     }
 }
 
-// MARK: - Naming
+// MARK: - Binding
 
 extension GestureBinding {
+    var bindingTarget: BindingTarget? {
+        switch action {
+        case .radialMenuActions: nil
+        case let .singleAction(target): target
+        }
+    }
+
+    mutating func setTarget(_ target: BindingTarget) -> Bool {
+        guard case .singleAction = action else {
+            return false
+        }
+
+        action = .singleAction(target)
+        return true
+    }
+
     var effectiveActivationZone: ActivationZone {
         fingerCount <= 2 ? .titlebar : activationZone
     }
@@ -187,6 +207,7 @@ extension GestureBinding {
 extension GestureBinding {
     static let defaults: [GestureBinding] = [
         GestureBinding(
+            configID: "radial-menu",
             fingerCount: 2,
             kind: .radialMenu,
             action: .radialMenuActions,

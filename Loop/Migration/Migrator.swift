@@ -23,7 +23,7 @@ struct SavedKeybindsFormat: Codable {
         return SavedKeybindsFormat(
             version: Bundle.main.appVersion,
             triggerKey: Defaults[.triggerKey],
-            actions: Defaults[.keybinds].map { SavedWindowActionFormat($0.resolvingLink(with: resolver)) }
+            actions: Defaults[.keybinds].map { SavedWindowActionFormat($0.resolvedAction(with: resolver), keys: $0.keys) }
         )
     }
 }
@@ -45,10 +45,10 @@ struct SavedWindowActionFormat: Codable {
     let yPoint: Double?
     let cycle: [SavedWindowActionFormat]?
 
-    /// Initialize from a WindowAction.
-    init(_ action: WindowAction) {
+    /// Initialize from a WindowAction, and the keys of the keybind that runs it.
+    init(_ action: WindowAction, keys: Set<CGKeyCode> = []) {
         self.direction = action.direction
-        self.keybind = action.keybind
+        self.keybind = keys
         self.name = action.name
         self.unit = action.unit
         self.anchor = action.anchor
@@ -58,14 +58,18 @@ struct SavedWindowActionFormat: Codable {
         self.positionMode = action.positionMode
         self.xPoint = action.xPoint
         self.yPoint = action.yPoint
-        self.cycle = action.cycle?.map { SavedWindowActionFormat($0) }
+        self.cycle = action.cycleActions?.map { SavedWindowActionFormat($0) }
+    }
+
+    /// Converts the saved format back into a keybind running its action.
+    func convertToKeybind() -> Keybind {
+        Keybind(convertToWindowAction(), keys: keybind)
     }
 
     /// Converts the saved format back into a usable WindowAction object.
     func convertToWindowAction() -> WindowAction {
         WindowAction(
             direction,
-            keybind: keybind,
             name: name,
             unit: unit,
             anchor: anchor,
@@ -375,7 +379,7 @@ private extension Migrator {
         }
 
         if Defaults[.keybinds].isEmpty {
-            Defaults[.keybinds] = savedData.actions.map { $0.convertToWindowAction() }
+            Defaults[.keybinds] = savedData.actions.map { $0.convertToKeybind() }
             onSuccess()
         } else {
             let result = await showAlertForImportDecision()
@@ -383,15 +387,15 @@ private extension Migrator {
             switch result {
             case .merge:
                 let newKeybinds = savedData.actions
-                    .map { $0.convertToWindowAction() }
+                    .map { $0.convertToKeybind() }
                     .filter { newKeybind in
-                        !Defaults[.keybinds].contains { $0.keybind == newKeybind.keybind && $0.name == newKeybind.name }
+                        !Defaults[.keybinds].contains { $0.keys == newKeybind.keys && $0.action?.name == newKeybind.action?.name }
                     }
 
                 Defaults[.keybinds].append(contentsOf: newKeybinds)
                 onSuccess()
             case .erase:
-                Defaults[.keybinds] = savedData.actions.map { $0.convertToWindowAction() }
+                Defaults[.keybinds] = savedData.actions.map { $0.convertToKeybind() }
                 onSuccess()
             case .cancel:
                 // No action needed, no notification should be posted

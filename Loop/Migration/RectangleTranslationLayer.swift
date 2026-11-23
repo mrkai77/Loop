@@ -57,11 +57,10 @@ enum RectangleTranslationLayer {
                 return nil
             }
 
-            return SavedWindowActionFormat(.init(
-                loopDirection,
-                keybind: Set([CGKeyCode(shortcut.keyCode)]), // Converts the integer keyCode to CGKeyCode.
-                name: direction.capitalized.replacingOccurrences(of: " ", with: "") + "Cycle"
-            ))
+            return SavedWindowActionFormat(
+                .init(loopDirection, name: direction.capitalized.replacingOccurrences(of: " ", with: "") + "Cycle"),
+                keys: [CGKeyCode(shortcut.keyCode)] // Converts the integer keyCode to CGKeyCode.
+            )
         }
 
         return windowActions

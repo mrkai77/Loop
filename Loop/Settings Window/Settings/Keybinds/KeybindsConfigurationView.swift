@@ -11,7 +11,7 @@ import SwiftUI
 
 final class KeybindsConfigurationModel: ObservableObject {
     @Published var currentEventMonitor: LocalEventMonitor?
-    @Published var selectedKeybinds = Set<WindowAction>()
+    @Published var selectedKeybinds = Set<Keybind>()
 }
 
 struct KeybindsConfigurationView: View {
@@ -115,7 +115,7 @@ struct KeybindsConfigurationView: View {
         LuminareSection(String(localized: "Keybinds", comment: "Section header shown in settings")) {
             LuminareButtonRow {
                 Button(String(localized: "Add", comment: "Used to add items to a list")) {
-                    keybinds.insert(.init(.noAction), at: 0)
+                    keybinds.insert(Keybind(target: .action(WindowAction(.noAction))), at: 0)
                 }
 
                 Button(String(localized: "Remove", comment: "Used to remove items from a list"), role: .destructive) {
@@ -145,9 +145,9 @@ struct KeybindsConfigurationView: View {
             }
             .luminareRoundingBehavior(bottom: true)
             .onChange(of: model.selectedKeybinds, initial: true) {
-                if model.selectedKeybinds.count == 1, let action = model.selectedKeybinds.first {
+                if model.selectedKeybinds.count == 1, let action = model.selectedKeybinds.first?.resolvedAction(with: .current) {
                     windowModel.isPreviewingUserSelection = true
-                    windowModel.setPreviewedAction(to: action.resolvingLink(with: BindingLinkResolver()))
+                    windowModel.setPreviewedAction(to: action)
                 } else {
                     windowModel.isPreviewingUserSelection = false
                 }

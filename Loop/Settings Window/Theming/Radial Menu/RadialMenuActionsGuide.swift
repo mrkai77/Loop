@@ -15,13 +15,14 @@ struct RadialMenuActionsGuide: View {
     @Environment(\.luminareAnimation) private var luminareAnimation
 
     @Default(.radialMenuActions) private var radialMenuActions
+    @BindingLinks private var linkResolver
 
-    private var radialActions: [RadialMenuAction] {
+    private var radialActions: [RadialMenuBinding] {
         Array(radialMenuActions.dropLast())
     }
 
-    private var centerAction: RadialMenuAction {
-        radialMenuActions.last ?? .custom(.init(.noAction))
+    private var centerAction: RadialMenuBinding {
+        radialMenuActions.last ?? RadialMenuBinding()
     }
 
     private var activeAction: WindowAction {
@@ -37,8 +38,10 @@ struct RadialMenuActionsGuide: View {
     }
 
     var body: some View {
-        ZStack {
-            if let centerResolved = centerAction.resolved {
+        let linkResolver = linkResolver
+
+        return ZStack {
+            if let centerResolved = centerAction.resolvedAction(with: linkResolver) {
                 actionButton(
                     action: centerResolved,
                     isActive: centerResolved == activeAction
@@ -54,7 +57,7 @@ struct RadialMenuActionsGuide: View {
 
             RadialLayout {
                 ForEach(radialActions, id: \.id) { action in
-                    if let resolved = action.resolved {
+                    if let resolved = action.resolvedAction(with: linkResolver) {
                         actionButton(
                             action: resolved,
                             isActive: resolved == activeAction

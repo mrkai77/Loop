@@ -18,7 +18,7 @@ struct RadialMenuConfigurationView: View {
     @Default(.radialMenuThickness) private var radialMenuThickness
     @Default(.enableRadialMenuCustomization) private var enableRadialMenuCustomization
     @Default(.radialMenuActions) private var radialMenuActions
-    @State private var selectedRadialMenuActions: Set<RadialMenuAction> = []
+    @State private var selectedRadialMenuActions: Set<RadialMenuBinding> = []
 
     var body: some View {
         LuminareForm {
@@ -66,7 +66,7 @@ struct RadialMenuConfigurationView: View {
                 ) {
                     LuminareButtonRow {
                         Button(String(localized: "Add", comment: "Used to add items to a list")) {
-                            radialMenuActions.insert(.custom(.init(.noAction)), at: 0)
+                            radialMenuActions.insert(RadialMenuBinding(), at: 0)
                         }
 
                         Button(String(localized: "Remove", comment: "Used to remove items from a list"), role: .destructive) {
@@ -108,7 +108,7 @@ struct RadialMenuConfigurationView: View {
         }
     }
 
-    private func moveAction(_ action: RadialMenuAction, down: Bool) {
+    private func moveAction(_ action: RadialMenuBinding, down: Bool) {
         guard
             let index = radialMenuActions.firstIndex(where: { $0.id == action.id })
         else { return }
@@ -122,8 +122,8 @@ struct RadialMenuConfigurationView: View {
         )
     }
 
-    private func userSelectionChanged(_ newValue: Set<RadialMenuAction>) {
-        if newValue.count == 1, let resolved = newValue.first?.resolved {
+    private func userSelectionChanged(_ newValue: Set<RadialMenuBinding>) {
+        if newValue.count == 1, let resolved = newValue.first?.resolvedAction(with: .current) {
             windowModel.isPreviewingUserSelection = true
             windowModel.setPreviewedAction(to: resolved)
         } else {
@@ -136,7 +136,8 @@ struct RadialMenuConfigurationView: View {
             return
         }
 
-        if let match = radialMenuActions.first(where: { $0.associatedActionId == newAction.id }) {
+        let resolver = BindingLinkResolver.current
+        if let match = radialMenuActions.first(where: { $0.runs(newAction, with: resolver) }) {
             selectedRadialMenuActions = [match]
         } else {
             selectedRadialMenuActions = []

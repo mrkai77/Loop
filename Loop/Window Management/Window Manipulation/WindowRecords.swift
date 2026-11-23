@@ -99,7 +99,6 @@ actor WindowRecords {
 
             let action = WindowAction(
                 .custom,
-                keybind: [],
                 name: customActionName,
                 unit: .percentage,
                 anchor: nil,

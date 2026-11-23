@@ -36,7 +36,7 @@ struct GestureConfigurationView: View {
                 if newKind == .radialMenu {
                     gesture.action = .radialMenuActions
                 } else if oldKind == .radialMenu {
-                    gesture.action = .singleAction(.custom(.init(.noAction)))
+                    gesture.action = .singleAction(.action(WindowAction(.noAction)))
                 }
             }
         )

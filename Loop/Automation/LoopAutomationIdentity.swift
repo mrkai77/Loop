@@ -55,13 +55,38 @@ enum LoopAutomationIdentity {
         return "\(id)-\(suffix)"
     }
 
-    /// Gives each stem the first free id, in order, so earlier rows keep the plain stem
-    static func uniqueIDs(for stems: [String]) -> [String] {
-        var taken: Set<String> = []
-        return stems.map { stem in
-            let id = nextFreeID(stem, taken: taken)
+    /// Each binding's config ID, or else the first id from its action that's still free
+    static func ids(for bindings: [some ActionBinding]) -> [String] {
+        var taken = Set(bindings.compactMap(\.configID))
+        return bindings.map { binding in
+            if let configID = binding.configID {
+                return configID
+            }
+
+            let id = nextFreeID(idStem(binding.bindingTarget), taken: taken)
             taken.insert(id)
             return id
         }
+    }
+
+    /// A custom, stash or cycle action's name, else its action's key, like the settings file
+    static func idStem(_ target: BindingTarget?) -> String {
+        guard let action = target?.action else {
+            return "link"
+        }
+
+        if [.custom, .stash, .cycle].contains(action.direction), let name = action.name {
+            let stem = kebabCase(name)
+            if !stem.isEmpty {
+                return stem
+            }
+        }
+
+        return action.direction.automationKey
+    }
+
+    /// Gestures that open the radial menu can't be run, so they have no id
+    static func runnableGestures(_ gestures: [GestureBinding]) -> [GestureBinding] {
+        gestures.filter { $0.bindingTarget != nil }
     }
 }

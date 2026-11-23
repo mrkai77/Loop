@@ -88,8 +88,7 @@ struct GesturesConfigurationView: View {
             .luminareRoundingBehavior(bottom: true)
             .onChange(of: model.selectedGestures, initial: true) {
                 if model.selectedGestures.count == 1,
-                   case let .singleAction(actionType) = model.selectedGestures.first?.action,
-                   let action = actionType.resolvedAction {
+                   let action = model.selectedGestures.first?.resolvedAction(with: .current) {
                     windowModel.isPreviewingUserSelection = true
                     windowModel.setPreviewedAction(to: action)
                 } else {

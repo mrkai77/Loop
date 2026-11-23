@@ -45,7 +45,7 @@ final class ResizeContext {
 
     private(set) var cachedTargetFrame: ComputedFrame = .zero
     private var needsRecompute: Bool = false
-    private var cycleActionCoordinator = CycleActionCoordinator()
+    private var cycleActionCoordinator: CycleActionCoordinator
     var lastAppliedFrame: CGRect?
 
     init(
@@ -56,7 +56,8 @@ final class ResizeContext {
         padding: PaddingConfiguration? = nil,
         action: WindowAction = .init(.noSelection),
         parentAction: WindowAction? = nil,
-        initialMousePosition: CGPoint = .zero
+        initialMousePosition: CGPoint = .zero,
+        cycleKeys: @escaping CycleActionCoordinator.KeyLookup = CycleActionCoordinator.cachedKeys
     ) {
         let frame = initialFrame ?? window?.frame ?? .zero
         let bounds = bounds ?? screen?.cgSafeScreenFrame ?? .zero
@@ -72,6 +73,7 @@ final class ResizeContext {
         self.parentAction = parentAction
         self.initialMousePosition = initialMousePosition
         self.needsRecompute = !action.direction.isNoOp
+        self.cycleActionCoordinator = CycleActionCoordinator(keys: cycleKeys)
     }
 
     func setScreen(to screen: NSScreen?) {

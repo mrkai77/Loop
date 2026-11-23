@@ -62,8 +62,7 @@ struct OverlappingKeybindCycleTests {
             cycle: [
                 .init(.leftHalf),
                 .init(.rightHalf)
-            ],
-            keybind: [firstKey]
+            ]
         )
         let firstChordAction = WindowAction(.topHalf)
         let secondChordAction = WindowAction(.bottomHalf)
@@ -71,15 +70,13 @@ struct OverlappingKeybindCycleTests {
             cycle: [
                 firstChordAction,
                 secondChordAction
-            ],
-            keybind: [firstKey, secondKey]
+            ]
         )
         let unrelatedCycle = WindowAction(
             cycle: [
                 .init(.topLeftQuarter),
                 .init(.bottomRightQuarter)
-            ],
-            keybind: [unrelatedKey]
+            ]
         )
         let actions: [Set<CGKeyCode>: WindowAction] = [
             [firstKey]: prefixCycle,
@@ -102,15 +99,13 @@ struct OverlappingKeybindCycleTests {
             cycle: [
                 .init(.leftHalf),
                 .init(.rightHalf)
-            ],
-            keybind: [firstKey]
+            ]
         )
         let intermediateCycle = WindowAction(
             cycle: [
                 .init(.topLeftQuarter),
                 .init(.bottomRightQuarter)
-            ],
-            keybind: [firstKey, secondKey]
+            ]
         )
         let firstChordAction = WindowAction(.topHalf)
         let secondChordAction = WindowAction(.bottomHalf)
@@ -118,8 +113,7 @@ struct OverlappingKeybindCycleTests {
             cycle: [
                 firstChordAction,
                 secondChordAction
-            ],
-            keybind: [firstKey, secondKey, thirdKey]
+            ]
         )
         let actions: [Set<CGKeyCode>: WindowAction] = [
             [firstKey]: prefixCycle,
@@ -146,8 +140,15 @@ struct OverlappingKeybindCycleTests {
     private struct Scenario {
         let triggerKey: Set<CGKeyCode>
         let actions: [Set<CGKeyCode>: WindowAction]
+        var resizeContext: ResizeContext
 
-        var resizeContext = ResizeContext()
+        init(triggerKey: Set<CGKeyCode>, actions: [Set<CGKeyCode>: WindowAction]) {
+            self.triggerKey = triggerKey
+            self.actions = actions
+            self.resizeContext = ResizeContext { action in
+                actions.first { $0.value.id == action.id }?.key ?? []
+            }
+        }
 
         mutating func activate(pressedKeys: Set<CGKeyCode>) throws -> WindowAction {
             let decision = KeybindResolver.resolve(

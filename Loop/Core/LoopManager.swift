@@ -588,10 +588,11 @@ extension LoopManager {
         reverse: Bool
     ) -> CycleActionCoordinator.Proposal? {
         // Allow cycling backwards only if:
-        // - Shift is not part of the action's keybind (eligibleForReverseCycle)
+        // - Shift is not part of the action's keybind
         // - Shift is not part of the trigger key
         // - The user has enabled the setting
-        let allowReverseCycle = action.eligibleForReverseCycle
+        let allowReverseCycle = action.direction == .cycle
+            && !windowActionCache.keys(for: action).contains(.kVK_Shift)
             && Defaults[.triggerKey].contains(.kVK_Shift) == false
             && Defaults[.cycleBackwardsOnShiftPressed]
 

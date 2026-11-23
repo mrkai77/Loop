@@ -1244,6 +1244,9 @@
         }
       }
     },
+    "Linked radial menu action not found" : {
+      "comment" : "Shown for an action that links to a radial menu action that was removed"
+    },
     "Linked to a gesture. Changing this action also changes the gesture." : {
       "comment" : "A tooltip on a keybind, gesture or radial menu action that links to a gesture, explaining that changes to its action also change the gesture.",
       "localizations" : {
@@ -7845,6 +7848,9 @@
           }
         }
       }
+    },
+    "Customize this step’s action." : {
+
     },
     "Customize what this action cycles through." : {
       "comment" : "Help text on the cycle icon next to a gesture action that cycles",
@@ -17244,6 +17250,9 @@
           }
         }
       }
+    },
+    "Linked gesture not found" : {
+      "comment" : "Shown for an action that links to a gesture that was removed"
     },
     "Linked keybind not found" : {
       "comment" : "An error message displayed when a linked keybind cannot be resolved.",

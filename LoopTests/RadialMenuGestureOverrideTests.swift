@@ -92,7 +92,7 @@ struct RadialMenuGestureOverrideTests {
         GestureBinding(
             fingerCount: fingerCount,
             kind: kind,
-            action: kind == .radialMenu ? .radialMenuActions : .singleAction(.custom(.init(action))),
+            action: kind == .radialMenu ? .radialMenuActions : .singleAction(.action(.init(action))),
             activationZone: activationZone
         )
     }

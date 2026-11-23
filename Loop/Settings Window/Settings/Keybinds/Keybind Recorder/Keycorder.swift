@@ -20,8 +20,7 @@ struct Keycorder: View {
 
     @Binding private var validCurrentKeybind: Set<CGKeyCode>
     @State private var selectionKeybind: Set<CGKeyCode>
-    @Binding private var direction: WindowDirection
-    @Binding private var bypassTriggerKey: Bool?
+    @Binding private var bypassTriggerKey: Bool
 
     @State private var eventMonitor: LocalEventMonitor?
     @State private var fnKeyState = FnKeyState()
@@ -32,11 +31,10 @@ struct Keycorder: View {
     @State private var isHovering: Bool = false
     @State private var isActive: Bool = false
 
-    init(_ keybind: Binding<WindowAction>) {
-        self._validCurrentKeybind = keybind.keybind
-        self._direction = keybind.direction
+    init(_ keybind: Binding<Keybind>) {
+        self._validCurrentKeybind = keybind.keys
         self._bypassTriggerKey = keybind.bypassTriggerKey
-        self._selectionKeybind = State(initialValue: keybind.wrappedValue.keybind)
+        self._selectionKeybind = State(initialValue: keybind.wrappedValue.keys)
     }
 
     var body: some View {
@@ -157,7 +155,7 @@ struct Keycorder: View {
             )
         )
 
-        let validModifiers = if bypassTriggerKey == true {
+        let validModifiers = if bypassTriggerKey {
             flags.keyCodes
         } else {
             flags.keyCodes.filter {
@@ -208,7 +206,7 @@ struct Keycorder: View {
         }
 
         // Validate keybind requirements when in bypass mode
-        if bypassTriggerKey == true,
+        if bypassTriggerKey,
            selectionKeybind.filter(\.isModifier).isEmpty {
             errorMessage = "Include at least one modifier key."
             shake()
@@ -216,25 +214,23 @@ struct Keycorder: View {
             return false
         }
 
-        let effectiveSelection = bypassTriggerKey == true
+        let effectiveSelection = bypassTriggerKey
             ? selectionKeybind
             : triggerKey.union(selectionKeybind)
 
+        let resolver = BindingLinkResolver.current
         for keybind in Defaults[.keybinds] {
-            let effectiveExisting = keybind.bypassTriggerKey == true
-                ? keybind.keybind
-                : triggerKey.union(keybind.keybind)
+            guard effectiveSelection == keybind.effectiveKeys(triggerKey: triggerKey) else { continue }
 
-            guard effectiveSelection == effectiveExisting else { continue }
-
-            if let name = keybind.name, !name.isEmpty {
+            let action = keybind.resolvedAction(with: resolver) ?? WindowAction(.noAction)
+            if let name = action.name, !name.isEmpty {
                 errorMessage = "That keybind is already being used by \(name)."
-            } else if keybind.direction == .custom {
+            } else if action.direction == .custom {
                 errorMessage = "That keybind is already being used by another custom keybind."
-            } else if keybind.direction == .stash {
+            } else if action.direction == .stash {
                 errorMessage = "That keybind is already being used by another stash keybind."
             } else {
-                errorMessage = "That keybind is already being used by \(keybind.direction.name.lowercased())."
+                errorMessage = "That keybind is already being used by \(action.direction.name.lowercased())."
             }
 
             shake()

@@ -11,134 +11,201 @@ import Foundation
 import Testing
 
 struct BindingLinkTests {
-    private let maximize = WindowAction(.maximize, keybind: [.kVK_Return])
-    private let swipe = GestureBinding(kind: .swipeUp, action: .singleAction(.custom(WindowAction(.topHalf))))
+    private let maximize = Keybind(keys: [.kVK_Return], target: .action(WindowAction(.maximize)))
+    private let swipe = GestureBinding(kind: .swipeUp, action: .singleAction(.action(WindowAction(.topHalf))))
     private let radialGesture = GestureBinding(kind: .radialMenu, action: .radialMenuActions)
-    private let slot = RadialMenuAction.custom(WindowAction(.bottomHalf))
+    private let slot = RadialMenuBinding(target: .action(WindowAction(.bottomHalf)))
 
-    private func resolver(keybinds: [WindowAction] = [], gestures: [GestureBinding] = [], radialMenuActions: [RadialMenuAction] = []) -> BindingLinkResolver {
+    private func resolver(keybinds: [Keybind] = [], gestures: [GestureBinding] = [], radialMenuActions: [RadialMenuBinding] = []) -> BindingLinkResolver {
         BindingLinkResolver(keybinds: keybinds, gestures: gestures, radialMenuActions: radialMenuActions)
     }
 
-    private func keybind(linkingTo link: BindingLink, keys: Set<CGKeyCode> = [.kVK_ANSI_L]) -> WindowAction {
-        var keybind = WindowAction(.noAction, keybind: keys)
-        keybind.link = link
-        return keybind
+    private func keybind(linkingTo link: BindingLink, keys: Set<CGKeyCode> = [.kVK_ANSI_L]) -> Keybind {
+        Keybind(keys: keys, target: .link(link))
     }
 
-    @Test func linksOfEveryKindResolveToTheirAction() {
-        let resolver = resolver(keybinds: [maximize], gestures: [swipe], radialMenuActions: [slot])
+    private func link<Binding: ActionBinding>(to binding: Binding) -> BindingLink {
+        BindingLink(Binding.bindingKind, id: binding.id.uuidString)
+    }
 
-        #expect(resolver.action(for: BindingLink(.keybind, id: maximize.id))?.direction == .maximize)
-        #expect(resolver.action(for: BindingLink(.gesture, id: swipe.id))?.direction == .topHalf)
-        #expect(resolver.action(for: BindingLink(.radialMenu, id: slot.id))?.direction == .bottomHalf)
+    @Test func linksFindBindingsByTheirConfigID() {
+        var named = swipe
+        named.configID = "swipe-up"
+        let resolver = resolver(gestures: [named])
+
+        #expect(resolver.resolvedAction(for: BindingLink(.gesture, id: "swipe-up"))?.direction == .topHalf)
+        #expect(resolver.identity(of: BindingLink(.gesture, id: "swipe-up")) == named.identity)
+        #expect(resolver.resolvedAction(for: BindingLink(.keybind, id: "swipe-up")) == nil)
     }
 
     @Test func chainsResolveToTheBindingThatHoldsTheAction() {
-        let toGesture = keybind(linkingTo: BindingLink(.gesture, id: swipe.id))
-        let toKeybind = RadialMenuAction.keybindReference(toGesture.id)
+        let toGesture = keybind(linkingTo: link(to: swipe))
+        let toKeybind = RadialMenuBinding(target: .link(link(to: toGesture)))
         let resolver = resolver(keybinds: [toGesture], gestures: [swipe], radialMenuActions: [toKeybind])
 
-        let terminal = resolver.terminal(of: BindingLink(.radialMenu, id: toKeybind.id))
-        #expect(terminal?.link == BindingLink(.gesture, id: swipe.id))
+        let terminal = resolver.terminal(of: link(to: toKeybind))
+        #expect(terminal?.identity == swipe.identity)
         #expect(terminal?.action.direction == .topHalf)
+
+        // The radial menu highlights the slot for an action from anywhere along its chain
+        for action in [swipe.resolvedAction(with: resolver), toGesture.resolvedAction(with: resolver)] {
+            #expect(action.map { toKeybind.runs($0, with: resolver) } == true)
+        }
     }
 
     @Test func removedBindingsAndRadialMenuGesturesResolveToNothing() {
         let resolver = resolver(gestures: [radialGesture])
 
-        #expect(resolver.action(for: BindingLink(.keybind, id: UUID())) == nil)
-        #expect(resolver.action(for: BindingLink(.gesture, id: radialGesture.id)) == nil)
-        #expect(!resolver.canBeLinked(BindingLink(.gesture, id: radialGesture.id)))
+        #expect(resolver.resolvedAction(for: BindingLink(.keybind, id: UUID().uuidString)) == nil)
+        #expect(resolver.resolvedAction(for: link(to: radialGesture)) == nil)
+        #expect(!resolver.canBeLinked(radialGesture.identity))
     }
 
     @Test func linksThatLoopResolveToNothingAndCantBeMade() {
-        let first = WindowAction(.noAction)
-        var second = keybind(linkingTo: BindingLink(.keybind, id: first.id))
-        var looped = first
-        looped.link = BindingLink(.keybind, id: second.id)
-        let resolver = resolver(keybinds: [looped, second])
+        let first = Keybind(target: .action(WindowAction(.noAction)))
+        let second = keybind(linkingTo: link(to: first))
+        let looped = Keybind(id: first.id, target: .link(link(to: second)))
+        #expect(resolver(keybinds: [looped, second]).resolvedAction(for: link(to: looped)) == nil)
 
-        #expect(resolver.action(for: BindingLink(.keybind, id: looped.id)) == nil)
+        let unlinked = Keybind(target: .action(WindowAction(.center)))
+        let fixed = resolver(keybinds: [first, unlinked, maximize])
+        #expect(fixed.wouldLoop(linking: first.identity, to: first.identity))
+        #expect(!fixed.wouldLoop(linking: first.identity, to: maximize.identity))
 
-        second.link = nil
-        let fixed = self.resolver(keybinds: [first, second, maximize])
-        let firstLink = BindingLink(.keybind, id: first.id)
-        #expect(fixed.wouldLoop(linking: firstLink, to: firstLink))
-        #expect(!fixed.wouldLoop(linking: firstLink, to: BindingLink(.keybind, id: maximize.id)))
-
-        let backToFirst = self.resolver(keybinds: [first, keybind(linkingTo: firstLink), maximize])
-        #expect(backToFirst.wouldLoop(linking: firstLink, to: BindingLink(.keybind, id: backToFirst.keybinds[1].id)))
+        let backToFirst = resolver(keybinds: [first, second, maximize])
+        #expect(backToFirst.wouldLoop(linking: first.identity, to: second.identity))
     }
 
-    @Test func linkedKeybindsKeepTheirOwnKeys() {
-        let linked = keybind(linkingTo: BindingLink(.gesture, id: swipe.id), keys: [.kVK_ANSI_K])
-        let resolved = linked.resolvingLink(with: resolver(gestures: [swipe]))
+    @Test func aKeybindsActionSharesItsID() {
+        var keybind = Keybind(target: .action(WindowAction(.center)))
+        keybind.target = .action(WindowAction(.maximize))
 
-        #expect(resolved.direction == .topHalf)
-        #expect(resolved.keybind == [.kVK_ANSI_K])
-        #expect(WindowAction(.center).resolvingLink(with: resolver()).direction == .center)
+        #expect(keybind.target.action?.id == keybind.id)
     }
 
-    @Test func unlinkingKeepsTheActionAsABindingOfItsOwn() {
-        let cycle = WindowAction("Halves", cycle: [WindowAction(.leftHalf), WindowAction(.rightHalf)], keybind: [.kVK_ANSI_H])
-        let ownID = UUID()
-        let copy = cycle.detached(id: ownID, keybind: [.kVK_ANSI_J])
+    @Test func slotsRunWhatTheBindingTheyLinkToRan() {
+        let linkedSlot = RadialMenuBinding(target: .link(link(to: maximize)))
+        let resolver = resolver(keybinds: [maximize], radialMenuActions: [linkedSlot, slot])
+        let fromKeybind = maximize.resolvedAction(with: resolver)
+        let fromSlot = linkedSlot.resolvedAction(with: resolver)
 
-        #expect(copy.id == ownID)
-        #expect(copy.keybind == [.kVK_ANSI_J])
-        #expect(copy.link == nil)
-        #expect(copy.name == "Halves")
-        #expect(copy.cycle?.map(\.direction) == [.leftHalf, .rightHalf])
-        let copiedStepIDs = Set((copy.cycle ?? []).map(\.id))
-        #expect(copiedStepIDs.isDisjoint(with: (cycle.cycle ?? []).map(\.id)))
+        #expect(fromSlot?.id == linkedSlot.id)
+        #expect(fromKeybind.map { linkedSlot.runs($0, with: resolver) } == true)
+        #expect(fromSlot.map { linkedSlot.runs($0, with: resolver) } == true)
+        #expect(fromKeybind.map { slot.runs($0, with: resolver) } == false)
     }
 
-    @Test func savedSettingsFromBeforeLinksStillRead() throws {
+    @Test func keybindsLinkingNowhereRunNothingUnderTheirOwnID() {
+        let broken = keybind(linkingTo: BindingLink(.gesture, id: UUID().uuidString))
+        let snapshot = WindowActionCache.snapshot(linkResolver: resolver(keybinds: [broken]), triggerKey: [.kVK_Function], cycleBackwardsOnShiftPressed: false)
+
+        #expect(snapshot.actionsByKeybind[broken.keys]?.direction == .noAction)
+        #expect(snapshot.actionsByKeybind[broken.keys]?.id == broken.id)
+    }
+
+    // MARK: - Cycles
+
+    @Test func cycleStepsRunTheActionTheyLinkToUnderTheirOwnID() {
+        let step = CycleStep(target: .link(link(to: swipe)))
+        var cycle = WindowAction("Mixed", cycle: [WindowAction(.leftHalf)])
+        cycle.cycle?.append(step)
+        let resolved = resolver(gestures: [swipe]).resolvingCycle(of: cycle)
+
+        #expect(resolved.cycleActions?.map(\.direction) == [.leftHalf, .topHalf])
+        #expect(resolved.cycleActions?.last?.id == step.id)
+        #expect(Keybind(target: .action(cycle)).target.editableAction(with: resolver(gestures: [swipe]))?.cycle?.last?.target.link != nil)
+    }
+
+    @Test func cycleStepsThatLeadNowhereOrToACycleAreLeftOut() {
+        let halves = Keybind(target: .action(WindowAction("Halves", cycle: [WindowAction(.leftHalf)])))
+        var cycle = WindowAction(cycle: [WindowAction(.center)])
+        cycle.cycle? += [
+            CycleStep(target: .link(link(to: halves))),
+            CycleStep(target: .link(BindingLink(.gesture, id: "removed")))
+        ]
+        let resolver = resolver(keybinds: [halves, maximize])
+
+        #expect(resolver.resolvingCycle(of: cycle).cycleActions?.map(\.direction) == [.center])
+        #expect(!resolver.canBeLinked(fromCycle: halves.identity))
+        #expect(resolver.canBeLinked(fromCycle: maximize.identity) == !WindowAction(.maximize).allowsRapidRepeat)
+    }
+
+    @Test func linkedKeybindsKeepTheirOwnKeysForCycling() {
+        let cycle = Keybind(keys: [.kVK_Shift, .kVK_UpArrow], target: .action(WindowAction(.init(localized: "Top Cycle"), cycle: [.init(.topHalf), .init(.topThird)])))
+        let linked = keybind(linkingTo: link(to: cycle), keys: [.kVK_ANSI_X])
+
+        for keybinds in [[cycle, linked], [linked, cycle]] {
+            let snapshot = WindowActionCache.snapshot(
+                linkResolver: resolver(keybinds: keybinds),
+                triggerKey: [.kVK_Function],
+                cycleBackwardsOnShiftPressed: true
+            )
+            let linkedAction = snapshot.actionsByKeybind[[.kVK_ANSI_X]]
+            let cycleAction = snapshot.actionsByKeybind[[.kVK_Shift, .kVK_UpArrow]]
+
+            #expect(linkedAction?.direction == .cycle)
+            #expect(linkedAction.flatMap { snapshot.keysByActionID[$0.id] } == [.kVK_ANSI_X])
+            #expect(cycleAction.flatMap { snapshot.keysByActionID[$0.id] } == [.kVK_Shift, .kVK_UpArrow])
+        }
+    }
+
+    // MARK: - Settings
+
+    @Test func savedSettingsFromBeforeKeybindsWereSeparateStillRead() throws {
         let keybindID = UUID()
-        let saved = #"{ "id" : "\#(UUID().uuidString)", "type" : { "keybindReference" : { "_0" : "\#(keybindID.uuidString)" } } }"#
-        let decoded = try JSONDecoder().decode(RadialMenuAction.self, from: Data(saved.utf8))
-        #expect(decoded.type.link == BindingLink(.keybind, id: keybindID))
+        let radial = #"{ "id" : "\#(UUID().uuidString)", "type" : { "keybindReference" : { "_0" : "\#(keybindID.uuidString)" } } }"#
+        let decodedRadial = try JSONDecoder().decode(RadialMenuBinding.self, from: Data(radial.utf8))
+        #expect(decodedRadial.target.link == BindingLink(.keybind, id: keybindID.uuidString))
 
-        let oldKeybind = try JSONEncoder().encode(WindowAction(.maximize))
-        #expect(try JSONDecoder().decode(WindowAction.self, from: oldKeybind).link == nil)
+        let keybind = #"{ "id" : "\#(keybindID.uuidString)", "direction" : "Maximize", "keybind" : [36], "bypassTriggerKey" : true }"#
+        let decodedKeybind = try JSONDecoder().decode(Keybind.self, from: Data(keybind.utf8))
+        #expect(decodedKeybind.id == keybindID)
+        #expect(decodedKeybind.keys == [36])
+        #expect(decodedKeybind.bypassTriggerKey == true)
+        #expect(decodedKeybind.target.action?.direction == .maximize)
+        #expect(decodedKeybind.configID == nil)
     }
 
-    @Test func linksRoundTripThroughSettings() throws {
-        let gestureLink = RadialMenuAction.link(BindingLink(.gesture, id: swipe.id))
-        let decoded = try JSONDecoder().decode(RadialMenuAction.self, from: JSONEncoder().encode(gestureLink))
-        #expect(decoded.type.link == BindingLink(.gesture, id: swipe.id))
+    @Test func bindingsRoundTripThroughSettings() throws {
+        let gestureLink = RadialMenuBinding(target: .link(BindingLink(.gesture, id: "swipe-up")))
+        let decodedRadial = try JSONDecoder().decode(RadialMenuBinding.self, from: JSONEncoder().encode(gestureLink))
+        #expect(decodedRadial.target.link == BindingLink(.gesture, id: "swipe-up"))
 
-        let linked = keybind(linkingTo: BindingLink(.radialMenu, id: slot.id))
-        #expect(try JSONDecoder().decode(WindowAction.self, from: JSONEncoder().encode(linked)).link == linked.link)
+        var linked = keybind(linkingTo: BindingLink(.radialMenu, id: "bottom-half"))
+        linked.configID = "my-link"
+        linked.bypassTriggerKey = true
+        #expect(try JSONDecoder().decode(Keybind.self, from: JSONEncoder().encode(linked)) == linked)
+        #expect(try JSONDecoder().decode(Keybind.self, from: JSONEncoder().encode(maximize)) == maximize)
     }
 
     @Test func olderVersionsReadNewLinksAsDoingNothing() throws {
-        let encoded = try JSONEncoder().encode(RadialMenuAction.link(BindingLink(.gesture, id: swipe.id)))
+        let encoded = try JSONEncoder().encode(RadialMenuBinding(target: .link(BindingLink(.gesture, id: "swipe-up"))))
         let object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
         let type = try #require(object["type"] as? [String: Any])
         let custom = try #require((type["custom"] as? [String: Any])?["_0"] as? [String: Any])
 
         #expect(Set(type.keys) == ["custom"])
         #expect(custom["direction"] as? String == WindowDirection.noAction.rawValue)
+        // Older versions require `keybind` on every action
+        #expect(custom["keybind"] as? [Any] != nil)
+
+        let keybind = try JSONEncoder().encode(keybind(linkingTo: BindingLink(.gesture, id: "swipe-up")))
+        let keybindObject = try #require(JSONSerialization.jsonObject(with: keybind) as? [String: Any])
+        #expect(keybindObject["direction"] as? String == WindowDirection.noAction.rawValue)
+        #expect(keybindObject["keybind"] as? [Any] != nil)
     }
 
-    @Test @MainActor func theCLIShowsLinksBetweenEveryKind() {
-        let toGesture = keybind(linkingTo: BindingLink(.gesture, id: swipe.id))
-        let catalog = LoopAutomationCatalog(
-            keybinds: [toGesture],
-            radialMenuActions: [.keybindReference(toGesture.id), .link(BindingLink(.gesture, id: UUID()))],
-            gestures: [swipe]
-        )
+    @Test func linkedCycleStepsRoundTripAndReadAsDoingNothingInOlderVersions() throws {
+        var cycleAction = WindowAction(cycle: [])
+        cycleAction.cycle = [CycleStep(target: .link(BindingLink(.gesture, id: "swipe-up")))]
+        let cycle = Keybind(keys: [.kVK_ANSI_C], target: .action(cycleAction))
+        let encoded = try JSONEncoder().encode(cycle)
+        #expect(try JSONDecoder().decode(Keybind.self, from: encoded) == cycle)
 
-        let keybind = catalog.keyBindings[0]
-        #expect(keybind.id == "link")
-        #expect(keybind.linkedTarget == .binding(.gesture, id: "top-half"))
-        #expect(keybind.action?.direction == .topHalf)
-
-        let radial = catalog.radialMenuBindings
-        #expect(radial[0].linkedTarget == .binding(.keybind, id: "link"))
-        #expect(radial[0].action?.direction == .topHalf)
-        #expect(radial[1].note == "Links to a gesture that was removed")
+        let object = try #require(JSONSerialization.jsonObject(with: encoded) as? [String: Any])
+        let step = try #require((object["cycle"] as? [[String: Any]])?.first)
+        #expect(step["direction"] as? String == WindowDirection.noAction.rawValue)
+        #expect(step["keybind"] as? [Any] != nil)
+        #expect(step["link"] as? String == "gesture:swipe-up")
     }
 }

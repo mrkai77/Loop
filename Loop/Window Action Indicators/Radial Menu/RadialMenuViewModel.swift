@@ -35,15 +35,19 @@ final class RadialMenuViewModel: ObservableObject {
         parentAction ?? currentAction
     }
 
-    private var radialMenuActions: [RadialMenuAction] {
-        RadialMenuAction.userConfiguredActions
+    private var linkResolver: BindingLinkResolver {
+        WindowActionCache.shared.linkResolver
     }
 
-    private var directionalRadialMenuActions: [RadialMenuAction] {
+    private var radialMenuActions: [RadialMenuBinding] {
+        linkResolver.radialMenuActions
+    }
+
+    private var directionalRadialMenuActions: [RadialMenuBinding] {
         radialMenuActions.dropLast()
     }
 
-    private var centerRadialMenuAction: RadialMenuAction? {
+    private var centerRadialMenuAction: RadialMenuBinding? {
         radialMenuActions.last
     }
 
@@ -52,18 +56,18 @@ final class RadialMenuViewModel: ObservableObject {
         guard Defaults[.enableGestures] else { return nil }
 
         return Defaults[.gestures].lazy.compactMap { gesture -> Angle? in
-            guard case let .singleAction(actionType) = gesture.action, actionType.associatedActionId == action.id else { return nil }
+            guard gesture.runs(action, with: self.linkResolver) else { return nil }
             return gesture.kind?.radialMenuAngle
         }.first
     }
 
     var shouldFillRadialMenu: Bool {
         // If the user has the center action selected, then fill the radial menu
-        if effectiveWindowAction.id == centerRadialMenuAction?.associatedActionId {
+        if centerRadialMenuAction?.runs(effectiveWindowAction, with: linkResolver) == true {
             return true
         }
 
-        guard !directionalRadialMenuActions.contains(where: { $0.associatedActionId == effectiveWindowAction.id }),
+        guard !directionalRadialMenuActions.contains(where: { $0.runs(effectiveWindowAction, with: linkResolver) }),
               directionalGestureAngle(for: effectiveWindowAction) == nil
         else {
             return false
@@ -75,7 +79,7 @@ final class RadialMenuViewModel: ObservableObject {
 
     var shouldHideDirectionSelector: Bool {
         // If the current action is a user-set radial menu or directional gesture action, always show the direction selector
-        if radialMenuActions.contains(where: { $0.associatedActionId == effectiveWindowAction.id }) ||
+        if radialMenuActions.contains(where: { $0.runs(effectiveWindowAction, with: linkResolver) }) ||
             directionalGestureAngle(for: effectiveWindowAction) != nil {
             return false
         }
@@ -140,7 +144,7 @@ final class RadialMenuViewModel: ObservableObject {
 
     private func calculateTargetAngle(context: ResizeContext) -> Angle? {
         // Check directional radial menu actions first
-        if let index = directionalRadialMenuActions.firstIndex(where: { $0.associatedActionId == effectiveWindowAction.id }) {
+        if let index = directionalRadialMenuActions.firstIndex(where: { $0.runs(effectiveWindowAction, with: linkResolver) }) {
             let actionAngleSpan = 360.0 / CGFloat(directionalRadialMenuActions.count)
             return Angle(degrees: CGFloat(index) * actionAngleSpan - 90)
         }
@@ -157,7 +161,7 @@ final class RadialMenuViewModel: ObservableObject {
         guard abs(closestAngle.degrees) < 179 else { return false }
 
         if let previousAction {
-            return directionalRadialMenuActions.contains(where: { $0.associatedActionId == previousAction.id }) ||
+            return directionalRadialMenuActions.contains(where: { $0.runs(previousAction, with: linkResolver) }) ||
                 directionalGestureAngle(for: previousAction) != nil ||
                 previousAction.direction.hasRadialMenuAngle
         }

@@ -97,29 +97,7 @@ struct StashActionConfigurationView: View {
         }
         .animation(luminareAnimation, value: action.unit)
         .onAppear {
-            if action.unit == nil {
-                action.unit = .percentage
-            }
-
-            if action.sizeMode == nil {
-                action.sizeMode = .custom
-            }
-
-            if action.width == nil {
-                action.width = 80
-            }
-
-            if action.height == nil {
-                action.height = 80
-            }
-
-            if action.positionMode == nil {
-                action.positionMode = .generic
-            }
-
-            if action.anchor == nil {
-                action.anchor = defaultAnchor
-            }
+            action.fillDefaults()
         }
     }
 

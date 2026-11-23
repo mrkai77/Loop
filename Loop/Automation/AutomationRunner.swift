@@ -97,6 +97,11 @@ struct AutomationRunner {
                 return .failure(.failed, message: "\(target) doesn’t run an action")
             }
 
+            // Keeps the id it was called by, so the call still finds it after a rename
+            if let id = binding.id {
+                BindingStore.keep(id, for: binding.identity)
+            }
+
             return await run(action, target: target, options: options)
         }
     }
@@ -104,7 +109,7 @@ struct AutomationRunner {
     /// Runs the first keybind with this name, like `action/<name>` and `keybind/<name>` did.
     /// `action/` only matched custom and stash actions by name, so a cycle can't take over a built-in action's name.
     private func runKeybind(named name: String, scope: AutomationRequest.LegacyNameScope, options: LoopTargetOptions) async -> LoopAutomationResponse {
-        let bindings = LoopAutomationCatalog().keyBindings.filter { binding in
+        let bindings = LoopAutomationCatalog().keybindRows.filter { binding in
             scope == .keybinds || binding.action?.direction.isCustomizable == true
         }
         if let binding = bindings.first(where: { $0.action?.name?.lowercased() == name.lowercased() }),
@@ -204,7 +209,7 @@ struct AutomationRunner {
     /// The action after a cycle's screen switching action, unless it switches screens too, which keybinds also stop at
     static func cycleAction(after action: WindowAction, in cycle: WindowAction) -> WindowAction? {
         guard cycle.direction == .cycle,
-              let actions = cycle.cycle,
+              let actions = cycle.cycleActions,
               let index = actions.firstIndex(where: { $0.id == action.id })
         else {
             return nil

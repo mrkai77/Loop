@@ -6,6 +6,7 @@
 //
 
 import CoreGraphics
+import Foundation
 @testable import Loop
 import Testing
 
@@ -18,61 +19,71 @@ struct CycleActionCoordinatorTests {
         let outside = WindowAction(.maximize)
         let children = [first, second]
         let cycle = WindowAction(children)
-        let prefixCycle = WindowAction(cycle: [outside], keybind: [.kVK_LeftArrow])
-        let dualKeyCycle = WindowAction(
-            cycle: children,
-            keybind: [.kVK_LeftArrow, .kVK_RightArrow]
-        )
-        let unrelatedCycle = WindowAction(cycle: [outside], keybind: [.kVK_UpArrow])
+        let prefixCycle = WindowAction(cycle: [outside])
+        let dualKeyCycle = WindowAction(cycle: children)
+        let unrelatedCycle = WindowAction(cycle: [outside])
+        let keysByActionID: [UUID: Set<CGKeyCode>] = [
+            prefixCycle.id: [.kVK_LeftArrow],
+            dualKeyCycle.id: [.kVK_LeftArrow, .kVK_RightArrow],
+            unrelatedCycle.id: [.kVK_UpArrow]
+        ]
+        let keys: CycleActionCoordinator.KeyLookup = { keysByActionID[$0.id] ?? [] }
 
         #expect(CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: outside,
             currentParentAction: nil,
             keybindSequenceOriginAction: nil,
-            in: cycle
+            in: cycle,
+            keys: keys
         ))
         #expect(CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: .init(.noSelection),
             currentParentAction: nil,
             keybindSequenceOriginAction: nil,
-            in: cycle
+            in: cycle,
+            keys: keys
         ))
         #expect(!CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: first,
             currentParentAction: cycle,
             keybindSequenceOriginAction: nil,
-            in: cycle
+            in: cycle,
+            keys: keys
         ))
         #expect(!CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: false,
             currentAction: outside,
             currentParentAction: nil,
             keybindSequenceOriginAction: nil,
-            in: cycle
+            in: cycle,
+            keys: keys
         ))
         #expect(CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: outside,
             currentParentAction: prefixCycle,
             keybindSequenceOriginAction: nil,
-            in: dualKeyCycle
+            in: dualKeyCycle,
+            keys: keys
         ))
         #expect(!CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: outside,
             currentParentAction: prefixCycle,
             keybindSequenceOriginAction: dualKeyCycle,
-            in: dualKeyCycle
+            in: dualKeyCycle,
+            keys: keys
         ))
         #expect(CycleActionCoordinator.shouldRestartAtBeginning(
             whenEnabled: true,
             currentAction: outside,
             currentParentAction: prefixCycle,
             keybindSequenceOriginAction: unrelatedCycle,
-            in: dualKeyCycle
+            in: dualKeyCycle,
+            keys: keys
         ))
     }
 
@@ -81,7 +92,7 @@ struct CycleActionCoordinatorTests {
         let second = WindowAction(.maximize)
         let cycle = WindowAction([first, second])
         let noSelection = WindowAction(.noSelection)
-        var coordinator = CycleActionCoordinator()
+        var coordinator = CycleActionCoordinator { _ in [] }
 
         _ = try commitNext(
             with: &coordinator,

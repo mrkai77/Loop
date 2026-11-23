@@ -157,7 +157,6 @@ enum ScreenUtility {
 
         return .init(
             .custom,
-            keybind: [],
             name: screenSwitchingCustomActionName,
             unit: .percentage,
             width: proportionalSize.width * 100,

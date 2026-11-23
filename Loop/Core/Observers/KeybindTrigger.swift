@@ -53,7 +53,7 @@ final class KeybindTrigger {
         }
     }
 
-    /// Initializes a ``KeybindObserver``.
+    /// Initializes a ``KeybindTrigger``.
     /// - Parameters:
     ///   - openCallback: what to do when the trigger key is pressed, and Loop should be activated.
     ///   - closeCallback: what to do when the trigger key is released, and Loop should be closed.
@@ -166,6 +166,7 @@ final class KeybindTrigger {
         flags: CGEventFlags,
         isLoopOpen: Bool
     ) -> KeybindResolver.ResolvedHandling {
+        let snapshot = windowActionCache.snapshot
         let decision = KeybindResolver.resolve(
             .init(
                 eventType: type,
@@ -173,12 +174,12 @@ final class KeybindTrigger {
                 pressedKeys: pressedKeys,
                 modifierKeys: flags.keyCodes,
                 trigger: .init(
-                    keys: Defaults[.triggerKey],
+                    keys: snapshot.triggerKey,
                     isSideDependent: sideDependentTriggerKey
                 ),
                 isLoopOpen: isLoopOpen,
-                actionsByKeybind: windowActionCache.actionsByKeybind,
-                bypassedActionsByKeybind: windowActionCache.bypassedActionsByKeybind
+                actionsByKeybind: snapshot.actionsByKeybind,
+                bypassedActionsByKeybind: snapshot.bypassedActionsByKeybind
             )
         )
         switch decision.effect {

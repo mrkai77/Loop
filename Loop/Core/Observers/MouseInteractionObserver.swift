@@ -34,11 +34,11 @@ final class MouseInteractionObserver {
     private var initialMousePosition: CGPoint = .zero
     private var latestMousePosition: CGPoint = .zero
 
-    private var radialMenuActions: [RadialMenuAction] {
-        RadialMenuAction.userConfiguredActions
+    private var radialMenuActions: [RadialMenuBinding] {
+        windowActionCache.linkResolver.radialMenuActions
     }
 
-    private static let failedToResolveKeybindAction: WindowAction = .init(.noAction) // This helps to keep a stable ID
+    private static let unresolvedLinkAction: WindowAction = .init(.noAction) // This helps to keep a stable ID
 
     init(
         windowActionCache: WindowActionCache,
@@ -135,7 +135,7 @@ final class MouseInteractionObserver {
             previousAngleToMouse = angleToMouse
             previousDistanceToMouse = distanceToMouse
 
-            var newAction: RadialMenuAction? = nil
+            var newAction: RadialMenuBinding? = nil
 
             // If mouse over 50 points away, select half or quarter positions
             if distanceToMouse > Self.directionalActionDistance - Defaults[.radialMenuThickness] {
@@ -153,8 +153,8 @@ final class MouseInteractionObserver {
                 newAction = radialMenuActions.last
             }
 
-            let resolvedAction: WindowAction? = if let type = newAction?.type {
-                type.resolvedAction(with: windowActionCache.linkResolver) ?? Self.failedToResolveKeybindAction
+            let resolvedAction: WindowAction? = if let newAction {
+                newAction.resolvedAction(with: windowActionCache.linkResolver) ?? Self.unresolvedLinkAction
             } else {
                 .init(.noSelection)
             }

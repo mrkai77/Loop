@@ -11,30 +11,41 @@ import os
 import Scribe
 
 /// Caches the user's actions in a dictionary keyed by its keybind.
-/// This is called from `KeybindObserver`, to retrieve the user's actions in an efficient manner.
-/// Keybinds that link to another binding are stored as the action they run, and keybinds that share their keys with another are left out.
-///
-/// The event tap reads it on its own thread, so everything is published as one snapshot behind a lock,
-/// and rebuilt on a serial queue.
+/// This is called from `KeybindTrigger`, to retrieve the user's actions in an efficient manner.
+/// Linked keybinds are stored as the action they run, and keybinds sharing their keys are left out.
+/// The event tap reads it on its own thread, so it's one locked snapshot, rebuilt on a serial queue
 @Loggable
 final class WindowActionCache: @unchecked Sendable {
     static let shared = WindowActionCache()
 
-    private struct Snapshot {
+    struct Snapshot {
+        /// The trigger key conflicts were found with, so keypresses match against the same one
+        var triggerKey: Set<CGKeyCode> = []
         var actionsByKeybind: [Set<CGKeyCode>: WindowAction] = [:]
         var bypassedActionsByKeybind: [Set<CGKeyCode>: WindowAction] = [:]
+        var keysByActionID: [UUID: Set<CGKeyCode>] = [:]
         var linkResolver = BindingLinkResolver(keybinds: [], gestures: [], radialMenuActions: [])
     }
 
-    private let snapshot = OSAllocatedUnfairLock(uncheckedState: Snapshot())
+    private let state = OSAllocatedUnfairLock(uncheckedState: Snapshot())
     private let rebuildQueue = DispatchQueue(label: "com.MrKai77.Loop.WindowActionCache.rebuild")
     private var observationTask: Task<(), Never>?
 
-    var actionsByKeybind: [Set<CGKeyCode>: WindowAction] { read(\.actionsByKeybind) }
-    var bypassedActionsByKeybind: [Set<CGKeyCode>: WindowAction] { read(\.bypassedActionsByKeybind) }
-    var linkResolver: BindingLinkResolver { read(\.linkResolver) }
+    /// Read once per event, so one event never mixes two rebuilds
+    var snapshot: Snapshot {
+        state.withLockUnchecked { $0 }
+    }
 
-    /// Builds the cache before returning, so the first keypress after launch already finds its action
+    /// The keys of the keybind that runs `action`, without the trigger key, or none when no keybind does
+    func keys(for action: WindowAction) -> Set<CGKeyCode> {
+        state.withLockUnchecked { $0.keysByActionID[action.id] } ?? []
+    }
+
+    var linkResolver: BindingLinkResolver {
+        state.withLockUnchecked { $0.linkResolver }
+    }
+
+    /// Builds the cache before returning, so the first keypress after launch finds its action
     private init() {
         rebuildQueue.sync { regenerateCache() }
 
@@ -61,45 +72,56 @@ final class WindowActionCache: @unchecked Sendable {
         }
     }
 
-    private func read<T>(_ keyPath: KeyPath<Snapshot, T>) -> T {
-        snapshot.withLockUnchecked { $0[keyPath: keyPath] }
-    }
-
     /// Rebuilds the cache and includes extra entries for cycle actions with shift keys if the user has enabled `cycleBackwardsOnShiftPressed`.
     private func regenerateCache() {
-        var next = Snapshot(linkResolver: BindingLinkResolver())
-        let conflictingIDs = WindowAction.conflictingIDs(in: next.linkResolver.keybinds, triggerKey: Defaults[.triggerKey])
-        let keybinds = next.linkResolver.keybinds
-            .filter { !$0.keybind.isEmpty && !conflictingIDs.contains($0.id) }
-            .map { $0.resolvingLink(with: next.linkResolver) }
+        let next = Self.snapshot(
+            linkResolver: .current,
+            triggerKey: Defaults[.triggerKey],
+            cycleBackwardsOnShiftPressed: Defaults[.cycleBackwardsOnShiftPressed]
+        )
+        state.withLockUnchecked { $0 = next }
 
-        let cycleBackwardsOnShiftPressed: Bool = Defaults[.cycleBackwardsOnShiftPressed]
+        log.info("Regenerated cache; normal: \(next.actionsByKeybind.count), bypassed: \(next.bypassedActionsByKeybind.count)")
+    }
 
-        let normalActions = keybinds.filter { $0.bypassTriggerKey != true }
-        let bypassedActions = keybinds.filter { $0.bypassTriggerKey == true }
+    static func snapshot(linkResolver: BindingLinkResolver, triggerKey: Set<CGKeyCode>, cycleBackwardsOnShiftPressed: Bool) -> Snapshot {
+        var next = Snapshot(triggerKey: triggerKey, linkResolver: linkResolver)
+        let conflictingIDs = Keybind.conflictingIDs(in: linkResolver.keybinds, triggerKey: triggerKey)
+        if !conflictingIDs.isEmpty {
+            log.info("Disabled \(conflictingIDs.count) keybinds that share their keys with another")
+        }
+        let keybinds = linkResolver.keybinds
+            .filter { !$0.keys.isEmpty && !conflictingIDs.contains($0.id) }
+            .map { (binding: $0, action: $0.resolvedAction(with: linkResolver) ?? WindowAction(.noAction).withID($0.id)) }
+
+        let normalActions = keybinds.filter { !$0.binding.bypassTriggerKey }
+        let bypassedActions = keybinds.filter(\.binding.bypassTriggerKey)
 
         // Normal actions: keybind is action-key only (without trigger key)
         next.actionsByKeybind = Dictionary(
-            normalActions.map { ($0.keybind, $0) },
+            normalActions.map { ($0.binding.keys, $0.action) },
             uniquingKeysWith: { first, _ in first }
         )
 
         if cycleBackwardsOnShiftPressed {
             next.actionsByKeybind.merge(
                 normalActions
-                    .filter { $0.direction == .cycle }
-                    .map { ($0.keybind.union([.kVK_Shift]), $0) },
+                    .filter { $0.action.direction == .cycle }
+                    .map { ($0.binding.keys.union([.kVK_Shift]), $0.action) },
                 uniquingKeysWith: { first, _ in first }
             )
         }
 
         next.bypassedActionsByKeybind = Dictionary(
-            bypassedActions.map { ($0.keybind, $0) },
+            bypassedActions.map { ($0.binding.keys, $0.action) },
             uniquingKeysWith: { first, _ in first }
         )
 
-        snapshot.withLockUnchecked { $0 = next }
+        next.keysByActionID = Dictionary(
+            keybinds.map { ($0.action.id, $0.binding.keys) },
+            uniquingKeysWith: { first, _ in first }
+        )
 
-        log.info("Regenerated cache; normal: \(next.actionsByKeybind.count), bypassed: \(next.bypassedActionsByKeybind.count), disabled by conflicts: \(conflictingIDs.count)")
+        return next
     }
 }

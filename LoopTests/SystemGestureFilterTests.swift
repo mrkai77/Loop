@@ -36,7 +36,7 @@ struct SystemGestureFilterTests {
         GestureBinding(
             fingerCount: fingerCount,
             kind: kind,
-            action: .singleAction(.custom(.init(.maximize))),
+            action: .singleAction(.action(.init(.maximize))),
             activationZone: activationZone
         )
     }
