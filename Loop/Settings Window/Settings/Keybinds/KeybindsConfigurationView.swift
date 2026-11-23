@@ -99,12 +99,10 @@ struct KeybindsConfigurationView: View {
 
         LuminareSection(String(localized: "Cycles", comment: "Section header shown in settings")) {
             LuminareToggle(isOn: $cycleModeRestartEnabled) {
-                Text("Always start from the first action")
-                    .padding(.trailing, 4)
-                    .luminareToolTip(attachedTo: .topTrailing) {
-                        Text("By default, Loop resumes cycles from where you last left off in each window.")
-                            .padding(6)
-                    }
+                HStack(spacing: 6) {
+                    Text("Always start from the first action")
+                    LuminareToolTip(systemImage: "info.circle.fill", text: Text("When off, each window’s cycle continues where it left off."))
+                }
             }
 
             if !isShiftUsedByTriggerKey {

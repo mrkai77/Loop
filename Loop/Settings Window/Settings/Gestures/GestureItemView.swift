@@ -111,26 +111,20 @@ struct GestureItemView: View {
     }
 
     var body: some View {
-        ZStack {
+        HStack(spacing: 8) {
             actionSelection
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            HStack(spacing: 12) {
-                if let link {
-                    BindingLinkBadge(kind: link.kind, unlink: unlink)
-                }
-
-                gestureConfiguration
-                    .luminareToolTip(attachedTo: .topTrailing, hidden: !hasConflict && !overridesRadialMenu) {
-                        Text(
-                            hasConflict
-                                ? String(localized: "Another gesture is set up the same way.", comment: "Tooltip shown on a conflicting gesture in settings")
-                                : String(localized: "Takes priority over the radial menu for this gesture.", comment: "Tooltip shown on a gesture in settings that overrides one direction of a radial menu gesture using the same finger count")
-                        )
-                        .padding(6)
-                    }
+            if hasConflict || overridesRadialMenu {
+                LuminareToolTip(
+                    image: hasConflict ? Image(systemName: "exclamationmark.triangle.fill") : Image(.handDrawFillBadge),
+                    text: hasConflict
+                        ? String(localized: "Another gesture is set up the same way.", comment: "Tooltip shown on a conflicting gesture in settings")
+                        : String(localized: "Takes priority over the radial menu.", comment: "Tooltip shown on a gesture in settings that overrides one direction of a radial menu gesture using the same finger count")
+                )
             }
-            .frame(maxWidth: .infinity, alignment: .trailing)
+
+            gestureConfiguration
         }
         .padding(.horizontal, 12)
         .onChange(of: gesture) { externalGesture = $0 }
@@ -227,20 +221,9 @@ struct GestureItemView: View {
                     } else if let action = resolvedAction {
                         IconView(action: action)
 
-                        if let info = action.direction.infoText {
-                            Text(action.getName())
-                                .fontWeight(.regular)
-                                .lineLimit(1)
-                                .padding(.trailing, 4)
-                                .luminareToolTip(attachedTo: .topTrailing) {
-                                    Text(info)
-                                        .padding(6)
-                                }
-                        } else {
-                            Text(action.getName())
-                                .fontWeight(.regular)
-                                .lineLimit(1)
-                        }
+                        Text(action.getName())
+                            .fontWeight(.regular)
+                            .lineLimit(1)
                     } else {
                         // A single action only fails to resolve when its linked keybind was removed
                         Image(systemName: "bolt.horizontal.fill")
@@ -252,9 +235,10 @@ struct GestureItemView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
             }
-            .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
+            .luminareContentSize(contentMode: .fit, hasFixedHeight: true, isCompressible: true)
             .luminareRoundingBehavior(top: true, bottom: true)
             .luminareFilledStates([.hovering, .pressed])
             .luminareBorderedStates(.hovering)
@@ -262,6 +246,14 @@ struct GestureItemView: View {
             .help(String(localized: "Customize this gesture’s action.", comment: "Help text shown when hovering a gesture's action button"))
             .allowsHitTesting(!opensRadialMenu)
             .padding(.leading, -4)
+
+            if let info = resolvedAction?.direction.infoText {
+                LuminareToolTip(systemImage: "info.circle.fill", text: info)
+            }
+
+            if let link {
+                BindingLinkBadge(kind: link.kind, unlink: unlink)
+            }
 
             Group {
                 if let resolvedAction {

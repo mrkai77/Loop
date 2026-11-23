@@ -6,6 +6,7 @@
 //
 
 import Defaults
+import Luminare
 import SwiftUI
 
 /// Picks an action for a keybind, gesture or radial menu action, or a link to another one of those.
@@ -118,6 +119,7 @@ struct ActionPickerView: View {
                                 Spacer()
 
                                 BindingLinkIndicator(kind: link.kind)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                         .padding(.horizontal, 6)
@@ -187,7 +189,6 @@ struct BindingLinkIndicator: View {
 
     var body: some View {
         image
-            .foregroundStyle(.secondary)
     }
 
     private var image: Image {
@@ -199,30 +200,16 @@ struct BindingLinkIndicator: View {
     }
 }
 
-/// Hovering it explains the link and offers to unlink, which is the only way to, as picking another action changes the binding it links to.
+/// Clicking it explains the link and offers to unlink, which is the only way to, as picking another action changes the binding it links to.
 struct BindingLinkBadge: View {
     let kind: BindingLink.Kind
     let unlink: () -> ()
 
     var body: some View {
-        BindingLinkIndicator(kind: kind)
-            .frame(width: 18, height: 18)
-            .contentShape(.rect)
-            .luminareToolTip(arrowEdge: .top) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text(help)
-                        .fixedSize(horizontal: false, vertical: true)
-
-                    Button(action: unlink) {
-                        unlinkTitle
-                    }
-                    .buttonStyle(.luminare(overrideUseMainStyle: true))
-                    .luminareCornerRadius(8)
-                }
-                .frame(width: 240, alignment: .leading)
-                .padding(8)
-            }
-            .accessibilityAction(named: unlinkTitle, unlink)
+        LuminareToolTip(systemImage: "link", arrowEdge: .top, trigger: .click) {
+            LuminareToolTipPrompt(Text(help), buttonTitle: unlinkTitle, action: unlink)
+        }
+        .accessibilityAction(named: unlinkTitle, unlink)
     }
 
     private var unlinkTitle: Text {
@@ -232,11 +219,11 @@ struct BindingLinkBadge: View {
     private var help: String {
         switch kind {
         case .keybind:
-            String(localized: "This action is linked to a keybind. Changes made to this action will affect both.", comment: "A tooltip on a gesture or radial menu action that links to a keybind, explaining that changes to its action also affect the keybind.")
+            String(localized: "Linked to a keybind. Changing this action also changes the keybind.", comment: "A tooltip on a gesture or radial menu action that links to a keybind, explaining that changes to its action also change the keybind.")
         case .gesture:
-            String(localized: "This action is linked to a gesture. Changes made to this action will affect both.", comment: "A tooltip on a keybind, gesture or radial menu action that links to a gesture, explaining that changes to its action also affect the gesture.")
+            String(localized: "Linked to a gesture. Changing this action also changes the gesture.", comment: "A tooltip on a keybind, gesture or radial menu action that links to a gesture, explaining that changes to its action also change the gesture.")
         case .radialMenu:
-            String(localized: "This action is linked to a radial menu action. Changes made to this action will affect both.", comment: "A tooltip on a keybind, gesture or radial menu action that links to a radial menu action, explaining that changes to its action also affect the radial menu action.")
+            String(localized: "Linked to a radial menu action. Changing this action also changes the radial menu action.", comment: "A tooltip on a keybind, gesture or radial menu action that links to a radial menu action, explaining that changes to its action also change the radial menu action.")
         }
     }
 }

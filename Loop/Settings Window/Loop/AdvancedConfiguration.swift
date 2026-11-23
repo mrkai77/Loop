@@ -271,27 +271,21 @@ struct AdvancedConfigurationView: View {
             // The macOS window manager's own animation setting applies instead
             if !isSystemWindowManagerIntegrated {
                 LuminareToggle(isOn: $animateWindowResizes) {
-                    Text("Animate window resizing")
-                        .padding(.trailing, 4)
-                        .luminareToolTip(attachedTo: .topTrailing, hidden: !showLowPowerModeWarning) {
-                            HStack(spacing: 4) {
-                                Text("To save power, window animations are\nunavailable in Low Power Mode.")
-                                    .multilineTextAlignment(.leading)
-
+                    HStack(spacing: 6) {
+                        Text("Animate window resizing")
+                        if showLowPowerModeWarning {
+                            LuminareToolTip(
+                                systemImage: "exclamationmark.triangle.fill",
+                                text: Text("To save power, window animations are unavailable in Low Power Mode."),
+                                buttonTitle: Text("Open Battery Settings", comment: "Button in the tooltip explaining that window animations are off in Low Power Mode, which opens the Battery pane of System Settings")
+                            ) {
                                 if let url = URL(string: "x-apple.systempreferences:com.apple.preference.battery") {
-                                    Button {
-                                        openURL(url)
-                                    } label: {
-                                        Image(systemName: "arrow.up.forward")
-                                            .foregroundStyle(.secondary)
-                                            .padding(4)
-                                    }
-                                    .buttonStyle(.plain)
+                                    openURL(url)
                                 }
                             }
-                            .padding(6)
                         }
-                        .animation(luminareAnimation, value: showLowPowerModeWarning)
+                    }
+                    .animation(luminareAnimation, value: showLowPowerModeWarning)
                 }
             }
 
@@ -447,14 +441,12 @@ struct AdvancedConfigurationView: View {
                             .foregroundStyle(.green)
                     }
 
-                    Text("`loop` command", comment: "Label of the command-line tool row in Advanced settings. `loop` is the command’s name, so it isn’t translated.")
-                        .padding(.trailing, 4)
-                        .luminareToolTip(attachedTo: .topTrailing, hidden: model.commandLineToolInstallStatus.settingsWarning == nil) {
-                            if let warning = model.commandLineToolInstallStatus.settingsWarning {
-                                Text(warning)
-                                    .padding(6)
-                            }
+                    HStack(spacing: 6) {
+                        Text("`loop` command", comment: "Label of the command-line tool row in Advanced settings. `loop` is the command’s name, so it isn’t translated.")
+                        if let warning = model.commandLineToolInstallStatus.settingsWarning {
+                            LuminareToolTip(systemImage: "exclamationmark.triangle.fill", text: Text(warning))
                         }
+                    }
                 }
             }
         }

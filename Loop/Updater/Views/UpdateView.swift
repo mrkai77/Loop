@@ -180,22 +180,13 @@ struct UpdateView: View {
             Button {
                 Updater.shared.dismissWindow()
             } label: {
-                Text(updater.installState.isFailure ? "Try Again Later" : "Remind Me Later")
-                    .contentTransition(.numericText())
-                    .padding(.trailing, 4)
-                    .luminareToolTip(attachedTo: .topTrailing, hidden: updater.installState.errorDescription == nil) {
-                        HStack(spacing: 4) {
-                            Image(systemName: "exclamationmark.triangle.fill")
-                                .foregroundStyle(.secondary)
-                                .padding(4)
-
-                            Text(updater.installState.errorDescription ?? "")
-                                .multilineTextAlignment(.leading)
-                                .frame(maxWidth: 300, alignment: .leading)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .padding(12)
+                HStack(spacing: 6) {
+                    Text(updater.installState.isFailure ? "Try Again Later" : "Remind Me Later")
+                        .contentTransition(.numericText())
+                    if let errorDescription = updater.installState.errorDescription {
+                        LuminareToolTip(systemImage: "exclamationmark.triangle.fill", text: errorDescription)
                     }
+                }
             }
             .disabled(updater.installState == .installing || updater.installState == .readyToRestart)
 

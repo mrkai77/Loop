@@ -235,12 +235,10 @@ struct CustomActionConfigurationView: View {
                     )
                 ) {
                     if let infoText = action.direction.infoText {
-                        Text("Use macOS center", comment: "Toggle to enable macOS-style centering in custom actions")
-                            .padding(.trailing, 4)
-                            .luminareToolTip(attachedTo: .topTrailing) {
-                                Text(infoText)
-                                    .padding(6)
-                            }
+                        HStack(spacing: 6) {
+                            Text("Use macOS center", comment: "Toggle to enable macOS-style centering in custom actions")
+                            LuminareToolTip(systemImage: "info.circle.fill", text: infoText)
+                        }
                     } else {
                         Text("Use macOS center", comment: "Toggle to enable macOS-style centering in custom actions")
                     }

@@ -356,6 +356,95 @@
         }
       }
     },
+    "%@ installs updates only while it’s in the background." : {
+      "comment" : "A popover explaining that updates will only be installed when the app is in the background.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ installs updates only while it’s in the background."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ installs updates only while it’s in the background."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ installs updates only while it’s in the background."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ installs updates only while it’s in the background."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ installe les mises à jour uniquement lorsqu’il est en arrière-plan."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gli aggiornamenti saranno installati solo quando %@ è in background."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@はバックグラウンドで動作しているときだけアップデートをインストールします。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@가 백그라운드에 있을 때만 업데이트가 설치됩니다."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Updates zullen worden geïnstalleerd wanneer %@ op de achtergrond is"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Aktualizacje zostaną zainstalowane tylko wtedy, gdy %@ jest w tle."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "As atualizações apenas serão instaladas quando o %@ estiver em segundo plano."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Обновления могут быть установлены только когда %@ запущен в фоновом режиме."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "只有在%@处于后台时才会安装更新。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "只有在%@處於後台時才會安裝更新。"
+          }
+        }
+      }
+    },
     "%@ is trying to install an update." : {
       "comment" : "Administrator password prompt shown before installing an update. %@ is the app’s name.",
       "localizations" : {
@@ -712,94 +801,6 @@
         }
       }
     },
-    "%@ places windows slightly above center,\nwhich many people find more comfortable." : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@ يضع النوافذ قليلاً فوق المركز المطلق، مما يمكن أن يكون أكثر ملاءمة من الناحية العملية."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@ platziert Fenster etwas über der absoluten Mitte, was als ergonomischer empfunden werden kann."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ places windows slightly above center,\nwhich many people find more comfortable."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@ sitúa la ventana algo por encima del centro absoluto, lo que resulta más ergonómico."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ place les fenêtres légèrement au-dessus du centre,\nce que beaucoup trouvent plus confortable."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@ posiziona la finestra leggermente al di sopra del centro assoluto,\nrisultando più ergonomica per alcuni."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@はウインドウを中央よりやや上に配置するため、\nより使いやすく感じられる場合があります。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@는 절대 중앙보다 약간 위에 창을 배치하여, 더 인체공학적으로 찾을 수 있습니다."
-          }
-        },
-        "nl-BE" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@ plaatst vensters een beetje boven het center, wat dus meer ergonomisch kan zijn."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@ ustawia okna trochę powyżej środka, co może być uznane za bardziej ergonomiczne."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@ coloca as janelas levemente acima do centro absoluto, o que pode ser mais ergonômico."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@ устанавливает окна немного выше настоящего центра, это положение является более эргономичным."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@将窗口放置在稍高于屏幕中心的位置，使其更加人性化。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "%@將視窗放置在稍高於屏幕中心的位置，使其更加人性化。"
-          }
-        }
-      }
-    },
     "%lld" : {
       "localizations" : {
         "ar" : {
@@ -1066,91 +1067,478 @@
         }
       }
     },
-    "`%@` belongs to another app or file. Remove it, then try again." : {
+    "Another file is already at `%@`. Remove it, then try again." : {
       "comment" : "Warning on the command-line tool row in Advanced settings, shown when something other than Loop’s link is at that path. %@ is the path to the link, such as /usr/local/bin/loop.",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "`%@` appartient à une autre app ou à un autre fichier. Supprimez-le, puis réessayez."
+            "state" : "needs_review",
+            "value" : "Un autre fichier se trouve déjà à `%@`. Supprimez-le, puis réessayez."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "`%@`はほかのアプリまたはファイルのものです。削除してから、もう一度お試しください。"
+            "state" : "needs_review",
+            "value" : "`%@`にはすでに別のファイルがあります。削除してから、もう一度お試しください。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+            "value" : "Another file is already at `%@`. Remove it, then try again."
+          }
+        }
+      }
+    },
+    "Leaves room for a custom menu bar." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "استخدم هذا إذا كنت تستخدم شريط قوائم مخصص."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Benutze dies, falls eine eigene Menüleiste benutzt wird."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Leaves room for a custom menu bar."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Usa esto si estás utilizando una barra de menú personalizada"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Laisse de la place pour une barre des menus personnalisée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Per l'utilizzo con barra dei menu personalizzata."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "カスタムメニューバー用のスペースを空けます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "사용자 정의 메뉴바를 사용하는 경우 이것을 사용하세요."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Gebruik dit als je een eigen menubalk gebruikt."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Leaves room for a custom menu bar."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Use isso se você estiver usando uma barra de menu customizada."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Включите это, если вы не используете встроенную строку меню."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "如果你正在使用自定义菜单栏，请选择此选项。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "如果你正在使用自訂選單列，請選擇該選項。"
+          }
+        }
+      }
+    },
+    "Linked to a gesture. Changing this action also changes the gesture." : {
+      "comment" : "A tooltip on a keybind, gesture or radial menu action that links to a gesture, explaining that changes to its action also change the gesture.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lié à un geste. Modifier cette action modifie aussi le geste."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ジェスチャにリンクされています。このアクションを変更すると、ジェスチャも変更されます。"
+          }
+        }
+      }
+    },
+    "Linked to a keybind. Changing this action also changes the keybind." : {
+      "comment" : "A tooltip on a gesture or radial menu action that links to a keybind, explaining that changes to its action also change the keybind.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Linked to a keybind. Changing this action also changes the keybind."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Linked to a keybind. Changing this action also changes the keybind."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Linked to a keybind. Changing this action also changes the keybind."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Linked to a keybind. Changing this action also changes the keybind."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lié à un raccourci. Modifier cette action modifie aussi le raccourci."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Questa azione è collegata ad una scorciatoia. Modificandola si cambieranno entrambe."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "キー設定にリンクされています。このアクションを変更すると、キー設定も変更されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "이 액션은 키 바인딩과 연결되어 있습니다. 이 액션을 변경하면 둘 모두에 적용됩니다."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Deze actie is gekoppeld aan een toets. Aanpassingen aan deze actie zal effect hebben op beide"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ta akcja jest połączona ze skrótem klawiszowym. Zmiana będzie miała wpływ na obie czynności."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Esta ação está vinculada a uma tecla de atalho. Alterações nesta ação afetarão ambas."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Это действие назначено на горячую клавишу. Изменения в действии повлияют на все."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "此操作关联了快捷键。对此操作的改动将同时影响两者。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "該操作關聯了按鍵綁定。對該操作的改動將同時影響兩邊。"
+          }
+        }
+      }
+    },
+    "Linked to a radial menu action. Changing this action also changes the radial menu action." : {
+      "comment" : "A tooltip on a keybind, gesture or radial menu action that links to a radial menu action, explaining that changes to its action also change the radial menu action.",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Lié à une action du menu radial. Modifier cette action modifie aussi l’action du menu radial."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "円形メニューのアクションにリンクされています。このアクションを変更すると、円形メニューのアクションも変更されます。"
+          }
+        }
+      }
+    },
+    "Places windows slightly above center, which can be more comfortable to look at." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "يضع النوافذ قليلاً فوق المركز المطلق، مما يمكن أن يكون أكثر ملاءمة من الناحية العملية."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Platziert Fenster etwas über der absoluten Mitte, was als ergonomischer empfunden werden kann."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Places windows slightly above center, which can be more comfortable to look at."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sitúa la ventana algo por encima del centro absoluto, lo que resulta más ergonómico."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Place les fenêtres légèrement au-dessus du centre, ce qui peut être plus agréable à regarder."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Posiziona la finestra leggermente al di sopra del centro assoluto, risultando più ergonomica per alcuni."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "ウインドウを中央よりやや上に配置するため、より使いやすく感じられる場合があります。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "절대 중앙보다 약간 위에 창을 배치하여, 더 인체공학적으로 찾을 수 있습니다."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Plaatst vensters een beetje boven het center, wat dus meer ergonomisch kan zijn."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ustawia okna trochę powyżej środka, co może być uznane za bardziej ergonomiczne."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Coloca as janelas levemente acima do centro absoluto, o que pode ser mais ergonômico."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Устанавливает окна немного выше настоящего центра, это положение является более эргономичным."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "将窗口放置在稍高于屏幕中心的位置，使其更加人性化。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "將視窗放置在稍高於屏幕中心的位置，使其更加人性化。"
+          }
+        }
+      }
+    },
+    "When off, each window’s cycle continues where it left off." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "When off, each window’s cycle continues where it left off."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Standardmäßig setzt Loop Zyklen dort fort, wo Sie in jedem Fenster zuletzt aufgehört haben."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "When off, each window’s cycle continues where it left off."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "When off, each window’s cycle continues where it left off."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Si désactivé, la séquence de chaque fenêtre reprend là où elle s’était arrêtée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Di norma, Loop riprende a ciclare da dove si era interrotto."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "オフのときは、各ウインドウのサイクルが前回の続きから再開します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "기본적으로, 각 창에서 마지막으로 남긴 지점부터 루프가 순환을 재개합니다."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop gaat standaard in elk venster verder met de cyclus waar je gebleven was."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Domyślnie Loop wznawia cykle z pozycji, w której ostatnio pozostało okno."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Por padrão, o \"Loop\" resume ciclos de onde você parou pela última vez em cada janela."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "По умолчанию Loop продолжает цикл с того места, на котором вы оставили окно."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop默认记忆每个窗口的循环状态，并从中断处继续。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop默認記憶每個視窗的循環狀態，並從中斷位置繼續。"
           }
         }
       }
@@ -4703,94 +5091,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "輕快"
-          }
-        }
-      }
-    },
-    "By default, Loop resumes cycles from where you last left off in each window." : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "By default, Loop resumes cycles from where you last left off in each window."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Standardmäßig setzt Loop Zyklen dort fort, wo Sie in jedem Fenster zuletzt aufgehört haben."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "By default, Loop resumes cycles from where you last left off in each window."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "By default, Loop resumes cycles from where you last left off in each window."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Par défaut, Loop reprend les séquences à partir de l’endroit où vous vous êtes arrêté pour la dernière fois dans chaque fenêtre."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Di norma, Loop riprende a ciclare da dove si era interrotto."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "デフォルトでは、Loopは各ウインドウで前回の続きからサイクルを再開します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "기본적으로, 각 창에서 마지막으로 남긴 지점부터 루프가 순환을 재개합니다."
-          }
-        },
-        "nl-BE" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loop gaat standaard in elk venster verder met de cyclus waar je gebleven was."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Domyślnie Loop wznawia cykle z pozycji, w której ostatnio pozostało okno."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Por padrão, o \"Loop\" resume ciclos de onde você parou pela última vez em cada janela."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "По умолчанию Loop продолжает цикл с того места, на котором вы оставили окно."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loop默认记忆每个窗口的循环状态，并从中断处继续。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loop默認記憶每個視窗的循環狀態，並從中斷位置繼續。"
           }
         }
       }
@@ -8877,49 +9177,49 @@
         }
       }
     },
-    "Each %@ action tracks one window. To stash\nmore windows, add more %@ actions." : {
+    "Each %@ action tracks one window. To stash more windows, add more %@ actions." : {
       "comment" : "Information in a popover displaying how a stash action can only keep track of a single window. Both %1$@ and %2$@ are replaced with the language's localization of the \"Stash\" action.",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "A single %1$@ action can only track one window. To stash\nmultiple windows, add additional %2$@ actions."
+            "value" : "A single %1$@ action can only track one window. To stash multiple windows, add additional %2$@ actions."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "A single %1$@ action can only track one window. To stash\nmultiple windows, add additional %2$@ actions."
+            "value" : "A single %1$@ action can only track one window. To stash multiple windows, add additional %2$@ actions."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Each %1$@ action tracks one window. To stash\nmore windows, add more %1$@ actions."
+            "value" : "Each %1$@ action tracks one window. To stash more windows, add more %1$@ actions."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "A single %1$@ action can only track one window. To stash\nmultiple windows, add additional %2$@ actions."
+            "value" : "A single %1$@ action can only track one window. To stash multiple windows, add additional %2$@ actions."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Chaque action %1$@ suit une seule fenêtre. Pour mettre de côté\nd’autres fenêtres, ajoutez d’autres actions %1$@."
+            "value" : "Chaque action %1$@ suit une seule fenêtre. Pour mettre de côté d’autres fenêtres, ajoutez d’autres actions %1$@."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Una singola azione %1$@ può tracciare solamente una finestra.\nPer nascondere più finestre, aggiungi altre azioni %2$@."
+            "value" : "Una singola azione %1$@ può tracciare solamente una finestra. Per nascondere più finestre, aggiungi altre azioni %2$@."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "各%1$@アクションで追跡できるウインドウは1つです。\nさらにウインドウをスタッシュするには、%1$@アクションを追加してください。"
+            "value" : "各%1$@アクションで追跡できるウインドウは1つです。さらにウインドウをスタッシュするには、%1$@アクションを追加してください。"
           }
         },
         "ko" : {
@@ -20311,94 +20611,6 @@
         }
       }
     },
-    "macOS’s “Tile by dragging windows to screen edges” is turned on,\nwhich conflicts with Loop’s window snapping." : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "macOS’s “Tile by dragging windows to screen edges” is turned on,\nwhich conflicts with Loop’s window snapping."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Die Funktion „Fenster zum Anordnen an Bildschirmrand ziehen“ ist in den macOS Einstellungen aktiviert, was zu Konflikten mit der Fenster-Snap Funktion führt."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS’s “Tile by dragging windows to screen edges” is turned on,\nwhich conflicts with Loop’s window snapping."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "macOS’s “Tile by dragging windows to screen edges” is turned on,\nwhich conflicts with Loop’s window snapping."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "L’option « Faire glisser les fenêtres vers les bords de l’écran pour créer une mosaïque » de macOS est activée,\nce qui entre en conflit avec le magnétisme des fenêtres de Loop."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "La funzione “Disponi le finestre a mosaico trascinandole verso i bordi dello schermo” di macOS\nè attualmente abilitata, creando conflitto con la funzionalità “Aggancia ai bordi” di Loop."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOSの“ウインドウを画面の端にドラッグしてタイル表示”がオンになっているため、\nLoopのウインドウスナップと競合します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "macOS의 “창을 화면 가장자리로 드래그하여 타일 배치” 기능이 현재 활성화되어 있으며, 이는 Loop의 창 스냅 기능과 충돌할 수 있습니다."
-          }
-        },
-        "nl-BE" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "macOS' “Sleep vensters naar de linker- of rechterrand van het scherm om te plaatsen”-functie is actief, wat conflicteert met de vastgrijpfunctie van Loop."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Funkcja macOS „Dokuj okna, przeciągając je do lewej lub prawej krawędzi ekranu” jest obecnie włączona, co będzie kolidowało z funkcją przyciągania okien Loop."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "a funcionalidade do macOS “Organizar janelas ao arrastar para as bordas da tela” está atualmente ativada, o que entra em conflito com a funcionalidade de alinhamento de janelas do Loop."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Настройка плиточного расположения окон macOS включена, отключите привязку окон в настройках Loop."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "macOS的“将窗口拖移到屏幕边缘以平铺”功能已被启用，这将会与Loop的窗口吸附功能相冲突。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "macOS的「拖移視窗至螢幕邊緣來並排」功能已啟用，這將會與Loop的窗口吸附功能相衝突。"
-          }
-        }
-      }
-    },
     "Magnify" : {
       "comment" : "Gesture category label: magnify",
       "localizations" : {
@@ -27372,6 +27584,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "好"
+          }
+        }
+      }
+    },
+    "Open Battery Settings" : {
+      "comment" : "Button in the tooltip explaining that window animations are off in Low Power Mode, which opens the Battery pane of System Settings",
+      "localizations" : {
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Ouvrir les réglages Batterie"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "バッテリー設定を開く"
           }
         }
       }
@@ -35002,91 +35231,91 @@
         }
       }
     },
-    "Takes priority over the radial menu for this gesture." : {
+    "Takes priority over the radial menu." : {
       "comment" : "Tooltip shown on a gesture in settings that overrides one direction of a radial menu gesture using the same finger count",
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes priority over the radial menu for this gesture."
+            "value" : "Takes priority over the radial menu."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes priority over the radial menu for this gesture."
+            "value" : "Takes priority over the radial menu."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Takes priority over the radial menu for this gesture."
+            "value" : "Takes priority over the radial menu."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes priority over the radial menu for this gesture."
+            "value" : "Takes priority over the radial menu."
           }
         },
         "fr" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Prend priorité sur le menu radial pour ce geste."
+            "state" : "needs_review",
+            "value" : "Prend priorité sur le menu radial."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes priority over the radial menu for this gesture."
+            "value" : "Takes priority over the radial menu."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "このジェスチャでは、円形メニューよりも優先されます。"
+            "state" : "needs_review",
+            "value" : "円形メニューよりも優先されます。"
           }
         },
         "ko" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes priority over the radial menu for this gesture."
+            "value" : "Takes priority over the radial menu."
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
-            "value" : "Neemt prioriteit over het radiale menu voor dit gebaar."
+            "state" : "needs_review",
+            "value" : "Neemt prioriteit over het radiale menu."
           }
         },
         "pl" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes priority over the radial menu for this gesture."
+            "value" : "Takes priority over the radial menu."
           }
         },
         "pt-BR" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes priority over the radial menu for this gesture."
+            "value" : "Takes priority over the radial menu."
           }
         },
         "ru" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes priority over the radial menu for this gesture."
+            "value" : "Takes priority over the radial menu."
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes priority over the radial menu for this gesture."
+            "value" : "Takes priority over the radial menu."
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "Takes priority over the radial menu for this gesture."
+            "value" : "Takes priority over the radial menu."
           }
         }
       }
@@ -36154,129 +36383,6 @@
         }
       }
     },
-    "This action is linked to a gesture. Changes made to this action will affect both." : {
-      "comment" : "A tooltip on a keybind, gesture or radial menu action that links to a gesture, explaining that changes to its action also affect the gesture.",
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Cette action est liée à un geste. Les modifications apportées à cette action affecteront les deux."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "このアクションはジェスチャにリンクされています。このアクションを変更すると、両方に影響します。"
-          }
-        }
-      }
-    },
-    "This action is linked to a keybind. Changes made to this action will affect both." : {
-      "comment" : "A tooltip on a gesture or radial menu action that links to a keybind, explaining that changes to its action also affect the keybind.",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "This action is linked to a keybind. Changes made to this action will affect both."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "This action is linked to a keybind. Changes made to this action will affect both."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "This action is linked to a keybind. Changes made to this action will affect both."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "This action is linked to a keybind. Changes made to this action will affect both."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Cette action est liée à un raccourci. Les modifications apportées à cette action affecteront les deux."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Questa azione è collegata ad una scorciatoia. Modificandola si cambieranno entrambe."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "このアクションはキー設定にリンクされています。このアクションを変更すると、両方に影響します。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "이 액션은 키 바인딩과 연결되어 있습니다. 이 액션을 변경하면 둘 모두에 적용됩니다."
-          }
-        },
-        "nl-BE" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Deze actie is gekoppeld aan een toets. Aanpassingen aan deze actie zal effect hebben op beide"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Ta akcja jest połączona ze skrótem klawiszowym. Zmiana będzie miała wpływ na obie czynności."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Esta ação está vinculada a uma tecla de atalho. Alterações nesta ação afetarão ambas."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Это действие назначено на горячую клавишу. Изменения в действии повлияют на все."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "此操作关联了快捷键。对此操作的改动将同时影响两者。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "該操作關聯了按鍵綁定。對該操作的改動將同時影響兩邊。"
-          }
-        }
-      }
-    },
-    "This action is linked to a radial menu action. Changes made to this action will affect both." : {
-      "comment" : "A tooltip on a keybind, gesture or radial menu action that links to a radial menu action, explaining that changes to its action also affect the radial menu action.",
-      "localizations" : {
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Cette action est liée à une action du menu radial. Les modifications apportées à cette action affecteront les deux."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "このアクションは円形メニューのアクションにリンクされています。このアクションを変更すると、両方に影響します。"
-          }
-        }
-      }
-    },
     "This macOS version is no longer supported." : {
       "comment" : "Text shown on the update button in the About settings page when the current macOS version is no longer supported.",
       "localizations" : {
@@ -36633,48 +36739,48 @@
         }
       }
     },
-    "To save power, window animations are\nunavailable in Low Power Mode." : {
+    "To save power, window animations are unavailable in Low Power Mode." : {
       "localizations" : {
         "ar" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "To save power, window animations are\nunavailable in Low Power Mode."
+            "value" : "To save power, window animations are unavailable in Low Power Mode."
           }
         },
         "de" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Um Energie zu sparen, sind Fensteranimationen\nim Energiesparmodus nicht verfügbar."
+            "value" : "Um Energie zu sparen, sind Fensteranimationen im Energiesparmodus nicht verfügbar."
           }
         },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "To save power, window animations are\nunavailable in Low Power Mode."
+            "value" : "To save power, window animations are unavailable in Low Power Mode."
           }
         },
         "es" : {
           "stringUnit" : {
             "state" : "needs_review",
-            "value" : "To save power, window animations are\nunavailable in Low Power Mode."
+            "value" : "To save power, window animations are unavailable in Low Power Mode."
           }
         },
         "fr" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Pour économiser de l’énergie, les animations de fenêtres\nne sont pas disponibles en mode économie d’énergie."
+            "value" : "Pour économiser de l’énergie, les animations de fenêtres ne sont pas disponibles en mode économie d’énergie."
           }
         },
         "it" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Per risparmiare batteria, le animazioni sono disattivate\ndurante la modalità Risparmio energetico."
+            "value" : "Per risparmiare batteria, le animazioni sono disattivate durante la modalità Risparmio energetico."
           }
         },
         "ja" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "低電力モードでは、ウインドウの\nアニメーションは無効になります。"
+            "value" : "低電力モードでは、ウインドウのアニメーションは無効になります。"
           }
         },
         "ko" : {
@@ -36698,7 +36804,7 @@
         "pt-BR" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Para economizar energia, as animações das janelas são\nindisponível no Modo de Baixa Energia."
+            "value" : "Para economizar energia, as animações das janelas são indisponível no Modo de Baixa Energia."
           }
         },
         "ru" : {
@@ -38603,95 +38709,6 @@
         }
       }
     },
-    "Updates will only be installed when %@ is in the background." : {
-      "comment" : "A popover explaining that updates will only be installed when the app is in the background.",
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Updates will only be installed when %@ is in the background."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Updates will only be installed when %@ is in the background."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Updates will only be installed when %@ is in the background."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Updates will only be installed when %@ is in the background."
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Les mises à jour ne seront installées que lorsque %@ fonctionne en arrière-plan."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gli aggiornamenti saranno installati solo quando %@ è in background."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@がバックグラウンドで動作しているときのみ、アップデートがインストールされます。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "%@가 백그라운드에 있을 때만 업데이트가 설치됩니다."
-          }
-        },
-        "nl-BE" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Updates zullen worden geïnstalleerd wanneer %@ op de achtergrond is"
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Aktualizacje zostaną zainstalowane tylko wtedy, gdy %@ jest w tle."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "As atualizações apenas serão instaladas quando o %@ estiver em segundo plano."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Обновления могут быть установлены только когда %@ запущен в фоновом режиме."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "只有在%@处于后台时才会安装更新。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "只有在%@處於後台時才會安裝更新。"
-          }
-        }
-      }
-    },
     "Updating from %@" : {
       "comment" : "A label at the bottom of the update view that indicates the current app version and a message suggesting an update. The argument is the current app version.",
       "localizations" : {
@@ -39131,94 +39148,6 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "設置為當前圖標"
-          }
-        }
-      }
-    },
-    "Use this if you use a custom menu bar." : {
-      "localizations" : {
-        "ar" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "استخدم هذا إذا كنت تستخدم شريط قوائم مخصص."
-          }
-        },
-        "de" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Benutze dies, falls eine eigene Menüleiste benutzt wird."
-          }
-        },
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Use this if you use a custom menu bar."
-          }
-        },
-        "es" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Usa esto si estás utilizando una barra de menú personalizada"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "À utiliser si vous avez une barre des menus personnalisée."
-          }
-        },
-        "it" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Per l'utilizzo con barra dei menu personalizzata."
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "カスタムメニューバーを使用している場合はこれを使ってください。"
-          }
-        },
-        "ko" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "사용자 정의 메뉴바를 사용하는 경우 이것을 사용하세요."
-          }
-        },
-        "nl-BE" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Gebruik dit als je een eigen menubalk gebruikt."
-          }
-        },
-        "pl" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Use this if you use a custom menu bar."
-          }
-        },
-        "pt-BR" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Use isso se você estiver usando uma barra de menu customizada."
-          }
-        },
-        "ru" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Включите это, если вы не используете встроенную строку меню."
-          }
-        },
-        "zh-Hans" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "如果你正在使用自定义菜单栏，请选择此选项。"
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "如果你正在使用自訂選單列，請選擇該選項。"
           }
         }
       }
@@ -40779,6 +40708,94 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Z-shaped"
+          }
+        }
+      }
+    },
+    "“Tile by dragging windows to screen edges” is on in System Settings and conflicts with this." : {
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "“Tile by dragging windows to screen edges” is on in System Settings and conflicts with this."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Die Funktion „Fenster zum Anordnen an Bildschirmrand ziehen“ ist in den macOS Einstellungen aktiviert, was zu Konflikten mit der Fenster-Snap Funktion führt."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "“Tile by dragging windows to screen edges” is on in System Settings and conflicts with this."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "“Tile by dragging windows to screen edges” is on in System Settings and conflicts with this."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’option « Faire glisser les fenêtres vers les bords de l’écran pour créer une mosaïque » est activée dans Réglages Système et entre en conflit avec celle-ci."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La funzione “Disponi le finestre a mosaico trascinandole verso i bordi dello schermo” di macOS è attualmente abilitata, creando conflitto con la funzionalità “Aggancia ai bordi” di Loop."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "システム設定の“ウインドウを画面の端にドラッグしてタイル表示”がオンになっているため、この設定と競合します。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS의 “창을 화면 가장자리로 드래그하여 타일 배치” 기능이 현재 활성화되어 있으며, 이는 Loop의 창 스냅 기능과 충돌할 수 있습니다."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS' “Sleep vensters naar de linker- of rechterrand van het scherm om te plaatsen”-functie is actief, wat conflicteert met de vastgrijpfunctie van Loop."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Funkcja macOS „Dokuj okna, przeciągając je do lewej lub prawej krawędzi ekranu” jest obecnie włączona, co będzie kolidowało z funkcją przyciągania okien Loop."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "a funcionalidade do macOS “Organizar janelas ao arrastar para as bordas da tela” está atualmente ativada, o que entra em conflito com a funcionalidade de alinhamento de janelas do Loop."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Настройка плиточного расположения окон macOS включена, отключите привязку окон в настройках Loop."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS的“将窗口拖移到屏幕边缘以平铺”功能已被启用，这将会与Loop的窗口吸附功能相冲突。"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "macOS的「拖移視窗至螢幕邊緣來並排」功能已啟用，這將會與Loop的窗口吸附功能相衝突。"
           }
         }
       }

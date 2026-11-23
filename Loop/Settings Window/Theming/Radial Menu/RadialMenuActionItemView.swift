@@ -94,14 +94,10 @@ struct RadialMenuActionItemView: View {
     }
 
     var body: some View {
-        HStack(spacing: 12) {
+        // The default 8 points of spacing and the action button's own 4 points of padding make 12, as between the controls
+        HStack(spacing: 8) {
             actionSelection
-
-            Spacer()
-
-            if let link = action.type.link {
-                BindingLinkBadge(kind: link.kind, unlink: unlink)
-            }
+                .frame(maxWidth: .infinity, alignment: .leading)
 
             HStack(spacing: 8) {
                 Button(action: moveUp) {
@@ -157,20 +153,9 @@ struct RadialMenuActionItemView: View {
                     if let action = resolvedAction {
                         IconView(action: action)
 
-                        if let info = action.direction.infoText {
-                            Text(action.getName())
-                                .fontWeight(.regular)
-                                .lineLimit(1)
-                                .padding(.trailing, 4)
-                                .luminareToolTip(attachedTo: .topTrailing) {
-                                    Text(info)
-                                        .padding(6)
-                                }
-                        } else {
-                            Text(action.getName())
-                                .fontWeight(.regular)
-                                .lineLimit(1)
-                        }
+                        Text(action.getName())
+                            .fontWeight(.regular)
+                            .lineLimit(1)
                     } else {
                         Image(systemName: "bolt.horizontal.fill")
                             .foregroundStyle(.secondary)
@@ -181,15 +166,24 @@ struct RadialMenuActionItemView: View {
                             .foregroundStyle(.secondary)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
             }
-            .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
+            .luminareContentSize(contentMode: .fit, hasFixedHeight: true, isCompressible: true)
             .luminareRoundingBehavior(top: true, bottom: true)
             .luminareFilledStates([.hovering, .pressed])
             .luminareBorderedStates(.hovering)
             .luminareMinHeight(24)
             .help("Customize this radial menu action.")
             .padding(.leading, -4)
+
+            if let info = resolvedAction?.direction.infoText {
+                LuminareToolTip(systemImage: "info.circle.fill", text: info)
+            }
+
+            if let link = action.type.link {
+                BindingLinkBadge(kind: link.kind, unlink: unlink)
+            }
 
             Group {
                 if let resolvedAction {

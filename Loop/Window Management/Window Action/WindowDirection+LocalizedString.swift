@@ -11,8 +11,8 @@ import SwiftUI
 extension WindowDirection {
     var infoText: LocalizedStringKey? {
         switch self {
-        case .macOSCenter: "\(name) places windows slightly above center,\nwhich many people find more comfortable."
-        case .stash: "Each \(name) action tracks one window. To stash\nmore windows, add more \(name) actions."
+        case .macOSCenter: "Places windows slightly above center, which can be more comfortable to look at."
+        case .stash: "Each \(name) action tracks one window. To stash more windows, add more \(name) actions."
         default: nil
         }
     }

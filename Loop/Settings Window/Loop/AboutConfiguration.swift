@@ -272,13 +272,13 @@ struct AboutConfigurationView: View {
             LuminareToggle("Include development versions", isOn: $includeDevelopmentVersions)
 
             LuminareToggle(isOn: $automaticallyUpdate) {
-                Text("Automatically install updates")
-                    .padding(.trailing, automaticallyUpdate ? 4 : 0)
-                    .luminareToolTip(attachedTo: .topTrailing, hidden: !automaticallyUpdate) {
-                        Text("Updates will only be installed when \(Bundle.main.appName) is in the background.")
-                            .padding(6)
+                HStack(spacing: 6) {
+                    Text("Automatically install updates")
+                    if automaticallyUpdate {
+                        LuminareToolTip(systemImage: "info.circle.fill", text: Text("\(Bundle.main.appName) installs updates only while it’s in the background."))
                     }
-                    .animation(luminareAnimation, value: automaticallyUpdate)
+                }
+                .animation(luminareAnimation, value: automaticallyUpdate)
             }
         }
     }

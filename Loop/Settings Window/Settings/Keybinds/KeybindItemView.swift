@@ -92,12 +92,18 @@ struct KeybindItemView: View {
     }
 
     var body: some View {
-        ZStack {
+        // The default 8 points of spacing and the action button's own 4 points of padding make 12, as between the controls
+        HStack(spacing: 8) {
             actionSelection
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-            keybindCombination
-                .frame(maxWidth: .infinity, alignment: .trailing)
+            HStack(spacing: 6) {
+                if hasDuplicateKeybinds {
+                    LuminareToolTip(systemImage: "exclamationmark.triangle.fill", text: Text("Another keybind uses this key combination."))
+                }
+
+                keybindCombination
+            }
         }
         .padding(.horizontal, 12)
         .onChange(of: action) { externalAction = $0 }
@@ -147,30 +153,28 @@ struct KeybindItemView: View {
                 HStack(spacing: 8) {
                     IconView(action: action)
 
-                    if let info = action.direction.infoText {
-                        Text(action.getName())
-                            .fontWeight(.regular)
-                            .lineLimit(1)
-                            .padding(.trailing, 4)
-                            .luminareToolTip(attachedTo: .topTrailing) {
-                                Text(info)
-                                    .padding(6)
-                            }
-                    } else {
-                        Text(action.getName())
-                            .fontWeight(.regular)
-                            .lineLimit(1)
-                    }
+                    Text(action.getName())
+                        .fontWeight(.regular)
+                        .lineLimit(1)
                 }
+                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 4)
             }
-            .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
+            .luminareContentSize(contentMode: .fit, hasFixedHeight: true, isCompressible: true)
             .luminareRoundingBehavior(top: true, bottom: true)
             .luminareFilledStates([.hovering, .pressed])
             .luminareBorderedStates(.hovering)
             .luminareMinHeight(24)
             .help("Customize this keybind’s action.")
             .padding(.leading, -4)
+
+            if let info = action.direction.infoText {
+                LuminareToolTip(systemImage: "info.circle.fill", text: info)
+            }
+
+            if let link = self.action.link {
+                BindingLinkBadge(kind: link.kind, unlink: unlink)
+            }
 
             Group {
                 if action.direction.isCustomizable {
@@ -219,11 +223,6 @@ struct KeybindItemView: View {
             }
             .font(.title3)
             .foregroundStyle(.secondary)
-
-            if let link = self.action.link {
-                BindingLinkBadge(kind: link.kind, unlink: unlink)
-                    .padding(.leading, 6)
-            }
         }
     }
 
@@ -234,16 +233,9 @@ struct KeybindItemView: View {
                     .frame(width: 27, height: 27)
                     .luminareSurface()
             } else {
-                HStack(spacing: 6) {
-                    keycorderSection()
-                        .padding(.leading, 4)
-                        .luminareToolTip(attachedTo: .topLeading, hidden: !hasDuplicateKeybinds) {
-                            Text("Another keybind uses this key combination.")
-                                .padding(6)
-                        }
-                        .luminareTint(overridingWith: .red)
-                }
-                .fixedSize()
+                keycorderSection()
+                    .luminareTint(overridingWith: .red)
+                    .fixedSize()
             }
         }
         .luminareCornerRadius(8)

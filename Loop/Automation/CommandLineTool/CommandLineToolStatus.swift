@@ -30,7 +30,7 @@ enum CommandLineToolStatus: Equatable {
         case .installedWithoutAdministrator:
             AttributedString(localized: "`\(symlinkPath)` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it.", comment: "Warning on the command-line tool row in Advanced settings, shown when the link wasn’t created with administrator privileges. %@ is the path to the link, such as /usr/local/bin/loop.")
         case .blocked:
-            AttributedString(localized: "`\(symlinkPath)` belongs to another app or file. Remove it, then try again.", comment: "Warning on the command-line tool row in Advanced settings, shown when something other than Loop’s link is at that path. %@ is the path to the link, such as /usr/local/bin/loop.")
+            AttributedString(localized: "Another file is already at `\(symlinkPath)`. Remove it, then try again.", comment: "Warning on the command-line tool row in Advanced settings, shown when something other than Loop’s link is at that path. %@ is the path to the link, such as /usr/local/bin/loop.")
         }
     }
 
@@ -50,7 +50,7 @@ enum CommandLineToolStatus: Equatable {
         case .installedWithoutAdministrator:
             "\(symlinkPath) isn’t owned by an administrator, so another app could have created it. Click Repair in Loop’s Advanced settings."
         case .blocked:
-            "\(symlinkPath) belongs to another app or file. Remove it, then install the command-line tool in Loop’s Advanced settings."
+            "Another file is already at \(symlinkPath). Remove it, then install the command-line tool in Loop’s Advanced settings."
         }
     }
 

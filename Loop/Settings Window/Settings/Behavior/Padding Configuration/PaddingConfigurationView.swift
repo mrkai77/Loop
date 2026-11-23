@@ -206,12 +206,10 @@ struct PaddingConfigurationView: View {
             onEditingChanged: handleSliderEditingChanged,
             onEditingCommit: commitSliderChanges
         ) {
-            Text("External bar", comment: "Label for a slider in Loop’s padding settings")
-                .padding(.trailing, 4)
-                .luminareToolTip(attachedTo: .topTrailing) {
-                    Text("Use this if you use a custom menu bar.")
-                        .padding(6)
-                }
+            HStack(spacing: 6) {
+                Text("External bar", comment: "Label for a slider in Loop’s padding settings")
+                LuminareToolTip(systemImage: "info.circle.fill", text: Text("Leaves room for a custom menu bar."))
+            }
         }
         .luminareSliderLayout(.compact(textBoxWidth: 76))
     }

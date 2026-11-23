@@ -111,12 +111,10 @@ struct BehaviorConfigurationView: View {
             if #available(macOS 15, *) {
                 LuminareToggle(isOn: $windowSnapping) {
                     if SystemWindowManager.MoveAndResize.snappingEnabled {
-                        Text("Snap by dragging to screen edges")
-                            .padding(.trailing, 4)
-                            .luminareToolTip(attachedTo: .topTrailing) {
-                                Text("macOS’s “Tile by dragging windows to screen edges” is turned on,\nwhich conflicts with Loop’s window snapping.")
-                                    .padding(6)
-                            }
+                        HStack(spacing: 6) {
+                            Text("Snap by dragging to screen edges")
+                            LuminareToolTip(systemImage: "exclamationmark.triangle.fill", text: Text("“Tile by dragging windows to screen edges” is on in System Settings and conflicts with this."))
+                        }
                     } else {
                         Text("Snap by dragging to screen edges")
                     }
