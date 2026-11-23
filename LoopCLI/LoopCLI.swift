@@ -39,16 +39,11 @@ struct LoopCLICommand: ParsableCommand {
 
     /// The installed tool lives inside Loop.app, so this is the version of the Loop it belongs to
     private static var version: String {
-        let info = appBundle?.infoDictionary
-        guard let version = info?["CFBundleShortVersionString"] as? String else {
+        guard let bundle = appBundle, let version = bundle.appVersion else {
             return "unknown (not inside Loop.app)"
         }
 
-        if let build = info?["CFBundleVersion"] as? String {
-            return "\(version) (\(build))"
-        }
-
-        return version
+        return bundle.appBuild.map { "\(version) (\($0))" } ?? version
     }
 
     /// `Bundle.main` doesn't follow the `/usr/local/bin/loop` symlink, so this resolves the executable's real path first

@@ -399,6 +399,11 @@ final class LoopCommandHandler {
 
     /// Picks the window and screen the way keybinds do, unless the request names them
     private func run(_ action: WindowAction, target: LoopTarget, params: TargetParams, source: InvocationSource) async -> LoopAutomationResponse {
+        // Like keybinds, which don't open Loop without it
+        guard AccessibilityManager.shared.isGranted else {
+            return failureResponse(.unavailable, message: "Loop needs Accessibility access to move windows. Grant it in System Settings, then try again.")
+        }
+
         let window: Window?
         switch await resolveWindow(params: params, canLaunchApps: source == .cli) {
         case let .success(resolved):
@@ -498,10 +503,10 @@ final class LoopCommandHandler {
         let context = ResizeContext(window: window)
         await context.refreshResolvedState()
 
-        // Each command is its own session, so restarting would always pick the first action
+        // Each command is a new session, like a separate keybind press, so this follows the same setting
         guard let proposal = context.proposeCycleAction(
             in: action,
-            restartAtBeginningWhenInterrupted: false,
+            restartAtBeginningWhenInterrupted: Defaults[.cycleModeRestartEnabled],
             mode: .advance(.forward)
         ) else {
             return nil
