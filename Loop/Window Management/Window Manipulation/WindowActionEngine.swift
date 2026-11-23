@@ -113,8 +113,7 @@ final class WindowActionEngine {
 
         // Cross-space throws
         if let window = context.window, let destination = direction.spaceDestination {
-            await throwWindow(window, to: destination)
-            return .noOp
+            return await throwWindow(window, to: destination) ? .noOp : .failed
         }
 
         if direction == .stash,
@@ -228,10 +227,11 @@ final class WindowActionEngine {
         }
     }
 
-    private func throwWindow(_ window: Window, to space: SpaceDestination) async {
+    /// Whether the window could be moved, which it can't when that desktop doesn't exist
+    private func throwWindow(_ window: Window, to space: SpaceDestination) async -> Bool {
         guard #available(macOS 14.0, *) else {
             log.error("Cross-space window movement requires macOS 14.0 or later")
-            return
+            return false
         }
 
         let targetSpace: SkyLightToolBelt.ManagedSpace? = switch space {
@@ -245,9 +245,10 @@ final class WindowActionEngine {
 
         guard let targetSpace else {
             log.error("Could not resolve target \(space) for window \(window.cgWindowID)")
-            return
+            return false
         }
 
         SkyLightToolBelt.moveWindow(window.cgWindowID, toSpace: targetSpace.id)
+        return true
     }
 }

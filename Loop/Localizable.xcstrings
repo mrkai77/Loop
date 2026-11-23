@@ -356,6 +356,75 @@
         }
       }
     },
+    "%@ is trying to install an update." : {
+      "comment" : "Administrator password prompt shown before installing an update. %@ is the app’s name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is trying to install an update."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ tente d’installer une mise à jour."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@がアップデートをインストールしようとしています。"
+          }
+        }
+      }
+    },
+    "%@ is trying to install its command-line tool." : {
+      "comment" : "Administrator password prompt shown before installing or repairing the command-line tool. %@ is the app’s name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is trying to install its command-line tool."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ tente d’installer son outil de ligne de commande."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@がコマンドラインツールをインストールしようとしています。"
+          }
+        }
+      }
+    },
+    "%@ is trying to uninstall its command-line tool." : {
+      "comment" : "Administrator password prompt shown before uninstalling the command-line tool. %@ is the app’s name.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%@ is trying to uninstall its command-line tool."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ tente de désinstaller son outil de ligne de commande."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@がコマンドラインツールをアンインストールしようとしています。"
+          }
+        }
+      }
+    },
     "%@ isn’t in your Applications folder. Would you like to install the update to your Applications folder instead?" : {
       "comment" : "Informative text in the alert displayed when the app is not in the user's Applications folder.",
       "localizations" : {
@@ -795,6 +864,121 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "%lld-finger Swipe or Magnify"
+          }
+        }
+      }
+    },
+    "`%@` belongs to another app or file. Remove it, then try again." : {
+      "comment" : "Warning on the command-line tool row in Advanced settings, shown when something other than Loop’s link is at that path. %@ is the path to the link, such as /usr/local/bin/loop.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` appartient à une autre app ou à un autre fichier. Supprimez-le, puis réessayez."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@`はほかのアプリまたはファイルのものです。削除してから、もう一度お試しください。"
+          }
+        }
+      }
+    },
+    "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it." : {
+      "comment" : "Warning on the command-line tool row in Advanced settings, shown when the link wasn’t created with administrator privileges. %@ is the path to the link, such as /usr/local/bin/loop.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` n’appartient pas à un administrateur ; une autre app a donc pu le créer. Cliquez sur « Réparer » pour le réinstaller."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@`の所有者が管理者ではないため、ほかのアプリによって作成された可能性があります。“修復”をクリックして再インストールしてください。"
+          }
+        }
+      }
+    },
+    "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one." : {
+      "comment" : "Warning on the command-line tool row in Advanced settings, shown when the copy of Loop the link points to no longer exists. %@ is the path to the link, such as /usr/local/bin/loop.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` renvoie à une copie de Loop qui a été déplacée ou supprimée. Cliquez sur « Réparer » pour utiliser celle-ci."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@`は移動または削除されたLoopのコピーを指しています。“修復”をクリックして、このコピーを使用してください。"
+          }
+        }
+      }
+    },
+    "`%@` points to another copy of Loop. Click Repair to use this one." : {
+      "comment" : "Warning on the command-line tool row in Advanced settings, shown when the link points to a copy of Loop other than the one running. %@ is the path to the link, such as /usr/local/bin/loop.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` renvoie à une autre copie de Loop. Cliquez sur « Réparer » pour utiliser celle-ci."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@`はほかのLoopのコピーを指しています。“修復”をクリックして、このコピーを使用してください。"
+          }
+        }
+      }
+    },
+    "`loop` command" : {
+      "comment" : "Label of the command-line tool row in Advanced settings. `loop` is the command’s name, so it isn’t translated.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "`loop` command"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Commande `loop`"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`loop`コマンド"
           }
         }
       }
@@ -1595,6 +1779,29 @@
           "stringUnit" : {
             "state" : "needs_review",
             "value" : "Administrator Authorization Required"
+          }
+        }
+      }
+    },
+    "Administrator authorization was canceled." : {
+      "comment" : "Error shown when the administrator password prompt is canceled, such as the reason an update couldn’t be installed.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Administrator authorization was canceled."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’autorisation de l’administrateur a été annulée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "管理者の認証がキャンセルされました。"
           }
         }
       }
@@ -5235,6 +5442,29 @@
         }
       }
     },
+    "Command-Line Tool" : {
+      "comment" : "Section header in Advanced settings.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Command-Line Tool"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Outil de ligne de commande"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "コマンドラインツール"
+          }
+        }
+      }
+    },
     "Configure…" : {
       "comment" : "Button label that opens a view to configure padding settings.",
       "localizations" : {
@@ -5585,6 +5815,118 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "已複製！"
+          }
+        }
+      }
+    },
+    "Copy" : {
+      "comment" : "Label of the toolbar button in the output window that copies the output.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نسخ"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopieren"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copier"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copia"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "コピー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복사"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopieer"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiuj"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copiar"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Скопировать"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拷贝"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "拷貝"
+          }
+        }
+      }
+    },
+    "Copy output to the clipboard" : {
+      "comment" : "Help tag of the Copy button in the output window’s toolbar.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy output to the clipboard"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copier la sortie dans le presse-papiers"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "出力をクリップボードにコピー"
           }
         }
       }
@@ -9404,6 +9746,95 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "在更改視窗大小時取得焦點"
+          }
+        }
+      }
+    },
+    "Format" : {
+      "comment" : "Label of the toolbar control in the output window that switches between text and JSON.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "التنسيق"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Format"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Format"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formato"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Format"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formato"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "フォーマット"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "포맷"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Structuur"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Format"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Formato"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Формат"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "格式"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "格式"
           }
         }
       }
@@ -14189,6 +14620,95 @@
         }
       }
     },
+    "Install…" : {
+      "comment" : "Button on the command-line tool row in Advanced settings that installs the tool. Opens the administrator password prompt.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "تثبيت…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installieren …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Install…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalar…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installer…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installa…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "インストール…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "설치…"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Installeer…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instaluj…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instalar…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Установить…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安装…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "安裝⋯"
+          }
+        }
+      }
+    },
     "Instant" : {
       "comment" : "Animation speed setting",
       "localizations" : {
@@ -14451,6 +14971,95 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "加入Discord伺服器"
+          }
+        }
+      }
+    },
+    "JSON" : {
+      "comment" : "Option in the output window’s format control that shows JSON, the name of a data format.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "JSON"
           }
         }
       }
@@ -18251,6 +18860,75 @@
         }
       }
     },
+    "Loop couldn’t get administrator authorization. (%@)" : {
+      "comment" : "Error shown when installing the command-line tool or an update fails because the administrator password prompt couldn’t be shown. %@ is a technical detail for troubleshooting.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop n’a pas pu obtenir l’autorisation de l’administrateur. (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loopは管理者の認証を取得できませんでした。（%@）"
+          }
+        }
+      }
+    },
+    "Loop Output" : {
+      "comment" : "Title of the window that shows the result of a loop:// list URL.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loop Output"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sortie de Loop"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loopの出力"
+          }
+        }
+      }
+    },
+    "Loop Output: %@" : {
+      "comment" : "Title of the window that shows the result of a loop:// list URL. %@ is the command that was run, such as “list windows”.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loop Output: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Sortie de Loop : %@"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loopの出力：%@"
+          }
+        }
+      }
+    },
     "Loops left to unlock new icon" : {
       "localizations" : {
         "ar" : {
@@ -18527,6 +19205,52 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)" : {
+      "comment" : "Error shown when installing the command-line tool or an update fails because Loop’s privileged helper couldn’t be found or started. %@ is a technical detail for troubleshooting.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’utilitaire de Loop est manquant ou endommagé. Réinstallez Loop, puis réessayez. (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loopのヘルパーが見つからないか、破損しています。Loopを再インストールしてから、もう一度お試しください。（%@）"
+          }
+        }
+      }
+    },
+    "Loop’s helper stopped before it finished. (%@)" : {
+      "comment" : "Error shown when installing the command-line tool or an update fails because Loop’s privileged helper stopped partway through. %@ is a technical detail for troubleshooting.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’utilitaire de Loop s’est arrêté avant d’avoir terminé. (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loopのヘルパーが完了前に停止しました。（%@）"
           }
         }
       }
@@ -27459,6 +28183,95 @@
         }
       }
     },
+    "Repair…" : {
+      "comment" : "Button on the command-line tool row in Advanced settings that reinstalls the tool. Opens the administrator password prompt.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إصلاح…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reparieren …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repair…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reparar…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Réparer…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ripara…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修復…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "복구…"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herstel…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Napraw…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reparar…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Исправить…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修复…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "修復⋯"
+          }
+        }
+      }
+    },
     "Request…" : {
       "comment" : "Button to request accessibility access",
       "localizations" : {
@@ -33228,6 +34041,95 @@
         }
       }
     },
+    "Text" : {
+      "comment" : "Option in the output window’s format control that shows readable text.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "نص"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Text"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texto"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texte"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Testo"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "テキスト"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "텍스트"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Tekst"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Texto"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Текст"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文本"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "文字"
+          }
+        }
+      }
+    },
     "That keybind is already being used by %@." : {
       "localizations" : {
         "ar" : {
@@ -33488,6 +34390,98 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "此按鍵綁定已被另一個收納按键绑定占用。"
+          }
+        }
+      }
+    },
+    "The command couldn’t be run." : {
+      "comment" : "Title of the alert shown when a loop:// URL fails. The reason is shown below it.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The command couldn’t be run."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "La commande n’a pas pu être exécutée."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "コマンドを実行できませんでした。"
+          }
+        }
+      }
+    },
+    "The command-line tool couldn’t be installed." : {
+      "comment" : "Title of the alert shown when installing the command-line tool from Advanced settings fails.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The command-line tool couldn’t be installed."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’outil de ligne de commande n’a pas pu être installé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "コマンドラインツールをインストールできませんでした。"
+          }
+        }
+      }
+    },
+    "The command-line tool couldn’t be repaired." : {
+      "comment" : "Title of the alert shown when repairing the command-line tool from Advanced settings fails.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The command-line tool couldn’t be repaired."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’outil de ligne de commande n’a pas pu être réparé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "コマンドラインツールを修復できませんでした。"
+          }
+        }
+      }
+    },
+    "The command-line tool couldn’t be uninstalled." : {
+      "comment" : "Title of the alert shown when uninstalling the command-line tool from Advanced settings fails.",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The command-line tool couldn’t be uninstalled."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "L’outil de ligne de commande n’a pas pu être désinstallé."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "コマンドラインツールをアンインストールできませんでした。"
           }
         }
       }
@@ -35530,6 +36524,95 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "撤銷"
+          }
+        }
+      }
+    },
+    "Uninstall…" : {
+      "comment" : "Button on the command-line tool row in Advanced settings that uninstalls the tool. Opens the administrator password prompt.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "إلغاء التثبيت…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deinstallieren …"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Uninstall…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Désinstaller…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Disinstalla…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "アンインストール…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "제거…"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwijder…"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Odinstaluj…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Desinstalar…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Удалить…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "卸载…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "解除安裝⋯"
           }
         }
       }
@@ -38196,5 +39279,5 @@
       }
     }
   },
-  "version" : "1.0"
+  "version" : "1.1"
 }

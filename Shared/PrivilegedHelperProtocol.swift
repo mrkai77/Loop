@@ -1,5 +1,5 @@
 //
-//  PrivilegedInstallerProtocol.swift
+//  PrivilegedHelperProtocol.swift
 //  Loop
 //
 //  Created by Kai Azim on 2026-02-23.
@@ -7,7 +7,7 @@
 
 import Foundation
 
-@objc protocol PrivilegedInstallerProtocol {
+@objc protocol PrivilegedHelperProtocol {
     /// Performs a privileged swap using a validated rollback token-derived path set.
     func atomicSwap(
         rollbackID: String,
@@ -24,11 +24,14 @@ import Foundation
     func removeCurrentBundle(
         withReply reply: @escaping (NSError?) -> ()
     )
-}
 
-enum PrivilegedInstallerConstants {
-    static let helperExecutableName = "LoopUpdaterHelper"
-    static let serviceName = "com.MrKai77.Loop.UpdaterJob"
-    static let appBundleIdentifier = "com.MrKai77.Loop"
-    static let authorizedClientRequirement = "identifier \"com.MrKai77.Loop\" and anchor apple generic and certificate leaf[subject.OU] = \"5F967GYF84\""
+    /// Installs the Loop CLI symlink at the fixed privileged destination, replacing it only when it's Loop-managed.
+    func installCommandLineTool(
+        withReply reply: @escaping (NSError?) -> ()
+    )
+
+    /// Removes the Loop CLI symlink, but only when it's Loop-managed.
+    func uninstallCommandLineTool(
+        withReply reply: @escaping (NSError?) -> ()
+    )
 }

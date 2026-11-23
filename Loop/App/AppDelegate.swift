@@ -13,16 +13,16 @@ import UserNotifications
 
 @Loggable
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private let urlCommandHandler = URLCommandHandler()
-
     private static let terminateNotificationName = Notification.Name("com.MrKai77.Loop.terminate")
     private var terminateObserver: Any?
 
-    private var launchedAsLoginItem: Bool {
-        guard let event = NSAppleEventManager.shared().currentAppleEvent else { return false }
-        return
-            event.eventID == kAEOpenApplication &&
-            event.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem
+    /// Launched from Finder, the Dock or `open`, rather than at login or to open a `loop://` URL, which has no open-application event
+    private var launchedByUser: Bool {
+        guard let event = NSAppleEventManager.shared().currentAppleEvent, event.eventID == kAEOpenApplication else {
+            return false
+        }
+
+        return event.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue != keyAELaunchedAsLogInItem
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -37,8 +37,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DataPatcher.run()
         }
 
-        // Show settings window only if not launched as login item AND startHidden is disabled
-        if !launchedAsLoginItem, !Defaults[.startHidden] {
+        // Show settings window only if launched by the user AND startHidden is disabled
+        if launchedByUser, !Defaults[.startHidden] {
             SettingsWindowManager.shared.show()
         } else {
             // Closing also hides the dock icon if needed.
@@ -66,6 +66,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let stalePIDs = broadcastTerminateToOtherInstances()
             await waitForInstancesToExit(pids: stalePIDs, timeout: .seconds(3))
             LoopManager.shared.start()
+            // After older instances exit, as they remove their socket file while quitting
+            LoopSocketManager.shared.start()
             WindowDragManager.shared.addObservers()
             StashManager.shared.start()
             AccessibilityManager.requestAccess()
@@ -159,8 +161,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        log.info("Received URL: \(url)")
-        urlCommandHandler.handle(url)
+        processIncomingURL(url)
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_: NSApplication) -> Bool {
@@ -179,12 +180,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         LoopManager.shared.shutdown()
         WindowDragManager.shared.shutdown()
         StashManager.shared.shutdown()
+        LoopSocketManager.shared.shutdown()
         return .terminateNow
     }
 
     func application(_: NSApplication, open urls: [URL]) {
         for url in urls {
-            urlCommandHandler.handle(url)
+            processIncomingURL(url)
+        }
+    }
+
+    private func processIncomingURL(_ url: URL) {
+        log.info("Received URL: \(url)")
+
+        Task { @MainActor in
+            // macOS gives Loop a Dock icon before handing it a URL, as Loop isn't an `LSUIElement` app
+            SettingsWindowManager.shared.hideDockIconIfUnused()
+
+            let result = await LoopCommandHandler.shared.handle(url)
+            log.debug("Response: \(result.jsonResponse)")
+            result.presentIfNeeded()
         }
     }
 }

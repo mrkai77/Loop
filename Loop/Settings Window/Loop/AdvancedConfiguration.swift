@@ -14,6 +14,11 @@ import SwiftUI
 @Loggable
 @MainActor
 final class AdvancedConfigurationModel: ObservableObject {
+    struct CommandLineToolError {
+        let title: String
+        let message: String
+    }
+
     @Published private(set) var showResetRadialMenuActionsSuccessIndicator = false
     @Published private(set) var showImportKeybindsSuccessIndicator = false
     @Published private(set) var showExportKeybindsSuccessIndicator = false
@@ -21,13 +26,18 @@ final class AdvancedConfigurationModel: ObservableObject {
 
     @Published private(set) var isLowPowerModeEnabled: Bool = ProcessInfo.processInfo.isLowPowerModeEnabled
     @Published private(set) var isAccessibilityAccessGranted = AccessibilityManager.shared.isGranted
+    @Published private(set) var commandLineToolInstallStatus: CommandLineToolInstaller.Status = .notInstalled
+    @Published private(set) var isCommandLineToolOperationInProgress = false
+    @Published private(set) var commandLineToolError: CommandLineToolError?
 
     private var lowPowerModeCheckerTask: Task<(), Never>?
     private var accessibilityCheckerTask: Task<(), Never>?
+    private let commandLineToolInstaller = CommandLineToolInstaller()
 
     func startTracking() {
         trackLowPowerMode()
         trackAccessibilityStatus()
+        refreshCommandLineToolInstallStatus()
     }
 
     func stopTracking() {
@@ -102,6 +112,71 @@ final class AdvancedConfigurationModel: ObservableObject {
         showSuccessIndicator(\.showResetRadialMenuActionsSuccessIndicator)
     }
 
+    var canPerformCommandLineToolAction: Bool {
+        !isCommandLineToolOperationInProgress && commandLineToolInstallStatus != .blocked
+    }
+
+    var isCommandLineToolInstalled: Bool {
+        commandLineToolInstallStatus == .installedCurrent
+    }
+
+    var commandLineToolActionTitle: String {
+        switch commandLineToolInstallStatus {
+        case .installedStale, .installedMissing, .installedWithoutAdministrator:
+            String(localized: "Repair…", comment: "Button on the command-line tool row in Advanced settings that reinstalls the tool. Opens the administrator password prompt.")
+        case .installedCurrent:
+            String(localized: "Uninstall…", comment: "Button on the command-line tool row in Advanced settings that uninstalls the tool. Opens the administrator password prompt.")
+        case .notInstalled, .blocked:
+            String(localized: "Install…", comment: "Button on the command-line tool row in Advanced settings that installs the tool. Opens the administrator password prompt.")
+        }
+    }
+
+    var isShowingCommandLineToolError: Bool {
+        get { commandLineToolError != nil }
+        set { if !newValue { commandLineToolError = nil } }
+    }
+
+    func performCommandLineToolAction() {
+        guard !isCommandLineToolOperationInProgress else { return }
+
+        let failureTitle: String
+        let operation: () async throws -> ()
+        switch commandLineToolInstallStatus {
+        case .notInstalled:
+            failureTitle = String(localized: "The command-line tool couldn’t be installed.", comment: "Title of the alert shown when installing the command-line tool from Advanced settings fails.")
+            operation = commandLineToolInstaller.install
+        case .installedStale, .installedMissing, .installedWithoutAdministrator:
+            failureTitle = String(localized: "The command-line tool couldn’t be repaired.", comment: "Title of the alert shown when repairing the command-line tool from Advanced settings fails.")
+            operation = commandLineToolInstaller.install
+        case .installedCurrent:
+            failureTitle = String(localized: "The command-line tool couldn’t be uninstalled.", comment: "Title of the alert shown when uninstalling the command-line tool from Advanced settings fails.")
+            operation = commandLineToolInstaller.uninstall
+        case .blocked:
+            return
+        }
+
+        isCommandLineToolOperationInProgress = true
+        commandLineToolError = nil
+
+        Task {
+            defer {
+                isCommandLineToolOperationInProgress = false
+                refreshCommandLineToolInstallStatus()
+            }
+
+            do {
+                try await operation()
+            } catch is PrivilegedHelperCoordinator.AuthorizationCanceled {
+                // The user canceled the password prompt
+            } catch is CancellationError {
+                return
+            } catch {
+                log.error("Command-line tool operation failed: \(error.localizedDescription)")
+                commandLineToolError = CommandLineToolError(title: failureTitle, message: error.localizedDescription)
+            }
+        }
+    }
+
     private func showSuccessIndicator(_ keyPath: ReferenceWritableKeyPath<AdvancedConfigurationModel, Bool>) {
         Task {
             withAnimation(.smooth(duration: 0.5)) {
@@ -115,11 +190,21 @@ final class AdvancedConfigurationModel: ObservableObject {
             }
         }
     }
+
+    func refreshCommandLineToolInstallStatus() {
+        do {
+            commandLineToolInstallStatus = try commandLineToolInstaller.status()
+        } catch {
+            log.error("Error checking CLI installation status: \(error.localizedDescription)")
+            commandLineToolInstallStatus = .blocked
+        }
+    }
 }
 
 struct AdvancedConfigurationView: View {
     @EnvironmentObject private var windowModel: SettingsWindowManager
     @Environment(\.luminareAnimation) var luminareAnimation
+    @Environment(\.luminareSectionHorizontalPadding) private var sectionHorizontalPadding
     @Environment(\.openURL) private var openURL
 
     @StateObject private var model = AdvancedConfigurationModel()
@@ -158,9 +243,23 @@ struct AdvancedConfigurationView: View {
             permissionsSection
                 .onAppear(perform: model.startTracking)
                 .onDisappear(perform: model.stopTracking)
+                // Removing a conflicting file usually happens in another app, so check again on coming back
+                .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+                    model.refreshCommandLineToolInstallStatus()
+                }
+            commandLineToolSection
         }
         .animation(luminareAnimation, value: enableRadialMenuCustomization)
         .animation(luminareAnimation, value: useSystemWindowManagerWhenAvailable)
+        .alert(
+            model.commandLineToolError?.title ?? "",
+            isPresented: $model.isShowingCommandLineToolError,
+            presenting: model.commandLineToolError
+        ) { _ in
+            Button("OK", role: .cancel) {}
+        } message: { error in
+            Text(error.message)
+        }
     }
 
     private var generalSection: some View {
@@ -327,6 +426,41 @@ struct AdvancedConfigurationView: View {
         .animation(luminareAnimation, value: model.isAccessibilityAccessGranted)
     }
 
+    private var commandLineToolSection: some View {
+        LuminareSection(String(localized: "Command-Line Tool", comment: "Section header in Advanced settings.")) {
+            LuminareCompose {
+                Button {
+                    model.performCommandLineToolAction()
+                } label: {
+                    Text(model.commandLineToolActionTitle)
+                        .padding(.horizontal, sectionHorizontalPadding)
+                }
+                .luminareRoundingBehavior(top: true, bottom: true)
+                .luminareContentSize(contentMode: .fit, hasFixedHeight: true)
+                .luminareComposeIgnoreSafeArea(edges: .trailing)
+                .disabled(!model.canPerformCommandLineToolAction)
+                .geometryGroupIfAvailable()
+            } label: {
+                HStack {
+                    if model.isCommandLineToolInstalled {
+                        Image(systemName: "checkmark.seal.fill")
+                            .foregroundStyle(.green)
+                    }
+
+                    Text("`loop` command", comment: "Label of the command-line tool row in Advanced settings. `loop` is the command’s name, so it isn’t translated.")
+                        .padding(.trailing, 4)
+                        .luminareToolTip(attachedTo: .topTrailing, hidden: model.commandLineToolInstallStatus.warning == nil) {
+                            if let warning = model.commandLineToolInstallStatus.warning {
+                                Text(warning)
+                                    .padding(6)
+                            }
+                        }
+                }
+            }
+        }
+        .animation(luminareAnimation, value: model.commandLineToolInstallStatus)
+    }
+
     private func accessibilityComponent() -> some View {
         LuminareButton {
             HStack {
@@ -348,5 +482,17 @@ struct AdvancedConfigurationView: View {
             AccessibilityManager.requestAccess()
         }
         .disabled(model.isAccessibilityAccessGranted)
+    }
+}
+
+private extension View {
+    /// `geometryGroup()` requires macOS 14
+    @ViewBuilder
+    func geometryGroupIfAvailable() -> some View {
+        if #available(macOS 14.0, *) {
+            geometryGroup()
+        } else {
+            self
+        }
     }
 }

@@ -1,5 +1,5 @@
 //
-//  PrivilegedInstaller.swift
+//  PrivilegedHelper.swift
 //  Loop
 //
 //  Created by Kai Azim on 2026-03-01.
@@ -10,7 +10,7 @@ import Scribe
 import Security
 
 @Loggable
-final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
+final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
     private struct AtomicSwapPaths {
         let currentURL: URL
         let stagedURL: URL
@@ -28,11 +28,11 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
     private static let allowedRollbackIDScalars = CharacterSet.alphanumerics
         .union(CharacterSet(charactersIn: "._-"))
 
-    private let context: PrivilegedInstallerService.TrustedClientContext
+    private let context: PrivilegedHelperService.TrustedClientContext
     private let fileManager: FileManager
 
     init(
-        context: PrivilegedInstallerService.TrustedClientContext,
+        context: PrivilegedHelperService.TrustedClientContext,
         fileManager: FileManager = .default
     ) {
         self.context = context
@@ -44,7 +44,7 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
             try executeAtomicSwap(rollbackID: rollbackID)
             reply(nil)
         } catch {
-            reply(error as NSError)
+            reply(Self.xpcError(error))
         }
     }
 
@@ -53,7 +53,7 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
             try executeRestoreFromBackup(rollbackID: rollbackID)
             reply(nil)
         } catch {
-            reply(error as NSError)
+            reply(Self.xpcError(error))
         }
     }
 
@@ -62,8 +62,35 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
             try executeRemoveCurrentBundle()
             reply(nil)
         } catch {
-            reply(error as NSError)
+            reply(Self.xpcError(error))
         }
+    }
+
+    func installCommandLineTool(withReply reply: @escaping (NSError?) -> ()) {
+        do {
+            try executeInstallCommandLineTool()
+            reply(nil)
+        } catch {
+            reply(Self.xpcError(error))
+        }
+    }
+
+    func uninstallCommandLineTool(withReply reply: @escaping (NSError?) -> ()) {
+        do {
+            try executeUninstallCommandLineTool()
+            reply(nil)
+        } catch {
+            reply(Self.xpcError(error))
+        }
+    }
+
+    /// Swift error descriptions don't survive XPC, so send the message as a plain `NSError`
+    private static func xpcError(_ error: Error) -> NSError {
+        NSError(
+            domain: "com.MrKai77.Loop.PrivilegedHelper",
+            code: (error as NSError).code,
+            userInfo: [NSLocalizedDescriptionKey: error.localizedDescription]
+        )
     }
 
     /// Executes a privileged atomic swap using rollback-token-derived paths in user Application Support.
@@ -135,6 +162,152 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
 
         try fileManager.removeItem(at: currentBundleURL)
         log.success("Removed current app bundle at \(currentBundleURL.path)")
+    }
+
+    private func executeInstallCommandLineTool() throws {
+        let sourceURL = try validatedCommandLineToolSourceURL()
+        let destinationURL = PrivilegedHelperConstants.commandLineToolSymlinkURL
+
+        try ensureCommandLineToolInstallDirectoryExists()
+
+        let directory = try openCommandLineToolInstallDirectory()
+        defer { close(directory) }
+
+        switch try commandLineToolLinkState() {
+        case .missing:
+            break
+        case .loopManaged:
+            try removeCommandLineToolLink(in: directory)
+        case .occupied:
+            throw PrivilegedHelperError.commandLineToolOccupied(path: destinationURL.path)
+        }
+
+        guard symlinkat(sourceURL.path, directory, PrivilegedHelperConstants.commandLineToolSymlinkName) == 0 else {
+            throw PrivilegedHelperError.commandLineToolSystemCallFailed(action: "create", path: destinationURL.path, code: errno)
+        }
+
+        log.success("Installed Loop CLI symlink at \(destinationURL.path) -> \(sourceURL.path)")
+    }
+
+    private func executeUninstallCommandLineTool() throws {
+        let destinationURL = PrivilegedHelperConstants.commandLineToolSymlinkURL
+
+        switch try commandLineToolLinkState() {
+        case .missing:
+            return
+        case .loopManaged:
+            let directory = try openCommandLineToolInstallDirectory()
+            defer { close(directory) }
+
+            try removeCommandLineToolLink(in: directory)
+            log.success("Removed Loop CLI symlink at \(destinationURL.path)")
+        case .occupied:
+            throw PrivilegedHelperError.commandLineToolOccupied(path: destinationURL.path)
+        }
+    }
+
+    /// Opened without following a link, so the final `symlinkat` and `unlinkat` act on this folder even if its path changes.
+    /// Creating the folder and classifying the link still go through the path.
+    private func openCommandLineToolInstallDirectory() throws -> Int32 {
+        let path = PrivilegedHelperConstants.commandLineToolInstallDirectory
+        let directory = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
+
+        guard directory >= 0 else {
+            throw PrivilegedHelperError.commandLineToolSystemCallFailed(action: "open", path: path, code: errno)
+        }
+
+        return directory
+    }
+
+    /// Checks it's still a link right before removing it, and only ever removes the link, never its target
+    private func removeCommandLineToolLink(in directory: Int32) throws {
+        let name = PrivilegedHelperConstants.commandLineToolSymlinkName
+        let path = PrivilegedHelperConstants.commandLineToolSymlinkURL.path
+
+        var info = stat()
+        guard fstatat(directory, name, &info, AT_SYMLINK_NOFOLLOW) == 0 else {
+            guard errno == ENOENT else {
+                throw PrivilegedHelperError.commandLineToolSystemCallFailed(action: "inspect", path: path, code: errno)
+            }
+            return
+        }
+
+        guard info.st_mode & S_IFMT == S_IFLNK else {
+            throw PrivilegedHelperError.commandLineToolOccupied(path: path)
+        }
+
+        guard unlinkat(directory, name, 0) == 0 else {
+            throw PrivilegedHelperError.commandLineToolSystemCallFailed(action: "remove", path: path, code: errno)
+        }
+    }
+
+    private func commandLineToolLinkState() throws -> CommandLineToolLinkState {
+        do {
+            return try PrivilegedHelperConstants.commandLineToolLinkState(fileManager: fileManager)
+        } catch {
+            throw PrivilegedHelperError.commandLineToolFailed(
+                reason: "Couldn’t inspect \(PrivilegedHelperConstants.commandLineToolSymlinkURL.path): \(error.localizedDescription)"
+            )
+        }
+    }
+
+    private func validatedCommandLineToolSourceURL() throws -> URL {
+        let sourceURL = PrivilegedHelperConstants.commandLineToolURL(inBundle: context.clientBundleURL)
+
+        guard fileManager.fileExists(atPath: sourceURL.path) else {
+            throw PrivilegedHelperError.commandLineToolFailed(
+                reason: "This copy of Loop is missing its command-line tool at \(sourceURL.path)."
+            )
+        }
+
+        guard fileManager.isExecutableFile(atPath: sourceURL.path) else {
+            throw PrivilegedHelperError.commandLineToolFailed(
+                reason: "The command-line tool at \(sourceURL.path) isn’t executable."
+            )
+        }
+
+        // `sudo loop` runs whatever the link points at as root, so only link the tool Loop ships
+        guard isSignedCommandLineTool(at: sourceURL) else {
+            throw PrivilegedHelperError.commandLineToolFailed(
+                reason: "The command-line tool at \(sourceURL.path) isn’t signed by Loop’s developer."
+            )
+        }
+
+        return sourceURL
+    }
+
+    private func isSignedCommandLineTool(at url: URL) -> Bool {
+        var staticCode: SecStaticCode?
+        var requirement: SecRequirement?
+
+        guard SecStaticCodeCreateWithPath(url as CFURL, SecCSFlags(), &staticCode) == errSecSuccess, let staticCode,
+              SecRequirementCreateWithString(PrivilegedHelperConstants.commandLineToolRequirement as CFString, SecCSFlags(), &requirement) == errSecSuccess,
+              let requirement
+        else {
+            log.error("Couldn’t prepare the signature check for \(url.path)")
+            return false
+        }
+
+        let status = SecStaticCodeCheckValidity(staticCode, SecCSFlags(rawValue: kSecCSCheckAllArchitectures), requirement)
+        guard status == errSecSuccess else {
+            log.error("Command-line tool signature check failed for \(url.path), status \(status)")
+            return false
+        }
+
+        return true
+    }
+
+    private func ensureCommandLineToolInstallDirectoryExists() throws {
+        let installDirectoryURL = PrivilegedHelperConstants.commandLineToolInstallDirectoryURL
+
+        do {
+            // Succeeds if the folder already exists, and fails if a file is in the way
+            try fileManager.createDirectory(at: installDirectoryURL, withIntermediateDirectories: true)
+        } catch {
+            throw PrivilegedHelperError.commandLineToolFailed(
+                reason: "Couldn’t create \(installDirectoryURL.path): \(error.localizedDescription)"
+            )
+        }
     }
 
     /// Derives and validates atomic swap paths from trusted connection context and rollback token.
@@ -348,7 +521,7 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
         rollbackID: String,
         path: String,
         reason: String
-    ) -> PrivilegedInstallerError {
+    ) -> PrivilegedHelperError {
         log.warn(
             """
             Rejected privileged \(operation) path for pid \(context.clientPID), uid \(context.clientUID), rollbackID \(rollbackID). \
@@ -366,7 +539,7 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
         rollbackID: String,
         path: String,
         reason: String
-    ) -> PrivilegedInstallerError {
+    ) -> PrivilegedHelperError {
         log.warn(
             """
             Rejected privileged \(operation) bundle for pid \(context.clientPID), uid \(context.clientUID), rollbackID \(rollbackID). \
@@ -501,7 +674,7 @@ final class PrivilegedInstaller: NSObject, PrivilegedInstallerProtocol {
 
         guard result == 0 else {
             let errorCode = errno
-            throw PrivilegedInstallerError.ownershipChangeFailed(url: itemURL, code: errorCode)
+            throw PrivilegedHelperError.ownershipChangeFailed(url: itemURL, code: errorCode)
         }
 
         log.success("Applied ownership to \(itemURL.path) (uid: \(uid), gid: \(gid))")
