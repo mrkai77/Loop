@@ -320,7 +320,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%1$@ kon de update niet installeren op %2$@ (%3$@). Wil je de update in de Applicaties-folder installeren?"
           }
         },
@@ -359,22 +359,88 @@
     "%@ is trying to install an update." : {
       "comment" : "Administrator password prompt shown before installing an update. %@ is the app’s name.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install an update."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install an update."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ is trying to install an update."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "%@ is trying to install an update."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "%@ tente d’installer une mise à jour."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install an update."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%@がアップデートをインストールしようとしています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install an update."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install an update."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install an update."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install an update."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install an update."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install an update."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install an update."
           }
         }
       }
@@ -382,22 +448,88 @@
     "%@ is trying to install its command-line tool." : {
       "comment" : "Administrator password prompt shown before installing or repairing the command-line tool. %@ is the app’s name.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install its command-line tool."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install its command-line tool."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ is trying to install its command-line tool."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "%@ is trying to install its command-line tool."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "%@ tente d’installer son outil de ligne de commande."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install its command-line tool."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%@がコマンドラインツールをインストールしようとしています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install its command-line tool."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install its command-line tool."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install its command-line tool."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install its command-line tool."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install its command-line tool."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install its command-line tool."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to install its command-line tool."
           }
         }
       }
@@ -405,22 +537,88 @@
     "%@ is trying to uninstall its command-line tool." : {
       "comment" : "Administrator password prompt shown before uninstalling the command-line tool. %@ is the app’s name.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to uninstall its command-line tool."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to uninstall its command-line tool."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "%@ is trying to uninstall its command-line tool."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "%@ is trying to uninstall its command-line tool."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "%@ tente de désinstaller son outil de ligne de commande."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to uninstall its command-line tool."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%@がコマンドラインツールをアンインストールしようとしています。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to uninstall its command-line tool."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to uninstall its command-line tool."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to uninstall its command-line tool."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to uninstall its command-line tool."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to uninstall its command-line tool."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to uninstall its command-line tool."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "%@ is trying to uninstall its command-line tool."
           }
         }
       }
@@ -478,7 +676,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%@ staat niet in je Applications-folder. Wil je de update in je Applications-folder installeren?"
           }
         },
@@ -566,7 +764,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%@ plaatst vensters een beetje boven het center, wat dus meer ergonomisch kan zijn."
           }
         },
@@ -743,7 +941,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%1$lld-vinger %2$@"
           }
         },
@@ -832,7 +1030,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%lld-vinger Veeg of Vergroot"
           }
         },
@@ -871,22 +1069,88 @@
     "`%@` belongs to another app or file. Remove it, then try again." : {
       "comment" : "Warning on the command-line tool row in Advanced settings, shown when something other than Loop’s link is at that path. %@ is the path to the link, such as /usr/local/bin/loop.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "`%@` belongs to another app or file. Remove it, then try again."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "`%@` appartient à une autre app ou à un autre fichier. Supprimez-le, puis réessayez."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "`%@`はほかのアプリまたはファイルのものです。削除してから、もう一度お試しください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` belongs to another app or file. Remove it, then try again."
           }
         }
       }
@@ -894,22 +1158,88 @@
     "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it." : {
       "comment" : "Warning on the command-line tool row in Advanced settings, shown when the link wasn’t created with administrator privileges. %@ is the path to the link, such as /usr/local/bin/loop.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "`%@` n’appartient pas à un administrateur ; une autre app a donc pu le créer. Cliquez sur « Réparer » pour le réinstaller."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "`%@`の所有者が管理者ではないため、ほかのアプリによって作成された可能性があります。“修復”をクリックして再インストールしてください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
           }
         }
       }
@@ -917,22 +1247,88 @@
     "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one." : {
       "comment" : "Warning on the command-line tool row in Advanced settings, shown when the copy of Loop the link points to no longer exists. %@ is the path to the link, such as /usr/local/bin/loop.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "`%@` renvoie à une copie de Loop qui a été déplacée ou supprimée. Cliquez sur « Réparer » pour utiliser celle-ci."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "`%@`は移動または削除されたLoopのコピーを指しています。“修復”をクリックして、このコピーを使用してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
           }
         }
       }
@@ -940,22 +1336,88 @@
     "`%@` points to another copy of Loop. Click Repair to use this one." : {
       "comment" : "Warning on the command-line tool row in Advanced settings, shown when the link points to a copy of Loop other than the one running. %@ is the path to the link, such as /usr/local/bin/loop.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "`%@` renvoie à une autre copie de Loop. Cliquez sur « Réparer » pour utiliser celle-ci."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "`%@`はほかのLoopのコピーを指しています。“修復”をクリックして、このコピーを使用してください。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`%@` points to another copy of Loop. Click Repair to use this one."
           }
         }
       }
@@ -963,22 +1425,88 @@
     "`loop` command" : {
       "comment" : "Label of the command-line tool row in Advanced settings. `loop` is the command’s name, so it isn’t translated.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`loop` command"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`loop` command"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "`loop` command"
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "`loop` command"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "Commande `loop`"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`loop` command"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "`loop`コマンド"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`loop` command"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`loop` command"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`loop` command"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`loop` command"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`loop` command"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`loop` command"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "`loop` command"
           }
         }
       }
@@ -1213,7 +1741,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Geef toegang om het grootte van vensters aan te passen."
           }
         },
@@ -1302,7 +1830,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%@ Heeft toegankelijkheid toegang nodig"
           }
         },
@@ -1391,7 +1919,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%@ heeft toegang tot Apparaatbeheer en gegevenstoegang nodig"
           }
         },
@@ -1569,8 +2097,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Active"
+            "state" : "translated",
+            "value" : "Actief"
           }
         },
         "pl" : {
@@ -1786,22 +2314,88 @@
     "Administrator authorization was canceled." : {
       "comment" : "Error shown when the administrator password prompt is canceled, such as the reason an update couldn’t be installed.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Administrator authorization was canceled."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Administrator authorization was canceled."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Administrator authorization was canceled."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "Administrator authorization was canceled."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "L’autorisation de l’administrateur a été annulée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Administrator authorization was canceled."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "管理者の認証がキャンセルされました。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Administrator authorization was canceled."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Administrator authorization was canceled."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Administrator authorization was canceled."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Administrator authorization was canceled."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Administrator authorization was canceled."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Administrator authorization was canceled."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Administrator authorization was canceled."
           }
         }
       }
@@ -1948,8 +2542,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Always"
+            "state" : "translated",
+            "value" : "Altijd"
           }
         },
         "pl" : {
@@ -2037,7 +2631,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Start posities altijd vanaf de eerste positie"
           }
         },
@@ -2126,7 +2720,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Geanimeerd"
           }
         },
@@ -2215,7 +2809,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Vergroting van vensters animeren"
           }
         },
@@ -2392,8 +2986,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Another gesture is set up the same way."
+            "state" : "translated",
+            "value" : "Er is al een gelijkaardig gebaar."
           }
         },
         "pl" : {
@@ -2480,7 +3074,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Andere toetscombinaties conflicteren met deze toetscombinatie."
           }
         },
@@ -2569,7 +3163,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Overal"
           }
         },
@@ -3100,7 +3694,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Vervaging"
           }
         },
@@ -3277,7 +3871,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Allebei"
           }
         },
@@ -4697,7 +5291,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Selecteer een bestand met toetscombinaties"
           }
         },
@@ -4874,8 +5468,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Click “Add” to add a gesture"
+            "state" : "translated",
+            "value" : "Druk op \"Toevoegen\" om een gebaar toe te voegen"
           }
         },
         "pl" : {
@@ -4962,7 +5556,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Druk op “Toevoegen” om een toetscombinatie toe te voegen"
           }
         },
@@ -5051,7 +5645,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Klik op “Toevoegen” om een actie toe te voegen"
           }
         },
@@ -5139,7 +5733,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Druk op “Toevoegen” om een applicatie toe te voegen"
           }
         },
@@ -5228,8 +5822,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Klik met de linkermuisknop om door cycle-acties te stappen"
+            "state" : "translated",
+            "value" : "Klik met de linkermuisknop om door cycle-acties te stappen."
           }
         },
         "pl" : {
@@ -5317,8 +5911,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Clockwise"
+            "state" : "translated",
+            "value" : "Wijzerzin"
           }
         },
         "pl" : {
@@ -5445,22 +6039,88 @@
     "Command-Line Tool" : {
       "comment" : "Section header in Advanced settings.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Command-Line Tool"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Command-Line Tool"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Command-Line Tool"
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "Command-Line Tool"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "Outil de ligne de commande"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Command-Line Tool"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "コマンドラインツール"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Command-Line Tool"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Command-Line Tool"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Command-Line Tool"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Command-Line Tool"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Command-Line Tool"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Command-Line Tool"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Command-Line Tool"
           }
         }
       }
@@ -5607,7 +6267,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Ga door met het veeg of vergroot gebaar om door de cyclus acties te gaan."
           }
         },
@@ -5824,13 +6484,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "نسخ"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Kopieren"
           }
         },
@@ -5842,7 +6502,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Copiar"
           }
         },
@@ -5854,7 +6514,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Copia"
           }
         },
@@ -5866,43 +6526,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "복사"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Kopieer"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Kopiuj"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Copiar"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Скопировать"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "拷贝"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "拷貝"
           }
         }
@@ -5911,22 +6571,88 @@
     "Copy output to the clipboard" : {
       "comment" : "Help tag of the Copy button in the output window’s toolbar.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copy output to the clipboard"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copy output to the clipboard"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Copy output to the clipboard"
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "Copy output to the clipboard"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "Copier la sortie dans le presse-papiers"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copy output to the clipboard"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "出力をクリップボードにコピー"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copy output to the clipboard"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copy output to the clipboard"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copy output to the clipboard"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copy output to the clipboard"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copy output to the clipboard"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copy output to the clipboard"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Copy output to the clipboard"
           }
         }
       }
@@ -6340,7 +7066,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Radiaal menu aanpassen toestaan"
           }
         },
@@ -6429,7 +7155,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Pas het frame van de actie aan."
           }
         },
@@ -6518,7 +7244,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Dit gebaar aanpassen."
           }
         },
@@ -6607,8 +7333,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Customize this gesture’s action."
+            "state" : "translated",
+            "value" : "Pas de actie van dit gebaar aan."
           }
         },
         "pl" : {
@@ -6695,7 +7421,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Pas deze toetscombinatie aan."
           }
         },
@@ -6784,7 +7510,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Pas deze radiaal menu actie aan."
           }
         },
@@ -7406,7 +8132,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Apparaatbeheer en gegevenstoegang"
           }
         },
@@ -7495,7 +8221,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Richting"
           }
         },
@@ -7584,7 +8310,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Behandel linker- en rechtertoetsen anders"
           }
         },
@@ -7849,7 +8575,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Gereed"
           }
         },
@@ -8026,7 +8752,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Omlaag"
           }
         },
@@ -8115,8 +8841,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Dragging"
+            "state" : "translated",
+            "value" : "Slepen"
           }
         },
         "pl" : {
@@ -8380,7 +9106,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Fout bij het lezen van toetscombinaties"
           }
         },
@@ -8468,7 +9194,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Toetscombinaties exporteren"
           }
         },
@@ -8557,7 +9283,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Exporteer…"
           }
         },
@@ -8824,7 +9550,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Vingers"
           }
         },
@@ -9358,7 +10084,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Focussen op volgende in vensterstapel"
           }
         },
@@ -9447,7 +10173,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Focus wisselen wanneer venster is opgeborgen"
           }
         },
@@ -9755,13 +10481,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "التنسيق"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Format"
           }
         },
@@ -9773,7 +10499,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Formato"
           }
         },
@@ -9785,7 +10511,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Formato"
           }
         },
@@ -9797,43 +10523,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "포맷"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Structuur"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Format"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Formato"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Формат"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "格式"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "格式"
           }
         }
@@ -9981,7 +10707,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Volledig scherm"
           }
         },
@@ -10159,7 +10885,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Gebaar"
           }
         },
@@ -10248,7 +10974,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Gebaren"
           }
         },
@@ -13167,8 +13893,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Je gaat nu een melding krijgen als je een nieuw icoon ontgrendelt"
+            "state" : "translated",
+            "value" : "Je gaat nu een melding krijgen als je een nieuw icoon ontgrendelt."
           }
         },
         "pl" : {
@@ -13523,7 +14249,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Volledig scherm-vensters negeren"
           }
         },
@@ -13787,7 +14513,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Vervang"
           }
         },
@@ -13964,7 +14690,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Importeer…"
           }
         },
@@ -14053,7 +14779,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Voeg ten minste één aanpassingstoets toe."
           }
         },
@@ -14495,7 +15221,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Installatie mislukt"
           }
         },
@@ -14584,7 +15310,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Installeren in je Applicaties-folder"
           }
         },
@@ -14625,13 +15351,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "تثبيت…"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Installieren …"
           }
         },
@@ -14643,7 +15369,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Instalar…"
           }
         },
@@ -14655,7 +15381,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Installa…"
           }
         },
@@ -14667,43 +15393,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "설치…"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Installeer…"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Instaluj…"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Instalar…"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Установить…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "安装…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "安裝⋯"
           }
         }
@@ -14851,7 +15577,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Gebruik MacOS Window Manager als deze beschikbaar is"
           }
         },
@@ -14980,13 +15706,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "JSON"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "JSON"
           }
         },
@@ -14998,7 +15724,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "JSON"
           }
         },
@@ -15010,7 +15736,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "JSON"
           }
         },
@@ -15022,43 +15748,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "JSON"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "JSON"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "JSON"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "JSON"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "JSON"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "JSON"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "JSON"
           }
         }
@@ -16272,7 +16998,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Gelinkte toetscombinatie ophalen mislukt"
           }
         },
@@ -18863,22 +19589,88 @@
     "Loop couldn’t get administrator authorization. (%@)" : {
       "comment" : "Error shown when installing the command-line tool or an update fails because the administrator password prompt couldn’t be shown. %@ is a technical detail for troubleshooting.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loop couldn’t get administrator authorization. (%@)"
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "Loop n’a pas pu obtenir l’autorisation de l’administrateur. (%@)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Loopは管理者の認証を取得できませんでした。（%@）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop couldn’t get administrator authorization. (%@)"
           }
         }
       }
@@ -18886,22 +19678,88 @@
     "Loop Output" : {
       "comment" : "Title of the window that shows the result of a loop:// list URL.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loop Output"
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "Loop Output"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "Sortie de Loop"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Loopの出力"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output"
           }
         }
       }
@@ -18909,22 +19767,266 @@
     "Loop Output: %@" : {
       "comment" : "Title of the window that shows the result of a loop:// list URL. %@ is the command that was run, such as “list windows”.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output: %@"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output: %@"
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "Loop Output: %@"
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "Loop Output: %@"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "Sortie de Loop : %@"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output: %@"
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Loopの出力：%@"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output: %@"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output: %@"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output: %@"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output: %@"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output: %@"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output: %@"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop Output: %@"
+          }
+        }
+      }
+    },
+    "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)" : {
+      "comment" : "Error shown when installing the command-line tool or an update fails because Loop’s privileged helper couldn’t be found or started. %@ is a technical detail for troubleshooting.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’utilitaire de Loop est manquant ou endommagé. Réinstallez Loop, puis réessayez. (%@)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loopのヘルパーが見つからないか、破損しています。Loopを再インストールしてから、もう一度お試しください。（%@）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
+          }
+        }
+      }
+    },
+    "Loop’s helper stopped before it finished. (%@)" : {
+      "comment" : "Error shown when installing the command-line tool or an update fails because Loop’s privileged helper stopped partway through. %@ is a technical detail for troubleshooting.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "L’utilitaire de Loop s’est arrêté avant d’avoir terminé. (%@)"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Loopのヘルパーが完了前に停止しました。（%@）"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Loop’s helper stopped before it finished. (%@)"
           }
         }
       }
@@ -19209,52 +20311,6 @@
         }
       }
     },
-    "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)" : {
-      "comment" : "Error shown when installing the command-line tool or an update fails because Loop’s privileged helper couldn’t be found or started. %@ is a technical detail for troubleshooting.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (%@)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "L’utilitaire de Loop est manquant ou endommagé. Réinstallez Loop, puis réessayez. (%@)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Loopのヘルパーが見つからないか、破損しています。Loopを再インストールしてから、もう一度お試しください。（%@）"
-          }
-        }
-      }
-    },
-    "Loop’s helper stopped before it finished. (%@)" : {
-      "comment" : "Error shown when installing the command-line tool or an update fails because Loop’s privileged helper stopped partway through. %@ is a technical detail for troubleshooting.",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Loop’s helper stopped before it finished. (%@)"
-          }
-        },
-        "fr" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "L’utilitaire de Loop s’est arrêté avant d’avoir terminé. (%@)"
-          }
-        },
-        "ja" : {
-          "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Loopのヘルパーが完了前に停止しました。（%@）"
-          }
-        }
-      }
-    },
     "macOS Center" : {
       "comment" : "Window action",
       "localizations" : {
@@ -19396,8 +20452,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "MacOS' “Sleep vensters naar de linker- of rechterrand van het scherm om te plaatsen”-functie is actief, wat conflicteert met de vastgrijpfunctie van Loop"
+            "state" : "translated",
+            "value" : "macOS' “Sleep vensters naar de linker- of rechterrand van het scherm om te plaatsen”-functie is actief, wat conflicteert met de vastgrijpfunctie van Loop."
           }
         },
         "pl" : {
@@ -19485,7 +20541,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Vergroten"
           }
         },
@@ -19574,7 +20630,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Hoekradius van geselecteerde venster prioriseren"
           }
         },
@@ -19662,7 +20718,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Achtergrond synchroniseren"
           }
         },
@@ -20818,7 +21874,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Scherm met cursor gebruiken"
           }
         },
@@ -21352,8 +22408,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Next/previous screen order"
+            "state" : "translated",
+            "value" : "Volgende/vorige schermvolgorde"
           }
         },
         "pl" : {
@@ -21529,7 +22585,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Geen uitgesloten apps"
           }
         },
@@ -21618,7 +22674,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Geen gebaren"
           }
         },
@@ -22148,7 +23204,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Je kunt gerust zijn, geen updates te zien in de pijplijn!"
           }
         },
@@ -22236,7 +23292,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "De kansen zijn in jouw voordeel, geen updates vandaag!"
           }
         },
@@ -22412,7 +23468,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Nieuwe versie? Sorry, we zijn te gehecht aan deze."
           }
         },
@@ -22676,7 +23732,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "In een sterrenstelsel hier ver ver vandaan.. nog steeds geen updates!"
           }
         },
@@ -22764,7 +23820,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Je hebt al de lieveling, geen updates nodig!"
           }
         },
@@ -23820,7 +24876,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Blijf scherp, er komt binnenkort meer informatie!"
           }
         },
@@ -23996,7 +25052,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "We komen terug.. met updates.. later"
           }
         },
@@ -24084,7 +25140,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Een cent voor je… gebrek aan updates."
           }
         },
@@ -24172,7 +25228,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Je hebt al de beste Loop!"
           }
         },
@@ -26020,7 +27076,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "%@’s melding toestemmingen zijn uitgeschakeld."
           }
         },
@@ -26108,7 +27164,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Open Systeeminstellingen"
           }
         },
@@ -26196,7 +27252,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Schakel ze in bij Systeeminstellingen."
           }
         },
@@ -26285,7 +27341,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Notificatie bij het ontgrendelen van nieuwe iconen"
           }
         },
@@ -26462,7 +27518,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Open Systeeminstellingen"
           }
         },
@@ -26817,7 +27873,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Knijp"
           }
         },
@@ -27082,7 +28138,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Mission Control onderdrukken"
           }
         },
@@ -27792,7 +28848,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Hoekradius"
           }
         },
@@ -27881,7 +28937,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Herstarten om te voltooien"
           }
         },
@@ -28058,7 +29114,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Herinner me later"
           }
         },
@@ -28188,13 +29244,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "إصلاح…"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Reparieren …"
           }
         },
@@ -28206,7 +29262,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Reparar…"
           }
         },
@@ -28218,7 +29274,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Ripara…"
           }
         },
@@ -28230,43 +29286,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "복구…"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Herstel…"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Napraw…"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Reparar…"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Исправить…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "修复…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "修復⋯"
           }
         }
@@ -28679,7 +29735,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Radiaalmenu-acties resetten…"
           }
         },
@@ -28768,7 +29824,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Stel opnieuw in…"
           }
         },
@@ -28945,7 +30001,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Vensterframe herstellen bij slepen"
           }
         },
@@ -29833,7 +30889,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Zoeken"
           }
         },
@@ -30011,8 +31067,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Select actions with cursor"
+            "state" : "translated",
+            "value" : "Selecteer acties met de cursor"
           }
         },
         "pl" : {
@@ -30224,7 +31280,93 @@
       }
     },
     "Set Gesture…" : {
-      "comment" : "Button title on a gesture that has no trigger set yet. Opens the gesture configuration."
+      "comment" : "Button title on a gesture that has no trigger set yet. Opens the gesture configuration.",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Set Gesture…"
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Set Gesture…"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Set Gesture…"
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Set Gesture…"
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Définir un geste…"
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Set Gesture…"
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "ジェスチャを設定…"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Set Gesture…"
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Stel gebaar in..."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Set Gesture…"
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Set Gesture…"
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Set Gesture…"
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Set Gesture…"
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Set Gesture…"
+          }
+        }
+      }
     },
     "Settings" : {
       "comment" : "Section header shown in settings",
@@ -30808,7 +31950,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Gebaren"
           }
         },
@@ -31336,7 +32478,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Deel feedback op onze GitHub-pagina, waar je ons bugs kunt laten weten, functies kunt voorstellen of andere waardevolle input kunt geven. We accepteren ook donaties als je vindt dat Loop je werkproces heeft verbeterd :)"
           }
         },
@@ -31425,7 +32567,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Toon in dock"
           }
         },
@@ -32668,7 +33810,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Venster"
           }
         },
@@ -33024,7 +34166,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Spreiden"
           }
         },
@@ -33379,8 +34521,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Style"
+            "state" : "translated",
+            "value" : "Opmaak"
           }
         },
         "pl" : {
@@ -33468,7 +34610,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Veeg"
           }
         },
@@ -33557,7 +34699,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Veeg omlaag"
           }
         },
@@ -33646,7 +34788,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Veeg naar links"
           }
         },
@@ -33735,7 +34877,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Veeg naar rechts"
           }
         },
@@ -33824,7 +34966,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Veeg omhoog"
           }
         },
@@ -33950,7 +35092,93 @@
       }
     },
     "Takes priority over the radial menu for this gesture." : {
-      "comment" : "Tooltip shown on a gesture in settings that overrides one direction of a radial menu gesture using the same finger count"
+      "comment" : "Tooltip shown on a gesture in settings that overrides one direction of a radial menu gesture using the same finger count",
+      "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takes priority over the radial menu for this gesture."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takes priority over the radial menu for this gesture."
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Takes priority over the radial menu for this gesture."
+          }
+        },
+        "es" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takes priority over the radial menu for this gesture."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Prend priorité sur le menu radial pour ce geste."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takes priority over the radial menu for this gesture."
+          }
+        },
+        "ja" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "このジェスチャでは、円形メニューよりも優先されます。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takes priority over the radial menu for this gesture."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Neemt prioriteit over het radiale menu voor dit gebaar."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takes priority over the radial menu for this gesture."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takes priority over the radial menu for this gesture."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takes priority over the radial menu for this gesture."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takes priority over the radial menu for this gesture."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "Takes priority over the radial menu for this gesture."
+          }
+        }
+      }
     },
     "Target window" : {
       "comment" : "Label for the target window picker.",
@@ -34005,8 +35233,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Target window"
+            "state" : "translated",
+            "value" : "Doel venster"
           }
         },
         "pl" : {
@@ -34046,13 +35274,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "نص"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Text"
           }
         },
@@ -34064,7 +35292,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Texto"
           }
         },
@@ -34076,7 +35304,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Testo"
           }
         },
@@ -34088,43 +35316,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "텍스트"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Tekst"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Tekst"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Texto"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Текст"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "文本"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "文字"
           }
         }
@@ -34397,22 +35625,88 @@
     "The command couldn’t be run." : {
       "comment" : "Title of the alert shown when a loop:// URL fails. The reason is shown below it.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command couldn’t be run."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command couldn’t be run."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The command couldn’t be run."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "The command couldn’t be run."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "La commande n’a pas pu être exécutée."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command couldn’t be run."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "コマンドを実行できませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command couldn’t be run."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command couldn’t be run."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command couldn’t be run."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command couldn’t be run."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command couldn’t be run."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command couldn’t be run."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command couldn’t be run."
           }
         }
       }
@@ -34420,22 +35714,88 @@
     "The command-line tool couldn’t be installed." : {
       "comment" : "Title of the alert shown when installing the command-line tool from Advanced settings fails.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be installed."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be installed."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The command-line tool couldn’t be installed."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be installed."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "L’outil de ligne de commande n’a pas pu être installé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be installed."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "コマンドラインツールをインストールできませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be installed."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be installed."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be installed."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be installed."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be installed."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be installed."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be installed."
           }
         }
       }
@@ -34443,22 +35803,88 @@
     "The command-line tool couldn’t be repaired." : {
       "comment" : "Title of the alert shown when repairing the command-line tool from Advanced settings fails.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be repaired."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be repaired."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The command-line tool couldn’t be repaired."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be repaired."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "L’outil de ligne de commande n’a pas pu être réparé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be repaired."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "コマンドラインツールを修復できませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be repaired."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be repaired."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be repaired."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be repaired."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be repaired."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be repaired."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be repaired."
           }
         }
       }
@@ -34466,22 +35892,88 @@
     "The command-line tool couldn’t be uninstalled." : {
       "comment" : "Title of the alert shown when uninstalling the command-line tool from Advanced settings fails.",
       "localizations" : {
+        "ar" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be uninstalled."
+          }
+        },
+        "de" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be uninstalled."
+          }
+        },
         "en" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "The command-line tool couldn’t be uninstalled."
           }
         },
-        "fr" : {
+        "es" : {
           "stringUnit" : {
             "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be uninstalled."
+          }
+        },
+        "fr" : {
+          "stringUnit" : {
+            "state" : "translated",
             "value" : "L’outil de ligne de commande n’a pas pu être désinstallé."
+          }
+        },
+        "it" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be uninstalled."
           }
         },
         "ja" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "コマンドラインツールをアンインストールできませんでした。"
+          }
+        },
+        "ko" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be uninstalled."
+          }
+        },
+        "nl-BE" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be uninstalled."
+          }
+        },
+        "pl" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be uninstalled."
+          }
+        },
+        "pt-BR" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be uninstalled."
+          }
+        },
+        "ru" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be uninstalled."
+          }
+        },
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be uninstalled."
+          }
+        },
+        "zh-Hant" : {
+          "stringUnit" : {
+            "state" : "needs_review",
+            "value" : "The command-line tool couldn’t be uninstalled."
           }
         }
       }
@@ -34982,7 +36474,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Dit herstelt alle toetscombinaties naar hun originele standaard."
           }
         },
@@ -35071,8 +36563,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Dit zal alle radiaalmenu's resetten naar hun standaardinstellingen"
+            "state" : "translated",
+            "value" : "Dit zal alle radiaalmenu's resetten naar hun standaardinstellingen."
           }
         },
         "pl" : {
@@ -35160,8 +36652,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Title Bar Only"
+            "state" : "translated",
+            "value" : "Alleen Titelbalk"
           }
         },
         "pl" : {
@@ -36048,8 +37540,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Trackpad gestures"
+            "state" : "translated",
+            "value" : "Trackpad gebaren"
           }
         },
         "pl" : {
@@ -36314,7 +37806,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Probeer later nogmaals"
           }
         },
@@ -36403,8 +37895,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Under Cursor"
+            "state" : "translated",
+            "value" : "Onder Cursor"
           }
         },
         "pl" : {
@@ -36533,13 +38025,13 @@
       "localizations" : {
         "ar" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "إلغاء التثبيت…"
           }
         },
         "de" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Deinstallieren …"
           }
         },
@@ -36551,7 +38043,7 @@
         },
         "es" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Desinstalar…"
           }
         },
@@ -36563,7 +38055,7 @@
         },
         "it" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Disinstalla…"
           }
         },
@@ -36575,43 +38067,43 @@
         },
         "ko" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "제거…"
           }
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Verwijder…"
           }
         },
         "pl" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Odinstaluj…"
           }
         },
         "pt-BR" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Desinstalar…"
           }
         },
         "ru" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "Удалить…"
           }
         },
         "zh-Hans" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "卸载…"
           }
         },
         "zh-Hant" : {
           "stringUnit" : {
-            "state" : "translated",
+            "state" : "needs_review",
             "value" : "解除安裝⋯"
           }
         }
@@ -36936,7 +38428,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Omhoog"
           }
         },
@@ -37291,7 +38783,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Update van: %@"
           }
         },
@@ -37645,7 +39137,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Zet icoon"
           }
         },
@@ -37733,7 +39225,7 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
+            "state" : "translated",
             "value" : "Gebruik dit als je een eigen menubalk gebruikt."
           }
         },
@@ -38533,8 +40025,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Window Snapping Only"
+            "state" : "translated",
+            "value" : "Enkel vensteruitlijning"
           }
         },
         "pl" : {
@@ -39242,8 +40734,8 @@
         },
         "nl-BE" : {
           "stringUnit" : {
-            "state" : "needs_review",
-            "value" : "Z-shaped"
+            "state" : "translated",
+            "value" : "Z-gevormd"
           }
         },
         "pl" : {
@@ -39279,5 +40771,5 @@
       }
     }
   },
-  "version" : "1.1"
+  "version" : "1.0"
 }
