@@ -32,9 +32,6 @@ struct BindingLinkResolver {
     let gestures: [GestureBinding]
     let radialMenuActions: [RadialMenuAction]
 
-    /// Kept up to date by `WindowActionCache`, for places that resolve links too often to read settings each time
-    static var shared = BindingLinkResolver(keybinds: [], gestures: [], radialMenuActions: [])
-
     /// Radial menu links resolve against the saved radial menu, even while customization is off,
     /// as Loop saves it before linking to one of its actions
     init(

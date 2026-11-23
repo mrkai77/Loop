@@ -20,7 +20,7 @@ final class LoopManager {
     /// Initialized when Loop opens with a target window and screen.
     private(set) var resizeContext: ResizeContext = .init()
 
-    private let windowActionCache = WindowActionCache()
+    private let windowActionCache = WindowActionCache.shared
     private let indicatorService = WindowActionIndicatorService()
     private let updater = Updater.shared
 

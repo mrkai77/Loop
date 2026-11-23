@@ -70,7 +70,7 @@ struct RadialMenuAction: Identifiable, Codable, Hashable, Defaults.Serializable 
         /// The id of the action this runs, for the radial menu while it's open.
         /// Links use the resolver the keybind cache keeps up to date, as reading settings here would decode them on every update.
         var associatedActionId: UUID {
-            isLink ? resolvedAction(with: BindingLinkResolver.shared)?.id ?? id : id
+            isLink ? resolvedAction(with: WindowActionCache.shared.linkResolver)?.id ?? id : id
         }
     }
 

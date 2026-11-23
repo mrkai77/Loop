@@ -29,23 +29,9 @@ struct KeybindItemView: View {
         self.cycleIndex = cycleIndex
     }
 
-    /// Checks if there are any existing keybinds with the same key combination
     private var hasDuplicateKeybinds: Bool {
-        guard !action.keybind.isEmpty else {
-            return false
-        }
-
-        let effectiveKeybind = action.bypassTriggerKey == true
-            ? action.keybind
-            : triggerKey.union(action.keybind)
-
-        return keybinds.contains { otherAction in
-            guard otherAction.id != action.id else { return false }
-            let otherEffectiveKeybind = otherAction.bypassTriggerKey == true
-                ? otherAction.keybind
-                : triggerKey.union(otherAction.keybind)
-            return effectiveKeybind == otherEffectiveKeybind
-        }
+        let others = keybinds.filter { $0.id != action.id }
+        return WindowAction.conflictingIDs(in: others + [action], triggerKey: triggerKey).contains(action.id)
     }
 
     private var linkResolver: BindingLinkResolver {

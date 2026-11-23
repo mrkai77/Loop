@@ -46,6 +46,7 @@ struct LoopAutomationCatalog {
     let radialMenuActions: [RadialMenuAction]
     let gestures: [GestureBinding]
     private let resolver: BindingLinkResolver
+    private let conflictingKeybindIDs: Set<UUID>
     /// Worked out before the rows, as a row's link needs the id of a binding in another list
     private let keybindIDs: [String]
     private let radialMenuIDs: [String]
@@ -54,13 +55,15 @@ struct LoopAutomationCatalog {
     init(
         keybinds: [WindowAction] = Defaults[.keybinds],
         radialMenuActions: [RadialMenuAction]? = nil,
-        gestures: [GestureBinding] = Defaults[.gestures]
+        gestures: [GestureBinding] = Defaults[.gestures],
+        triggerKey: Set<CGKeyCode> = Defaults[.triggerKey]
     ) {
         let radialMenuActions = radialMenuActions ?? RadialMenuAction.userConfiguredActions
         self.keybinds = keybinds
         self.radialMenuActions = radialMenuActions
         self.gestures = gestures
         self.resolver = BindingLinkResolver(keybinds: keybinds, gestures: gestures, radialMenuActions: radialMenuActions)
+        self.conflictingKeybindIDs = WindowAction.conflictingIDs(in: keybinds, triggerKey: triggerKey)
 
         self.keybindIDs = LoopAutomationIdentity.uniqueIDs(for: keybinds.map(Self.idStem))
         self.radialMenuIDs = LoopAutomationIdentity.uniqueIDs(for: radialMenuActions.map { Self.idStem($0.type) })
@@ -94,14 +97,25 @@ struct LoopAutomationCatalog {
 
     var keyBindings: [Binding] {
         zip(keybinds, keybindIDs).map { action, id in
-            Binding(
+            let hasConflict = conflictingKeybindIDs.contains(action.id)
+            let note: String? = if let missingLink = missingLinkNote(action.link) {
+                missingLink
+            } else if action.keybind.isEmpty {
+                "No keys"
+            } else if hasConflict {
+                "Conflicts with another keybind"
+            } else {
+                nil
+            }
+
+            return Binding(
                 kind: .keybind,
                 id: id,
                 action: action.link.map(resolver.action) ?? action,
                 linkedTarget: linkedTarget(action.link),
                 trigger: action.keybind.isEmpty ? nil : Self.keybindDescription(action),
-                isActive: !action.keybind.isEmpty,
-                note: missingLinkNote(action.link) ?? (action.keybind.isEmpty ? "No keys" : nil)
+                isActive: !action.keybind.isEmpty && !hasConflict,
+                note: note
             )
         }
     }

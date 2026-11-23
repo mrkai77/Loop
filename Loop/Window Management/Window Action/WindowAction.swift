@@ -257,6 +257,22 @@ extension WindowAction: CustomStringConvertible {
     }
 }
 
+// MARK: - Conflicts
+
+extension WindowAction {
+    /// The keys pressed to run this keybind, including the trigger key unless it bypasses it
+    func effectiveKeybind(triggerKey: Set<CGKeyCode>) -> Set<CGKeyCode> {
+        bypassTriggerKey == true ? keybind : triggerKey.union(keybind)
+    }
+
+    /// The IDs of keybinds that share their keys with another keybind.
+    /// None of them run, like gestures that are set up the same way, so which one wins never depends on their order.
+    static func conflictingIDs(in keybinds: [WindowAction], triggerKey: Set<CGKeyCode>) -> Set<UUID> {
+        let idsByKeys = Dictionary(grouping: keybinds.filter { !$0.keybind.isEmpty }) { $0.effectiveKeybind(triggerKey: triggerKey) }
+        return Set(idsByKeys.values.filter { $0.count > 1 }.flatMap { $0.map(\.id) })
+    }
+}
+
 // MARK: - Unlinking
 
 extension WindowAction {
