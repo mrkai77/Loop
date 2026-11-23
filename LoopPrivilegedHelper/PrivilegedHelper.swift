@@ -179,15 +179,11 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         case .loopManaged:
             try removeCommandLineToolLink(in: directory)
         case .occupied:
-            throw PrivilegedHelperError.commandLineToolFailed(
-                reason: "\(destinationURL.path) belongs to another app or file."
-            )
+            throw PrivilegedHelperError.commandLineToolOccupied(path: destinationURL.path)
         }
 
         guard symlinkat(sourceURL.path, directory, PrivilegedHelperConstants.commandLineToolSymlinkName) == 0 else {
-            throw PrivilegedHelperError.commandLineToolFailed(
-                reason: "Couldn’t create \(destinationURL.path): \(String(cString: strerror(errno)))"
-            )
+            throw PrivilegedHelperError.commandLineToolSystemCallFailed(action: "create", path: destinationURL.path, code: errno)
         }
 
         log.success("Installed Loop CLI symlink at \(destinationURL.path) -> \(sourceURL.path)")
@@ -206,9 +202,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
             try removeCommandLineToolLink(in: directory)
             log.success("Removed Loop CLI symlink at \(destinationURL.path)")
         case .occupied:
-            throw PrivilegedHelperError.commandLineToolFailed(
-                reason: "\(destinationURL.path) belongs to another app or file."
-            )
+            throw PrivilegedHelperError.commandLineToolOccupied(path: destinationURL.path)
         }
     }
 
@@ -218,9 +212,7 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         let directory = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)
 
         guard directory >= 0 else {
-            throw PrivilegedHelperError.commandLineToolFailed(
-                reason: "Couldn’t open \(path): \(String(cString: strerror(errno)))"
-            )
+            throw PrivilegedHelperError.commandLineToolSystemCallFailed(action: "open", path: path, code: errno)
         }
 
         return directory
@@ -234,17 +226,17 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         var info = stat()
         guard fstatat(directory, name, &info, AT_SYMLINK_NOFOLLOW) == 0 else {
             guard errno == ENOENT else {
-                throw PrivilegedHelperError.commandLineToolFailed(reason: "Couldn’t inspect \(path): \(String(cString: strerror(errno)))")
+                throw PrivilegedHelperError.commandLineToolSystemCallFailed(action: "inspect", path: path, code: errno)
             }
             return
         }
 
         guard info.st_mode & S_IFMT == S_IFLNK else {
-            throw PrivilegedHelperError.commandLineToolFailed(reason: "\(path) belongs to another app or file.")
+            throw PrivilegedHelperError.commandLineToolOccupied(path: path)
         }
 
         guard unlinkat(directory, name, 0) == 0 else {
-            throw PrivilegedHelperError.commandLineToolFailed(reason: "Couldn’t remove \(path): \(String(cString: strerror(errno)))")
+            throw PrivilegedHelperError.commandLineToolSystemCallFailed(action: "remove", path: path, code: errno)
         }
     }
 

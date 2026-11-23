@@ -99,12 +99,7 @@ enum LoopRoute: Hashable {
     }
 
     func commandLineInvocation(executableName: String) -> String {
-        switch self {
-        case let .list(subject):
-            "\(executableName) list \(subject.rawValue)"
-        case let .run(target):
-            "\(executableName) run \(Self.shellQuoted(target.description))"
-        }
+        ([executableName] + components.map(Self.shellQuoted)).joined(separator: " ")
     }
 
     private static func shellQuoted(_ string: String) -> String {

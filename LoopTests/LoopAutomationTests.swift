@@ -8,25 +8,23 @@
 import CoreGraphics
 import Foundation
 @testable import Loop
+import Security
 import Testing
 
 /// The ids and spellings here are a contract with scripts, and with the ids Loop will write to its settings file
 struct LoopAutomationIdentityTests {
-    @Test func kebabCaseSplitsWordsLikeTheSettingsFile() {
-        let cases: [(String, String)] = [
-            ("HTTPServer", "http-server"),
-            ("macOSCenter", "macos-center"),
-            ("MoveToSpace12", "move-to-space-12"),
-            ("Top Cycle", "top-cycle"),
-            ("Maximize + macOS Center", "maximize-macos-center"),
-            ("Café Layout", "cafe-layout"),
-            ("Left 1/3", "left-1-3"),
-            ("日本語", "")
-        ]
-
-        for (input, expected) in cases {
-            #expect(LoopAutomationIdentity.kebabCase(input) == expected, "\(input)")
-        }
+    @Test(arguments: [
+        ("HTTPServer", "http-server"),
+        ("macOSCenter", "macos-center"),
+        ("MoveToSpace12", "move-to-space-12"),
+        ("Top Cycle", "top-cycle"),
+        ("Maximize + macOS Center", "maximize-macos-center"),
+        ("Café Layout", "cafe-layout"),
+        ("Left 1/3", "left-1-3"),
+        ("日本語", "")
+    ])
+    func kebabCaseSplitsWordsLikeTheSettingsFile(input: String, expected: String) {
+        #expect(LoopAutomationIdentity.kebabCase(input) == expected)
     }
 
     @Test func repeatedStemsGetNumberedInOrder() {
@@ -65,20 +63,17 @@ struct LoopAutomationIdentityTests {
 }
 
 struct WindowDirectionAutomationKeyTests {
-    @Test func keysAreTheSettingsFileSpellings() {
-        let cases: [(WindowDirection, String)] = [
-            (.leftHalf, "left-half"),
-            (.macOSCenter, "macos-center"),
-            (.moveToSpace12, "move-to-space-12"),
-            (.focusNextInStack, "focus-next-in-stack"),
-            (.topTwoThirds, "top-two-thirds"),
-            (.maximize, "maximize"),
-            (.noAction, "none")
-        ]
-
-        for (direction, expected) in cases {
-            #expect(direction.automationKey == expected, "\(direction)")
-        }
+    @Test(arguments: [
+        (WindowDirection.leftHalf, "left-half"),
+        (.macOSCenter, "macos-center"),
+        (.moveToSpace12, "move-to-space-12"),
+        (.focusNextInStack, "focus-next-in-stack"),
+        (.topTwoThirds, "top-two-thirds"),
+        (.maximize, "maximize"),
+        (.noAction, "none")
+    ])
+    func keysAreTheSettingsFileSpellings(direction: WindowDirection, expected: String) {
+        #expect(direction.automationKey == expected)
     }
 
     @Test func everyKeyIsUnique() {
@@ -86,17 +81,17 @@ struct WindowDirectionAutomationKeyTests {
         #expect(Set(keys).count == keys.count)
     }
 
-    @Test func namesMatchWithOrWithoutHyphensAndInAnyCase() {
-        let cases: [(String, WindowDirection)] = [
-            ("lefthalf", .leftHalf), ("left-half", .leftHalf), ("LeftHalf", .leftHalf),
-            ("macoscenter", .macOSCenter), ("MacOSCenter", .macOSCenter),
-            ("movetospace12", .moveToSpace12), ("move-to-space12", .moveToSpace12),
-            ("noaction", .noAction), ("none", .noAction)
-        ]
+    @Test(arguments: [
+        ("lefthalf", WindowDirection.leftHalf), ("left-half", .leftHalf), ("LeftHalf", .leftHalf),
+        ("macoscenter", .macOSCenter), ("MacOSCenter", .macOSCenter),
+        ("movetospace12", .moveToSpace12), ("move-to-space12", .moveToSpace12),
+        ("noaction", .noAction), ("none", .noAction)
+    ])
+    func namesMatchWithOrWithoutHyphensAndInAnyCase(input: String, expected: WindowDirection) {
+        #expect(WindowDirection.matching(input) == expected)
+    }
 
-        for (input, expected) in cases {
-            #expect(WindowDirection.matching(input) == expected, "\(input)")
-        }
+    @Test func unknownNamesDontMatch() {
         #expect(WindowDirection.matching("sideways") == nil)
     }
 
@@ -107,21 +102,20 @@ struct WindowDirectionAutomationKeyTests {
         #expect(WindowDirection.matchingDirectionCommand("horizontalcenterhalf") == .horizontalCenterHalf)
     }
 
-    @Test @MainActor func urlsFromEarlierVersionsMapOntoCurrentRoutes() throws {
-        let cases: [(String, LoopRoute)] = [
-            ("loop://direction/right", .run(.action("right-half"))),
-            ("loop://direction/LeftHalf", .run(.action("left-half"))),
-            ("loop://direction/maximize", .run(.action("maximize"))),
-            ("loop://screen/next", .run(.action("next-screen"))),
-            ("loop://screen/previous", .run(.action("previous-screen"))),
-            ("loop://list/all", .list(.actions))
-        ]
+    @Test(arguments: [
+        ("loop://direction/right", LoopRoute.run(.action("right-half"))),
+        ("loop://direction/LeftHalf", .run(.action("left-half"))),
+        ("loop://direction/maximize", .run(.action("maximize"))),
+        ("loop://screen/next", .run(.action("next-screen"))),
+        ("loop://screen/previous", .run(.action("previous-screen"))),
+        ("loop://list/all", .list(.actions))
+    ])
+    @MainActor func urlsFromEarlierVersionsMapOntoCurrentRoutes(url: String, expected: LoopRoute) throws {
+        let components = try #require(LoopRoute.pathComponents(of: url))
+        #expect(LoopCommandHandler.legacyRoute(from: components) == expected)
+    }
 
-        for (url, expected) in cases {
-            let components = try #require(LoopRoute.pathComponents(of: url))
-            #expect(LoopCommandHandler.legacyRoute(from: components) == expected, "\(url)")
-        }
-
+    @Test @MainActor func unknownOlderURLsDontMap() {
         #expect(LoopCommandHandler.legacyRoute(from: ["direction", "sideways"]) == nil)
         #expect(LoopCommandHandler.legacyRoute(from: ["screen", "sideways"]) == nil)
     }
@@ -233,6 +227,14 @@ struct LoopAutomationJSONTests {
         #expect(decoded.error == nil)
     }
 
+    @Test func missingKeysDecodeAsNil() throws {
+        let json = #"{ "version" : 1, "success" : false, "error" : { "code" : "failed", "message" : "Nope" } }"#
+        let decoded = try LoopAutomationJSON.decodeResponse(from: json)
+        #expect(decoded.result == nil)
+        #expect(decoded.error?.replacementRoute == nil)
+        #expect(decoded.error?.availableRoutes == nil)
+    }
+
     @Test func failuresCarryAStableCode() throws {
         let json = LoopAutomationJSON.encodedFailure(.notFound, message: "Unknown action: sideways")
         #expect(json.contains(#""code" : "notFound""#))
@@ -245,6 +247,11 @@ struct LoopAutomationJSONTests {
 }
 
 struct LoopAutomationFormatterTests {
+    /// The table as a terminal without a width limit would show it, without styling
+    private func table(_ result: LoopAutomationResult) -> String {
+        LoopAutomationFormatter(layout: .table(maxWidth: nil)).format(result).plainText
+    }
+
     private let bindings = LoopAutomationResult.bindingList(LoopBindingListResult(
         bindingKind: .keybind,
         bindings: [
@@ -254,7 +261,7 @@ struct LoopAutomationFormatterTests {
     ))
 
     @Test func tablesAlignUnderAHeaderAndHideEmptyColumns() {
-        let text = LoopAutomationFormatter(layout: .table(maxWidth: nil)).format(bindings).plainText
+        let text = table(bindings)
         #expect(text == """
         TARGET             ACTION     TRIGGER       NOTE
         keybind:maximize   Maximize   Trigger + ↩
@@ -269,7 +276,7 @@ struct LoopAutomationFormatterTests {
 
     @Test func emptyListsOnlyExplainThemselvesInATable() {
         let empty = LoopAutomationResult.bindingList(LoopBindingListResult(bindingKind: .gesture, bindings: []))
-        #expect(LoopAutomationFormatter(layout: .table(maxWidth: nil)).format(empty).plainText == "No gestures")
+        #expect(table(empty) == "No gestures")
         #expect(LoopAutomationFormatter(layout: .tabSeparated).format(empty).isEmpty)
     }
 
@@ -280,7 +287,7 @@ struct LoopAutomationFormatterTests {
                 LoopBindingSummary(kind: .gesture, id: nil, target: nil, action: nil, linkedTarget: nil, trigger: "2-finger Radial Menu, Title bar", isActive: true, note: "Can’t be run")
             ]
         ))
-        #expect(LoopAutomationFormatter(layout: .table(maxWidth: nil)).format(gestures).plainText == """
+        #expect(table(gestures) == """
         TARGET   ACTION                  TRIGGER                           NOTE
         —        Opens the radial menu   2-finger Radial Menu, Title bar   Can’t be run
         """)

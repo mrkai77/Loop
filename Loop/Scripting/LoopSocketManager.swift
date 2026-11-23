@@ -55,7 +55,7 @@ final class LoopSocketManager {
 
         let serverFD = socket(AF_UNIX, SOCK_STREAM, 0)
         guard serverFD >= 0 else {
-            log.error("Failed to create socket: \(String(cString: strerror(errno)))")
+            log.error("Failed to create socket: \(LoopSocketIO.errnoDescription())")
             return
         }
 
@@ -70,7 +70,7 @@ final class LoopSocketManager {
         }
 
         guard bindResult == 0 else {
-            log.error("Failed to bind socket: \(String(cString: strerror(errno)))")
+            log.error("Failed to bind socket: \(LoopSocketIO.errnoDescription())")
             close(serverFD)
             return
         }
@@ -84,7 +84,7 @@ final class LoopSocketManager {
         }
 
         guard listen(serverFD, 5) == 0 else {
-            log.error("Failed to listen on socket: \(String(cString: strerror(errno)))")
+            log.error("Failed to listen on socket: \(LoopSocketIO.errnoDescription())")
             close(serverFD)
             unlink(socketPath)
             return
@@ -125,7 +125,7 @@ final class LoopSocketManager {
         let clientFD = accept(serverFD, nil, nil)
         guard clientFD >= 0 else {
             if errno != EAGAIN, errno != ECONNABORTED {
-                log.error("Accept failed: \(String(cString: strerror(errno)))")
+                log.error("Accept failed: \(LoopSocketIO.errnoDescription())")
             }
             return
         }
@@ -165,7 +165,7 @@ final class LoopSocketManager {
             respond(clientFD, LoopAutomationJSON.encodedFailure(.invalidRequest, message: "The request is too long"))
             return
         } catch {
-            respond(clientFD, LoopAutomationJSON.encodedFailure(.invalidRequest, message: "Couldn’t read the request: \(error.localizedDescription)"))
+            respond(clientFD, LoopAutomationJSON.encodedFailure(.invalidRequest, message: "Couldn’t read the request: \(LoopSocketIO.description(of: error))"))
             return
         }
 
@@ -190,28 +190,14 @@ final class LoopSocketManager {
     }
 
     private func commandLineToolRejectionReason() -> String? {
-        let path = PrivilegedHelperConstants.commandLineToolSymlinkURL.path
         let status: CommandLineToolInstaller.Status
         do {
             status = try commandLineToolInstaller.status()
         } catch {
-            return "Couldn’t check \(path): \(error.localizedDescription)"
+            return "Couldn’t check \(PrivilegedHelperConstants.commandLineToolSymlinkURL.path): \(error.localizedDescription)"
         }
 
-        return switch status {
-        case .installedCurrent:
-            nil
-        case .notInstalled:
-            "Loop only accepts commands while the command-line tool is installed. Install it in Loop’s Advanced settings."
-        case .installedStale:
-            "\(path) points to another copy of Loop. Click Repair in Loop’s Advanced settings."
-        case .installedMissing:
-            "\(path) points to a copy of Loop that was moved or deleted. Click Repair in Loop’s Advanced settings."
-        case .installedWithoutAdministrator:
-            "\(path) isn’t owned by an administrator, so another app could have created it. Click Repair in Loop’s Advanced settings."
-        case .blocked:
-            "\(path) belongs to another app or file. Remove it, then install the command-line tool in Loop’s Advanced settings."
-        }
+        return status.commandLineReason
     }
 
     /// Closing the connection is what tells the client the response is complete
@@ -219,7 +205,7 @@ final class LoopSocketManager {
         do {
             try LoopSocketIO.write(response, to: clientFD)
         } catch {
-            log.warn("Failed to write response: \(error.localizedDescription)")
+            log.warn("Failed to write response: \(LoopSocketIO.description(of: error))")
         }
         close(clientFD)
     }

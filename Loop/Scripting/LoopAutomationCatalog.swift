@@ -60,20 +60,9 @@ struct LoopAutomationCatalog {
 
     // MARK: - Built-in Actions
 
-    /// The Keybinds tab's action picker, minus actions that have to be configured first.
-    /// The picker only offers as many desktops as there are right now, while this lists them all.
+    /// The Keybinds tab's action picker with every desktop, minus actions that have to be configured first
     static func builtInActions() -> [(direction: WindowDirection, category: String)] {
-        var sections = PickerSection.windowDirections.filter { section in
-            !section.items.contains(where: \.willChangeSpace)
-        }
-        let spaceSwitching = PickerSection(
-            String(localized: "Space Switching", comment: "Section header in the action picker of the Keybinds tab"),
-            WindowDirection.spaceSwitching
-        )
-        let afterScreenSwitching = sections.firstIndex { $0.items.contains(.nextScreen) }.map { $0 + 1 } ?? sections.endIndex
-        sections.insert(spaceSwitching, at: afterScreenSwitching)
-
-        return sections.flatMap { section in
+        PickerSection.windowDirections(allDesktops: true).flatMap { section in
             section.items
                 .filter(\.isRunnableOnItsOwn)
                 .map { ($0, section.title) }
@@ -253,33 +242,13 @@ struct LoopAutomationCatalog {
         return action.bypassTriggerKey == true ? combination : "Trigger + \(combination)"
     }
 
+    /// The same names and symbols the Keybinds tab shows, such as "↩" and "␣"
     private static func keyName(_ key: CGKeyCode) -> String {
-        let names: [CGKeyCode: String] = [
-            .kVK_Return: "↩",
-            .kVK_Tab: "⇥",
-            .kVK_Space: "Space",
-            .kVK_Delete: "⌫",
-            .kVK_ForwardDelete: "⌦",
-            .kVK_Escape: "⎋",
-            .kVK_LeftArrow: "←",
-            .kVK_RightArrow: "→",
-            .kVK_UpArrow: "↑",
-            .kVK_DownArrow: "↓",
-            .kVK_Home: "↖",
-            .kVK_End: "↘",
-            .kVK_PageUp: "⇞",
-            .kVK_PageDown: "⇟"
-        ]
-
-        if let name = names[key] {
-            return name
+        guard let name = key.humanReadable?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty else {
+            return "Key \(key)"
         }
 
-        if let name = key.humanReadable?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
-            return name.uppercased()
-        }
-
-        return "Key \(key)"
+        return name.uppercased()
     }
 }
 

@@ -16,7 +16,7 @@ final class LoopSocketClient {
     func send(_ request: CLIRequest) throws(LoopAutomationError) -> CLIResponse {
         let fileDescriptor = socket(AF_UNIX, SOCK_STREAM, 0)
         guard fileDescriptor >= 0 else {
-            throw LoopAutomationError(.unavailable, message: "Couldn’t create a socket: \(Self.currentErrorDescription)")
+            throw LoopAutomationError(.unavailable, message: "Couldn’t create a socket: \(LoopSocketIO.errnoDescription())")
         }
         defer { close(fileDescriptor) }
 
@@ -38,7 +38,7 @@ final class LoopSocketClient {
             try LoopSocketIO.write(request.url.absoluteString, to: fileDescriptor)
             shutdown(fileDescriptor, SHUT_WR)
         } catch {
-            throw LoopAutomationError(.unavailable, message: "Couldn’t send the command to Loop: \(error.localizedDescription)")
+            throw LoopAutomationError(.unavailable, message: "Couldn’t send the command to Loop: \(LoopSocketIO.description(of: error))")
         }
 
         let response: String
@@ -47,7 +47,7 @@ final class LoopSocketClient {
         } catch POSIXError.EAGAIN {
             throw LoopAutomationError(.timeout, message: "Loop didn’t respond in time, so the action may still complete")
         } catch {
-            throw LoopAutomationError(.unavailable, message: "Couldn’t read Loop’s response: \(error.localizedDescription)")
+            throw LoopAutomationError(.unavailable, message: "Couldn’t read Loop’s response: \(LoopSocketIO.description(of: error))")
         }
 
         guard !response.isEmpty else {
@@ -69,12 +69,8 @@ final class LoopSocketClient {
             // No socket at all also covers versions of Loop from before the command-line tool
             LoopAutomationError(.unavailable, message: "Couldn’t reach Loop. Make sure Loop is open and up to date, then try again.")
         default:
-            LoopAutomationError(.unavailable, message: "Couldn’t connect to Loop at \(LoopSocketPath.path): \(String(cString: strerror(code)))")
+            LoopAutomationError(.unavailable, message: "Couldn’t connect to Loop at \(LoopSocketPath.path): \(LoopSocketIO.errnoDescription(code))")
         }
-    }
-
-    private static var currentErrorDescription: String {
-        String(cString: strerror(errno))
     }
 }
 

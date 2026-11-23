@@ -44,19 +44,10 @@ struct LoopRect: Codable {
 
 struct LoopWindowSummary: Codable {
     let id: UInt32
-    let bundleID: String?
-    let appName: String?
-    let title: String?
+    @NullEncoded var bundleID: String?
+    @NullEncoded var appName: String?
+    @NullEncoded var title: String?
     let frame: LoopRect
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(bundleID, forKey: .bundleID)
-        try container.encode(appName, forKey: .appName)
-        try container.encode(title, forKey: .title)
-        try container.encode(frame, forKey: .frame)
-    }
 }
 
 struct LoopScreenSummary: Codable {
@@ -84,30 +75,18 @@ struct LoopBoundAction: Codable {
 struct LoopBindingSummary: Codable {
     let kind: LoopBindingKind
     /// `nil` for gestures that open the radial menu, as they don't run an action themselves
-    let id: String?
+    @NullEncoded var id: String?
     /// What to pass to `run`, such as `keybind:portrait`
-    let target: String?
-    let action: LoopBoundAction?
+    @NullEncoded var target: String?
+    @NullEncoded var action: LoopBoundAction?
     /// Set when the action comes from another binding, such as `keybind:portrait`
-    let linkedTarget: String?
+    @NullEncoded var linkedTarget: String?
     /// How it's triggered, such as the keys, the gesture or the radial menu slot
-    let trigger: String?
+    @NullEncoded var trigger: String?
     /// Whether the keybind or gesture currently triggers anything. Inactive bindings can still be run.
     let isActive: Bool
     /// Why it isn't active, or why it can't be run
-    let note: String?
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(kind, forKey: .kind)
-        try container.encode(id, forKey: .id)
-        try container.encode(target, forKey: .target)
-        try container.encode(action, forKey: .action)
-        try container.encode(linkedTarget, forKey: .linkedTarget)
-        try container.encode(trigger, forKey: .trigger)
-        try container.encode(isActive, forKey: .isActive)
-        try container.encode(note, forKey: .note)
-    }
+    @NullEncoded var note: String?
 }
 
 struct LoopWindowListResult: Codable {
@@ -130,14 +109,7 @@ struct LoopBindingListResult: Codable {
 struct LoopRunResult: Codable {
     let target: String
     let action: LoopBoundAction
-    let window: LoopWindowSummary?
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(target, forKey: .target)
-        try container.encode(action, forKey: .action)
-        try container.encode(window, forKey: .window)
-    }
+    @NullEncoded var window: LoopWindowSummary?
 }
 
 enum LoopAutomationResult: Codable {
@@ -227,8 +199,8 @@ struct LoopAutomationError: Codable, Error {
     let code: LoopAutomationErrorCode
     let message: String
     /// A route to run instead, such as the list of what exists
-    let replacementRoute: String?
-    let availableRoutes: [String]?
+    @NullEncoded var replacementRoute: String?
+    @NullEncoded var availableRoutes: [String]?
 
     init(
         _ code: LoopAutomationErrorCode,
@@ -241,14 +213,6 @@ struct LoopAutomationError: Codable, Error {
         self.replacementRoute = replacementRoute
         self.availableRoutes = availableRoutes
     }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(code, forKey: .code)
-        try container.encode(message, forKey: .message)
-        try container.encode(replacementRoute, forKey: .replacementRoute)
-        try container.encode(availableRoutes, forKey: .availableRoutes)
-    }
 }
 
 struct LoopAutomationResponse: Codable {
@@ -257,8 +221,8 @@ struct LoopAutomationResponse: Codable {
 
     let version: Int
     let success: Bool
-    let result: LoopAutomationResult?
-    let error: LoopAutomationError?
+    @NullEncoded var result: LoopAutomationResult?
+    @NullEncoded var error: LoopAutomationError?
 
     init(result: LoopAutomationResult) {
         self.version = Self.currentVersion
@@ -272,13 +236,5 @@ struct LoopAutomationResponse: Codable {
         self.success = false
         self.result = nil
         self.error = error
-    }
-
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(version, forKey: .version)
-        try container.encode(success, forKey: .success)
-        try container.encode(result, forKey: .result)
-        try container.encode(error, forKey: .error)
     }
 }

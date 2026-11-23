@@ -60,14 +60,8 @@ struct LoopCLICommand: ParsableCommand {
             return nil
         }
 
-        // Loop.app/Contents/MacOS/loop-cli
-        let appURL = URL(fileURLWithPath: String(cString: buffer))
-            .resolvingSymlinksInPath()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-
-        return appURL.pathExtension == "app" ? Bundle(url: appURL) : nil
+        let executableURL = URL(fileURLWithPath: String(cString: buffer)).resolvingSymlinksInPath()
+        return PrivilegedHelperConstants.appBundleURL(containingCommandLineTool: executableURL).flatMap(Bundle.init(url:))
     }
 }
 
@@ -83,7 +77,7 @@ extension CLIRequestCommand {
         let response: CLIResponse
         do {
             response = try LoopSocketClient().send(makeRequest())
-        } catch let error as LoopAutomationError {
+        } catch {
             if outputOptions.json {
                 print(LoopAutomationJSON.encodeString(LoopAutomationResponse(error: error)))
             } else {

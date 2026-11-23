@@ -179,7 +179,12 @@ struct PickerSection<V>: Identifiable, Hashable where V: Hashable, V: Identifiab
 
 extension PickerSection where V == WindowDirection {
     static var windowDirections: [PickerSection<WindowDirection>] {
-        let spaceSwitching = visibleSpaceSwitchingDirections()
+        windowDirections(allDesktops: false)
+    }
+
+    /// `allDesktops` lists every desktop action, like the CLI does, instead of only as many as there are desktops right now
+    static func windowDirections(allDesktops: Bool) -> [PickerSection<WindowDirection>] {
+        let spaceSwitching = allDesktops ? WindowDirection.spaceSwitching : visibleSpaceSwitchingDirections()
         let spaceSwitchingSections: [PickerSection<WindowDirection>] = spaceSwitching.isEmpty ? [] : [
             .init(String(localized: "Space Switching", comment: "Section header in the action picker of the Keybinds tab"), spaceSwitching)
         ]

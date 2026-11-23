@@ -112,6 +112,7 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				LoopSupportPaths.swift,
+				PrivilegedHelperConstants.swift,
 				PrivilegedHelperProtocol.swift,
 			);
 			target = B1AA00112F30000100AABBCC /* LoopPrivilegedHelper */;

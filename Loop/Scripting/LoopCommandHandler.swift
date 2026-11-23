@@ -348,8 +348,7 @@ final class LoopCommandHandler {
                 return false
             }
 
-            return app.bundleIdentifier != Bundle.main.bundleIdentifier
-                && app.activationPolicy == .regular
+            return app.activationPolicy == .regular
                 && !window.isApplicationHidden
                 && !window.minimized
         }

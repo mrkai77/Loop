@@ -33,6 +33,26 @@ final class CommandLineToolInstaller {
                 AttributedString(localized: "`\(symlinkPath)` belongs to another app or file. Remove it, then try again.", comment: "Warning on the command-line tool row in Advanced settings, shown when something other than Loop’s link is at that path. %@ is the path to the link, such as /usr/local/bin/loop.")
             }
         }
+
+        /// Why Loop refuses commands from the CLI, in English like the rest of its output. `nil` once it's installed.
+        var commandLineReason: String? {
+            let symlinkPath = PrivilegedHelperConstants.commandLineToolSymlinkURL.path
+
+            return switch self {
+            case .installedCurrent:
+                nil
+            case .notInstalled:
+                "Loop only accepts commands while the command-line tool is installed. Install it in Loop’s Advanced settings."
+            case .installedStale:
+                "\(symlinkPath) points to another copy of Loop. Click Repair in Loop’s Advanced settings."
+            case .installedMissing:
+                "\(symlinkPath) points to a copy of Loop that was moved or deleted. Click Repair in Loop’s Advanced settings."
+            case .installedWithoutAdministrator:
+                "\(symlinkPath) isn’t owned by an administrator, so another app could have created it. Click Repair in Loop’s Advanced settings."
+            case .blocked:
+                "\(symlinkPath) belongs to another app or file. Remove it, then install the command-line tool in Loop’s Advanced settings."
+            }
+        }
     }
 
     private let privilegedHelperCoordinator: PrivilegedHelperCoordinator

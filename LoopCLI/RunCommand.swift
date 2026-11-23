@@ -19,7 +19,7 @@ struct RunCommand: ParsableCommand, CLIRequestCommand {
     )
 
     @Argument(help: ArgumentHelp("What to run, such as right-half or keybind:portrait", valueName: "target"))
-    var target: CLITarget
+    var target: LoopTarget
 
     @OptionGroup
     var targetOptions: TargetOptions
@@ -28,18 +28,12 @@ struct RunCommand: ParsableCommand, CLIRequestCommand {
     var outputOptions: OutputOptions
 
     func makeRequest() -> CLIRequest {
-        CLIRequest(route: .run(target.value), queryItems: targetOptions.queryItems)
+        CLIRequest(route: .run(target), queryItems: targetOptions.queryItems)
     }
 }
 
-struct CLITarget: ExpressibleByArgument {
-    let value: LoopTarget
-
+extension LoopTarget: ExpressibleByArgument {
     init?(argument: String) {
-        guard let value = LoopTarget(argument) else {
-            return nil
-        }
-
-        self.value = value
+        self.init(argument)
     }
 }
