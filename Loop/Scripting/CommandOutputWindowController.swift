@@ -175,14 +175,17 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
         if itemIdentifier == ToolbarIdentifier.format {
             let item = NSToolbarItemGroup(
                 itemIdentifier: itemIdentifier,
-                titles: [String(localized: "Text"), String(localized: "JSON")],
+                titles: [
+                    String(localized: "Text", comment: "Option in the output window’s format control that shows readable text."),
+                    String(localized: "JSON", comment: "Option in the output window’s format control that shows JSON, the name of a data format.")
+                ],
                 selectionMode: .selectOne,
                 labels: nil,
                 target: self,
                 action: #selector(changeFormat(_:))
             )
-            item.label = String(localized: "Format")
-            item.paletteLabel = String(localized: "Format")
+            item.label = String(localized: "Format", comment: "Label of the toolbar control in the output window that switches between text and JSON.")
+            item.paletteLabel = String(localized: "Format", comment: "Label of the toolbar control in the output window that switches between text and JSON.")
             item.selectedIndex = 0
             return item
         }
@@ -192,13 +195,13 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
         }
 
         let item = NSToolbarItem(itemIdentifier: itemIdentifier)
-        item.label = String(localized: "Copy")
-        item.paletteLabel = String(localized: "Copy")
-        item.toolTip = String(localized: "Copy output to the clipboard")
+        item.label = String(localized: "Copy", comment: "Label of the toolbar button in the output window that copies the output.")
+        item.paletteLabel = String(localized: "Copy", comment: "Label of the toolbar button in the output window that copies the output.")
+        item.toolTip = String(localized: "Copy output to the clipboard", comment: "Help tag of the Copy button in the output window’s toolbar.")
         item.target = self
         item.action = #selector(copyOutput(_:))
 
-        if let image = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: String(localized: "Copy")) {
+        if let image = NSImage(systemSymbolName: "doc.on.doc", accessibilityDescription: String(localized: "Copy", comment: "Label of the toolbar button in the output window that copies the output.")) {
             item.image = image
         }
 

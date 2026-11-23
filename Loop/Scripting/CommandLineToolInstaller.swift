@@ -17,20 +17,20 @@ final class CommandLineToolInstaller {
         case installedWithoutAdministrator
         case blocked
 
-        var warning: LocalizedStringKey? {
+        var warning: AttributedString? {
             let symlinkPath = PrivilegedHelperConstants.commandLineToolSymlinkURL.path
 
             return switch self {
             case .notInstalled, .installedCurrent:
                 nil
             case .installedStale:
-                "`\(symlinkPath)` points to another copy of Loop. Click Repair to use this one."
+                AttributedString(localized: "`\(symlinkPath)` points to another copy of Loop. Click Repair to use this one.", comment: "Warning on the command-line tool row in Advanced settings, shown when the link points to a copy of Loop other than the one running. %@ is the path to the link, such as /usr/local/bin/loop.")
             case .installedMissing:
-                "`\(symlinkPath)` points to a copy of Loop that was moved or deleted. Click Repair to use this one."
+                AttributedString(localized: "`\(symlinkPath)` points to a copy of Loop that was moved or deleted. Click Repair to use this one.", comment: "Warning on the command-line tool row in Advanced settings, shown when the copy of Loop the link points to no longer exists. %@ is the path to the link, such as /usr/local/bin/loop.")
             case .installedWithoutAdministrator:
-                "`\(symlinkPath)` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it."
+                AttributedString(localized: "`\(symlinkPath)` isn’t owned by an administrator, so another app could have created it. Click Repair to reinstall it.", comment: "Warning on the command-line tool row in Advanced settings, shown when the link wasn’t created with administrator privileges. %@ is the path to the link, such as /usr/local/bin/loop.")
             case .blocked:
-                "`\(symlinkPath)` belongs to another app or file. Remove it, then try again."
+                AttributedString(localized: "`\(symlinkPath)` belongs to another app or file. Remove it, then try again.", comment: "Warning on the command-line tool row in Advanced settings, shown when something other than Loop’s link is at that path. %@ is the path to the link, such as /usr/local/bin/loop.")
             }
         }
     }
@@ -66,7 +66,7 @@ final class CommandLineToolInstaller {
     /// Installs the tool, replacing an existing Loop-managed link
     func install() async throws {
         try await privilegedHelperCoordinator.withPrivilegedSession(
-            prompt: String(localized: "\(Bundle.main.appName) is trying to install its command-line tool.")
+            prompt: String(localized: "\(Bundle.main.appName) is trying to install its command-line tool.", comment: "Administrator password prompt shown before installing or repairing the command-line tool. %@ is the app’s name.")
         ) { session in
             try await session.installCommandLineTool()
         }
@@ -74,7 +74,7 @@ final class CommandLineToolInstaller {
 
     func uninstall() async throws {
         try await privilegedHelperCoordinator.withPrivilegedSession(
-            prompt: String(localized: "\(Bundle.main.appName) is trying to uninstall its command-line tool.")
+            prompt: String(localized: "\(Bundle.main.appName) is trying to uninstall its command-line tool.", comment: "Administrator password prompt shown before uninstalling the command-line tool. %@ is the app’s name.")
         ) { session in
             try await session.uninstallCommandLineTool()
         }

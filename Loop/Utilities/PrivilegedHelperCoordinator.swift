@@ -21,11 +21,11 @@ private enum PrivilegedHelperCoordinatorError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case let .authorizationFailed(details):
-            String(localized: "Loop couldn’t get administrator authorization. (\(details))", comment: "The value is a technical detail")
+            String(localized: "Loop couldn’t get administrator authorization. (\(details))", comment: "Error shown when installing the command-line tool or an update fails because the administrator password prompt couldn’t be shown. %@ is a technical detail for troubleshooting.")
         case let .helperUnavailable(details):
-            String(localized: "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (\(details))", comment: "The value is a technical detail")
+            String(localized: "Loop’s helper is missing or damaged. Reinstall Loop, then try again. (\(details))", comment: "Error shown when installing the command-line tool or an update fails because Loop’s privileged helper couldn’t be found or started. %@ is a technical detail for troubleshooting.")
         case let .helperFailed(details):
-            String(localized: "Loop’s helper stopped before it finished. (\(details))", comment: "The value is a technical detail")
+            String(localized: "Loop’s helper stopped before it finished. (\(details))", comment: "Error shown when installing the command-line tool or an update fails because Loop’s privileged helper stopped partway through. %@ is a technical detail for troubleshooting.")
         case let .helperReported(message):
             message
         }
@@ -37,7 +37,7 @@ final class PrivilegedHelperCoordinator {
     /// The user dismissed the administrator password prompt
     struct AuthorizationCanceled: LocalizedError {
         var errorDescription: String? {
-            String(localized: "Administrator authorization was canceled.")
+            String(localized: "Administrator authorization was canceled.", comment: "Error shown when the administrator password prompt is canceled, such as the reason an update couldn’t be installed.")
         }
     }
 

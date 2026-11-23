@@ -120,14 +120,14 @@ final class AdvancedConfigurationModel: ObservableObject {
         commandLineToolInstallStatus == .installedCurrent
     }
 
-    var commandLineToolActionTitle: LocalizedStringKey {
+    var commandLineToolActionTitle: String {
         switch commandLineToolInstallStatus {
         case .installedStale, .installedMissing, .installedWithoutAdministrator:
-            "Repair…"
+            String(localized: "Repair…", comment: "Button on the command-line tool row in Advanced settings that reinstalls the tool. Opens the administrator password prompt.")
         case .installedCurrent:
-            "Uninstall…"
+            String(localized: "Uninstall…", comment: "Button on the command-line tool row in Advanced settings that uninstalls the tool. Opens the administrator password prompt.")
         case .notInstalled, .blocked:
-            "Install…"
+            String(localized: "Install…", comment: "Button on the command-line tool row in Advanced settings that installs the tool. Opens the administrator password prompt.")
         }
     }
 
@@ -143,13 +143,13 @@ final class AdvancedConfigurationModel: ObservableObject {
         let operation: () async throws -> ()
         switch commandLineToolInstallStatus {
         case .notInstalled:
-            failureTitle = String(localized: "The command-line tool couldn’t be installed.")
+            failureTitle = String(localized: "The command-line tool couldn’t be installed.", comment: "Title of the alert shown when installing the command-line tool from Advanced settings fails.")
             operation = commandLineToolInstaller.install
         case .installedStale, .installedMissing, .installedWithoutAdministrator:
-            failureTitle = String(localized: "The command-line tool couldn’t be repaired.")
+            failureTitle = String(localized: "The command-line tool couldn’t be repaired.", comment: "Title of the alert shown when repairing the command-line tool from Advanced settings fails.")
             operation = commandLineToolInstaller.install
         case .installedCurrent:
-            failureTitle = String(localized: "The command-line tool couldn’t be uninstalled.")
+            failureTitle = String(localized: "The command-line tool couldn’t be uninstalled.", comment: "Title of the alert shown when uninstalling the command-line tool from Advanced settings fails.")
             operation = commandLineToolInstaller.uninstall
         case .blocked:
             return
@@ -427,7 +427,7 @@ struct AdvancedConfigurationView: View {
     }
 
     private var commandLineToolSection: some View {
-        LuminareSection(String(localized: "Command-Line Tool", comment: "Section header shown in settings")) {
+        LuminareSection(String(localized: "Command-Line Tool", comment: "Section header in Advanced settings.")) {
             LuminareCompose {
                 Button {
                     model.performCommandLineToolAction()
@@ -447,7 +447,7 @@ struct AdvancedConfigurationView: View {
                             .foregroundStyle(.green)
                     }
 
-                    Text("`loop` command", comment: "Settings label for the installable command-line tool. `loop` is the command's name and must not be translated")
+                    Text("`loop` command", comment: "Label of the command-line tool row in Advanced settings. `loop` is the command’s name, so it isn’t translated.")
                         .padding(.trailing, 4)
                         .luminareToolTip(attachedTo: .topTrailing, hidden: model.commandLineToolInstallStatus.warning == nil) {
                             if let warning = model.commandLineToolInstallStatus.warning {

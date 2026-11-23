@@ -2,7 +2,7 @@
 //  LoopCommandHandler.swift
 //  Loop
 //
-//  Created by Kami on 2025-03-06.
+//  Created by Kami on 06/03/2025.
 //
 
 import AppKit
@@ -46,7 +46,7 @@ final class LoopCommandHandler {
                 )
             case let .failureAlert(message):
                 let alert = NSAlert()
-                alert.messageText = String(localized: "The command couldn’t be run.")
+                alert.messageText = String(localized: "The command couldn’t be run.", comment: "Title of the alert shown when a loop:// URL fails. The reason is shown below it.")
                 alert.informativeText = message
                 alert.alertStyle = .warning
 
@@ -681,10 +681,10 @@ final class LoopCommandHandler {
 
     private func outputTitle(for command: String?) -> String {
         guard let command, !command.isEmpty else {
-            return String(localized: "Loop Output")
+            return String(localized: "Loop Output", comment: "Title of the window that shows the result of a loop:// list URL.")
         }
 
-        return String(localized: "Loop Output: \(command)", comment: "Output window title; the value is the command that was run, such as “list windows”")
+        return String(localized: "Loop Output: \(command)", comment: "Title of the window that shows the result of a loop:// list URL. %@ is the command that was run, such as “list windows”.")
     }
 
     // MARK: - Summaries

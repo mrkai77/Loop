@@ -484,7 +484,7 @@ actor UpdateInstaller {
                 var enteredPrivilegedSession = false
                 do {
                     try await privilegedHelperCoordinator.withPrivilegedSession(
-                        prompt: String(localized: "\(Bundle.main.appName) is trying to install an update.")
+                        prompt: String(localized: "\(Bundle.main.appName) is trying to install an update.", comment: "Administrator password prompt shown before installing an update. %@ is the app’s name.")
                     ) { session in
                         enteredPrivilegedSession = true
                         log.success("Administrator authorization granted; privileged session established")
