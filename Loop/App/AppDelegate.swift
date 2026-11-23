@@ -197,9 +197,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             // macOS gives Loop a Dock icon before handing it a URL, as Loop isn't an `LSUIElement` app
             SettingsWindowManager.shared.hideDockIconIfUnused()
 
-            let result = await LoopCommandHandler.shared.handle(url)
-            log.debug("Response: \(result.jsonResponse)")
-            result.presentIfNeeded()
+            switch AutomationRequest.parse(url) {
+            case let .success(request):
+                let response = await AutomationQueue.shared.run(request)
+                URLSchemePresenter.present(response, for: request)
+            case let .failure(error):
+                URLSchemePresenter.present(LoopAutomationResponse(error: error), for: nil)
+            }
         }
     }
 }

@@ -15,6 +15,18 @@ enum LoopListSubject: String, CaseIterable, Codable {
     case keybinds
     case gestures
     case radialMenu = "radial-menu"
+
+    /// As in "No windows"
+    var pluralNoun: String {
+        switch self {
+        case .windows: "windows"
+        case .screens: "screens"
+        case .actions: "actions"
+        case .keybinds: "keybinds"
+        case .gestures: "gestures"
+        case .radialMenu: "radial menu actions"
+        }
+    }
 }
 
 /// Every command the automation API accepts, so the app, the CLI and error suggestions spell routes the same way
@@ -106,5 +118,16 @@ enum LoopRoute: Hashable {
         string.contains(where: { $0.isWhitespace || "'\"\\$`".contains($0) })
             ? "'" + string.replacingOccurrences(of: "'", with: #"'\''"#) + "'"
             : string
+    }
+}
+
+extension LoopAutomationError {
+    init(_ code: LoopAutomationErrorCode, message: String, suggesting replacement: LoopRoute?, available: [LoopRoute] = []) {
+        self.init(
+            code,
+            message: message,
+            replacementRoute: replacement?.displayString,
+            availableRoutes: available.isEmpty ? nil : available.map(\.displayString)
+        )
     }
 }

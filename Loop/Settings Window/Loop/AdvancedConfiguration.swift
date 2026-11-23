@@ -26,7 +26,7 @@ final class AdvancedConfigurationModel: ObservableObject {
 
     @Published private(set) var isLowPowerModeEnabled: Bool = ProcessInfo.processInfo.isLowPowerModeEnabled
     @Published private(set) var isAccessibilityAccessGranted = AccessibilityManager.shared.isGranted
-    @Published private(set) var commandLineToolInstallStatus: CommandLineToolInstaller.Status = .notInstalled
+    @Published private(set) var commandLineToolInstallStatus: CommandLineToolStatus = .notInstalled
     @Published private(set) var isCommandLineToolOperationInProgress = false
     @Published private(set) var commandLineToolError: CommandLineToolError?
 
@@ -193,7 +193,7 @@ final class AdvancedConfigurationModel: ObservableObject {
 
     func refreshCommandLineToolInstallStatus() {
         do {
-            commandLineToolInstallStatus = try commandLineToolInstaller.status()
+            commandLineToolInstallStatus = try CommandLineToolStatus.current()
         } catch {
             log.error("Error checking CLI installation status: \(error.localizedDescription)")
             commandLineToolInstallStatus = .blocked
@@ -449,8 +449,8 @@ struct AdvancedConfigurationView: View {
 
                     Text("`loop` command", comment: "Label of the command-line tool row in Advanced settings. `loop` is the command’s name, so it isn’t translated.")
                         .padding(.trailing, 4)
-                        .luminareToolTip(attachedTo: .topTrailing, hidden: model.commandLineToolInstallStatus.warning == nil) {
-                            if let warning = model.commandLineToolInstallStatus.warning {
+                        .luminareToolTip(attachedTo: .topTrailing, hidden: model.commandLineToolInstallStatus.settingsWarning == nil) {
+                            if let warning = model.commandLineToolInstallStatus.settingsWarning {
                                 Text(warning)
                                     .padding(6)
                             }

@@ -130,8 +130,6 @@ final class CommandOutputWindowController: NSWindowController, NSWindowDelegate,
                 attributes[.font] = boldFont
             case .secondary:
                 attributes[.foregroundColor] = NSColor.secondaryLabelColor
-            case .heading:
-                attributes[.font] = boldFont
             case .success:
                 attributes[.foregroundColor] = NSColor.systemGreen
             case .failure:

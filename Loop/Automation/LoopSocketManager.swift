@@ -11,7 +11,7 @@ import Scribe
 /// Listens on a Unix domain socket for commands from loop-cli.
 ///
 /// Each connection carries one canonical `loop://...` request URL, read until the client shuts down
-/// writing. The request is dispatched to `LoopCommandHandler`, and the JSON response is written back
+/// writing. The request is run by `AutomationQueue`, and the JSON response is written back
 /// before the connection is closed.
 ///
 /// Request format: `loop://<route>[?windowID=<id>&bundleID=<id>&screenID=<id>]`
@@ -21,9 +21,8 @@ final class LoopSocketManager {
     static let shared = LoopSocketManager()
 
     private let socketPath = LoopSocketPath.path
-    private let commandLineToolInstaller = CommandLineToolInstaller()
 
-    /// Only touched by `start()` and `shutdown()`, which run on the main thread
+    /// Only touched by `start()` and `shutdown()`, which run on the main actor
     private var listener: DispatchSourceRead?
     /// The socket file this instance bound, so shutting down never removes a newer instance's socket
     private var boundSocketFile: (device: dev_t, inode: ino_t)?
@@ -41,12 +40,15 @@ final class LoopSocketManager {
     )
 
     private static let maxRequestSize = 4096
+    /// Connections waiting to be accepted. Each one is handled straight away, so a few is plenty.
+    private static let listenBacklog: Int32 = 5
     /// The CLI sends its request right after connecting and reads the response straight away,
     /// so this only has to cover a stalled client
     private static let clientTimeout: Duration = .seconds(5)
 
     private init() {}
 
+    @MainActor
     func start() {
         guard listener == nil else { return }
 
@@ -83,7 +85,7 @@ final class LoopSocketManager {
             boundSocketFile = (socketFile.st_dev, socketFile.st_ino)
         }
 
-        guard listen(serverFD, 5) == 0 else {
+        guard listen(serverFD, Self.listenBacklog) == 0 else {
             log.error("Failed to listen on socket: \(LoopSocketIO.errnoDescription())")
             close(serverFD)
             unlink(socketPath)
@@ -106,6 +108,7 @@ final class LoopSocketManager {
         log.info("Listening on \(socketPath)")
     }
 
+    @MainActor
     func shutdown() {
         listener?.cancel()
         listener = nil
@@ -183,21 +186,28 @@ final class LoopSocketManager {
             return
         }
 
-        Task {
-            let result = await LoopCommandHandler.shared.handleRequestURLString(request, source: .cli)
-            respond(clientFD, result.jsonResponse)
+        Task { @MainActor in
+            let response = switch URL(string: request).map(AutomationRequest.parse) {
+            case let .success(request)?:
+                await AutomationQueue.shared.run(request)
+            case let .failure(error)?:
+                LoopAutomationResponse(error: error)
+            case nil:
+                LoopAutomationResponse.failure(.invalidRequest, message: "Invalid request URL: \(request)")
+            }
+            respond(clientFD, LoopAutomationJSON.encodeString(response))
         }
     }
 
     private func commandLineToolRejectionReason() -> String? {
-        let status: CommandLineToolInstaller.Status
+        let status: CommandLineToolStatus
         do {
-            status = try commandLineToolInstaller.status()
+            status = try CommandLineToolStatus.current()
         } catch {
             return "Couldn’t check \(PrivilegedHelperConstants.commandLineToolSymlinkURL.path): \(error.localizedDescription)"
         }
 
-        return status.commandLineReason
+        return status.cliRefusalMessage
     }
 
     /// Closing the connection is what tells the client the response is complete

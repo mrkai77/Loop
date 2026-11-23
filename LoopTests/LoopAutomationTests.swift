@@ -111,12 +111,12 @@ struct WindowDirectionAutomationKeyTests {
     ])
     @MainActor func urlsFromEarlierVersionsMapOntoCurrentRoutes(url: String, expected: LoopRoute) throws {
         let components = try #require(LoopRoute.pathComponents(of: url))
-        #expect(LoopCommandHandler.legacyRoute(from: components) == expected)
+        #expect(AutomationRequest.legacyRoute(from: components) == expected)
     }
 
     @Test @MainActor func unknownOlderURLsDontMap() {
-        #expect(LoopCommandHandler.legacyRoute(from: ["direction", "sideways"]) == nil)
-        #expect(LoopCommandHandler.legacyRoute(from: ["screen", "sideways"]) == nil)
+        #expect(AutomationRequest.legacyRoute(from: ["direction", "sideways"]) == nil)
+        #expect(AutomationRequest.legacyRoute(from: ["screen", "sideways"]) == nil)
     }
 
     @Test @MainActor func everyDesktopIsListedWhateverTheCurrentCount() {

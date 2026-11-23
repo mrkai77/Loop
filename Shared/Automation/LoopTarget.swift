@@ -12,6 +12,23 @@ enum LoopBindingKind: String, CaseIterable, Codable {
     case keybind
     case gesture
     case radialMenu = "radial-menu"
+
+    /// As in "Unknown keybind"
+    var noun: String {
+        switch self {
+        case .keybind: "keybind"
+        case .gesture: "gesture"
+        case .radialMenu: "radial menu action"
+        }
+    }
+
+    var listSubject: LoopListSubject {
+        switch self {
+        case .keybind: .keybinds
+        case .gesture: .gestures
+        case .radialMenu: .radialMenu
+        }
+    }
 }
 
 /// Something `run` can trigger, spelled like an action in Loop's settings file: `left-half` or `keybind:portrait`

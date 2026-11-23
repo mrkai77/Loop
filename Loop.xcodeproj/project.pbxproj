@@ -146,6 +146,7 @@
 				Automation/LoopSocketIO.swift,
 				Automation/LoopSocketPath.swift,
 				Automation/LoopTarget.swift,
+				Automation/LoopTargetOptions.swift,
 				Automation/NullEncoded.swift,
 				"Bundle+Extensions.swift",
 				PrivilegedHelper/LoopSupportPaths.swift,

@@ -266,7 +266,7 @@ extension WindowDirection {
 
     /// Built-in actions that do something without being configured first
     var isRunnableOnItsOwn: Bool {
-        ![.noAction, .noSelection, .custom, .stash, .cycle].contains(self)
+        !isNoOp && !isCustomizable && self != .cycle
     }
 }
 

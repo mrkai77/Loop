@@ -21,7 +21,7 @@ struct LoopCLICommand: ParsableCommand {
         discussion: """
         Successful commands print to stdout: aligned tables in a terminal, and tab-separated lines without a header when piped. Pass --json for JSON instead. Errors go to stderr, except with --json, where Loop's error is printed to stdout as JSON. Mistyped commands and options always print to stderr.
 
-        Exit codes: 0 on success, 1 when a command fails, 64 for invalid usage, 69 when Loop can't run commands, such as when it isn't running, and 75 when Loop doesn't respond in time.
+        Exit codes: 0 on success, \(EXIT_FAILURE) when a command fails, \(EX_USAGE) for invalid usage, \(EX_UNAVAILABLE) when Loop can't run commands, such as when it isn't running, and \(EX_TEMPFAIL) when Loop doesn't respond in time.
 
         Examples:
           \(executableName) list actions
@@ -108,14 +108,8 @@ extension CLIRequestCommand {
 }
 
 extension ExitCode {
-    /// `sysexits.h` codes, so scripts can tell bad usage and Loop being unavailable or slow apart from a failed command
     init(_ code: LoopAutomationErrorCode) {
-        switch code {
-        case .invalidRequest: self = .validationFailure
-        case .unavailable: self = ExitCode(69)
-        case .timeout: self = ExitCode(75)
-        default: self = .failure
-        }
+        self.init(code.exitCode)
     }
 }
 
@@ -126,7 +120,8 @@ struct OutputOptions: ParsableArguments {
     var json = false
 }
 
-struct TargetOptions: ParsableArguments {
+/// The CLI's spelling of `LoopTargetOptions`
+struct TargetArguments: ParsableArguments {
     @Option(name: .customLong("window-id"), help: ArgumentHelp("Act on a window from '\(LoopCLICommand.executableName) list windows'", valueName: "id"))
     var windowID: UInt32?
 
@@ -136,31 +131,29 @@ struct TargetOptions: ParsableArguments {
     @Option(name: .customLong("screen-id"), help: ArgumentHelp("Use a screen from '\(LoopCLICommand.executableName) list screens'", valueName: "id"))
     var screenID: UInt32?
 
-    func validate() throws {
-        if windowID != nil, bundleID != nil {
-            throw ValidationError("--window-id and --bundle-id can’t be used together")
-        }
-
-        if let bundleID, bundleID.trimmingCharacters(in: .whitespaces).isEmpty {
-            throw ValidationError("--bundle-id can’t be empty")
-        }
+    var options: LoopTargetOptions {
+        LoopTargetOptions(windowID: windowID, bundleID: bundleID, screenID: screenID)
     }
 
-    var queryItems: [URLQueryItem] {
-        var items: [URLQueryItem] = []
+    func validate() throws {
+        switch options.problem {
+        case .windowAndBundleID:
+            throw ValidationError("--window-id and --bundle-id can’t be used together")
+        case .emptyBundleID:
+            throw ValidationError("--bundle-id can’t be empty")
+        case nil:
+            break
+        }
+    }
+}
 
-        if let windowID {
-            items.append(URLQueryItem(name: "windowID", value: String(windowID)))
+extension [String] {
+    /// "a, b or c", for help text
+    func joinedAsAlternatives() -> String {
+        guard let last, count > 1 else {
+            return first ?? ""
         }
 
-        if let bundleID {
-            items.append(URLQueryItem(name: "bundleID", value: bundleID))
-        }
-
-        if let screenID {
-            items.append(URLQueryItem(name: "screenID", value: String(screenID)))
-        }
-
-        return items
+        return dropLast().joined(separator: ", ") + " or " + last
     }
 }

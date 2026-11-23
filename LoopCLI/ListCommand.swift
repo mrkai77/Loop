@@ -10,7 +10,7 @@ import ArgumentParser
 struct ListCommand: ParsableCommand, CLIRequestCommand {
     static let configuration = CommandConfiguration(
         commandName: "list",
-        abstract: "List windows, screens, actions, keybinds, gestures or radial menu actions"
+        abstract: "List " + LoopListSubject.allCases.map(\.pluralNoun).joinedAsAlternatives()
     )
 
     @Argument(help: ArgumentHelp("What to list", valueName: "subject"))
