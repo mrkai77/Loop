@@ -416,19 +416,22 @@ extension LoopManager {
 
         let originatingContext = resizeContext
 
-        guard
-            isLoopActive,
-            let currentScreen = originatingContext.screen ?? resolveAndStoreTargetScreen(
-                action: newAction,
-                window: originatingContext.window
-            )
-        else {
+        guard isLoopActive else {
             return
         }
 
         let incomingAllowsRepeatedSelection = newAction.allowsRepeatedSelection
 
+        // Before choosing a screen, so the "no selection" Loop opens with doesn't choose it for the first real action.
+        // Screen switching actions start from the window's screen, which only the first real action can pick.
         guard originatingContext.action.id != newAction.id || incomingAllowsRepeatedSelection else {
+            return
+        }
+
+        guard let currentScreen = originatingContext.screen ?? resolveAndStoreTargetScreen(
+            action: newAction,
+            window: originatingContext.window
+        ) else {
             return
         }
 
@@ -666,9 +669,12 @@ extension LoopManager {
 
         let currentFrame = window.frame
 
+        // Measured on the screen the window is actually on. The screen Loop started from can be another one,
+        // and measuring against it gives proportions outside the screen.
+        let windowScreen = ScreenUtility.screenContaining(window) ?? currentScreen
         let adjustedBounds = PaddingConfiguration
-            .getConfiguredPadding(for: currentScreen)
-            .applyToBounds(currentScreen.cgSafeScreenFrame, screen: currentScreen)
+            .getConfiguredPadding(for: windowScreen)
+            .applyToBounds(windowScreen.cgSafeScreenFrame, screen: windowScreen)
 
         let proportionalSize = CGRect(
             x: (currentFrame.minX - adjustedBounds.minX) / adjustedBounds.width,

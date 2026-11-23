@@ -85,7 +85,7 @@ struct LoopAutomationCatalog {
         WindowDirection.matching(name).flatMap { $0.isRunnableOnItsOwn ? $0 : nil }
     }
 
-    static func boundAction(_ action: WindowAction) -> LoopBoundAction {
+    nonisolated static func boundAction(_ action: WindowAction) -> LoopBoundAction {
         LoopBoundAction(key: action.direction.automationKey, name: action.getName())
     }
 
