@@ -13,16 +13,16 @@ import UserNotifications
 
 @Loggable
 final class AppDelegate: NSObject, NSApplicationDelegate {
-    private var pendingSettingsWindowOpen: Task<(), Never>?
-
     private static let terminateNotificationName = Notification.Name("com.MrKai77.Loop.terminate")
     private var terminateObserver: Any?
 
-    private var launchedAsLoginItem: Bool {
-        guard let event = NSAppleEventManager.shared().currentAppleEvent else { return false }
-        return
-            event.eventID == kAEOpenApplication &&
-            event.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue == keyAELaunchedAsLogInItem
+    /// Launched from Finder, the Dock or `open`, rather than at login or to open a `loop://` URL, which has no open-application event
+    private var launchedByUser: Bool {
+        guard let event = NSAppleEventManager.shared().currentAppleEvent, event.eventID == kAEOpenApplication else {
+            return false
+        }
+
+        return event.paramDescriptor(forKeyword: keyAEPropData)?.enumCodeValue != keyAELaunchedAsLogInItem
     }
 
     func applicationDidFinishLaunching(_: Notification) {
@@ -37,9 +37,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             DataPatcher.run()
         }
 
-        // Show settings window only if not launched as login item AND startHidden is disabled
-        if !launchedAsLoginItem, !Defaults[.startHidden] {
-            scheduleSettingsWindowOpen()
+        // Show settings window only if launched by the user AND startHidden is disabled
+        if launchedByUser, !Defaults[.startHidden] {
+            SettingsWindowManager.shared.show()
         } else {
             // Closing also hides the dock icon if needed.
             SettingsWindowManager.shared.close()
@@ -170,9 +170,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_: NSApplication, hasVisibleWindows _: Bool) -> Bool {
-        // Returning false keeps AppKit from opening anything itself, so a URL arriving next can still cancel this
-        scheduleSettingsWindowOpen()
-        return false
+        SettingsWindowManager.shared.show()
+        return true
     }
 
     func applicationShouldTerminate(_: NSApplication) -> NSApplication.TerminateReply {
@@ -192,33 +191,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     private func processIncomingURL(_ url: URL) {
-        cancelPendingSettingsWindowOpen()
         log.info("Received URL: \(url)")
 
         Task { @MainActor in
+            // macOS gives Loop a Dock icon before handing it a URL, as Loop isn't an `LSUIElement` app
+            SettingsWindowManager.shared.hideDockIconIfUnused()
+
             let result = await LoopCommandHandler.shared.handle(url)
             log.debug("Response: \(result.jsonResponse)")
             result.presentIfNeeded()
         }
-    }
-
-    /// Deferred so a URL event arriving right after launch or reopen can cancel it
-    private func scheduleSettingsWindowOpen() {
-        cancelPendingSettingsWindowOpen()
-
-        pendingSettingsWindowOpen = Task { @MainActor [weak self] in
-            await Task.yield()
-            guard !Task.isCancelled else {
-                return
-            }
-
-            self?.pendingSettingsWindowOpen = nil
-            SettingsWindowManager.shared.show()
-        }
-    }
-
-    private func cancelPendingSettingsWindowOpen() {
-        pendingSettingsWindowOpen?.cancel()
-        pendingSettingsWindowOpen = nil
     }
 }
