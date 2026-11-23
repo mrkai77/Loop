@@ -7,7 +7,8 @@
 
 import Foundation
 
-/// Encodes `nil` as `null` instead of leaving the key out, and decodes a missing key as `nil`
+/// Encodes `nil` as `null` instead of leaving the key out. Decodes `null`, a missing key, or a value this version can't read,
+/// such as a result kind from a newer Loop, as `nil`, so the rest of the response is still read.
 @propertyWrapper
 struct NullEncoded<Value: Codable>: Codable {
     var wrappedValue: Value?
@@ -18,7 +19,7 @@ struct NullEncoded<Value: Codable>: Codable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
-        self.wrappedValue = container.decodeNil() ? nil : try container.decode(Value.self)
+        self.wrappedValue = container.decodeNil() ? nil : try? container.decode(Value.self)
     }
 
     func encode(to encoder: Encoder) throws {

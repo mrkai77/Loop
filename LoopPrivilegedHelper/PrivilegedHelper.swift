@@ -206,7 +206,8 @@ final class PrivilegedHelper: NSObject, PrivilegedHelperProtocol {
         }
     }
 
-    /// Opened once without following a link, so swapping the folder or its parents can't redirect what happens next
+    /// Opened without following a link, so the final `symlinkat` and `unlinkat` act on this folder even if its path changes.
+    /// Creating the folder and classifying the link still go through the path.
     private func openCommandLineToolInstallDirectory() throws -> Int32 {
         let path = PrivilegedHelperConstants.commandLineToolInstallDirectory
         let directory = open(path, O_RDONLY | O_DIRECTORY | O_NOFOLLOW | O_CLOEXEC)

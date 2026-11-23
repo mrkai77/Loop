@@ -77,6 +77,10 @@ final class LoopCommandHandler {
         var windowID: CGWindowID?
         var bundleID: String?
         var screenID: CGDirectDisplayID?
+
+        var isEmpty: Bool {
+            windowID == nil && bundleID == nil && screenID == nil
+        }
     }
 
     /// A route, plus how it was asked for, so older URLs keep working without being suggested
@@ -163,7 +167,7 @@ final class LoopCommandHandler {
         let isRead: Bool
         switch request {
         case let .route(.list(subject)):
-            response = listResponse(subject)
+            response = params.isEmpty ? listResponse(subject) : failureResponse(.invalidRequest, message: "list doesn’t take windowID, bundleID or screenID")
             isRead = true
         case let .route(.run(target)):
             response = await run(target, params: params, source: source)
@@ -178,7 +182,13 @@ final class LoopCommandHandler {
 
     /// Present but malformed values are errors, so a typo can't act on some other window
     private func targetParams(from queryItems: [URLQueryItem]) -> Result<TargetParams, LoopAutomationError> {
-        /// A parameter without a value, like `?windowID`, is present but empty
+        // So a parameter added later isn't silently ignored by this version
+        let knownNames: Set = ["windowid", "bundleid", "screenid"]
+        if let unknown = queryItems.first(where: { !knownNames.contains($0.name.lowercased()) }) {
+            return .failure(LoopAutomationError(.invalidRequest, message: "Unknown parameter: \(unknown.name)"))
+        }
+
+        // A parameter without a value, like `?windowID`, is present but empty
         func value(_ name: String) -> String? {
             queryItems.first { $0.name.lowercased() == name.lowercased() }.map { $0.value ?? "" }
         }
@@ -213,7 +223,8 @@ final class LoopCommandHandler {
         return .success(params)
     }
 
-    /// Returns `nil` if `operation` doesn't finish in time. It keeps running after that, since AX calls can't be cancelled
+    /// Returns `nil` if `operation` doesn't finish in time. It isn't cancelled, so the action still completes, as the timeout response says.
+    /// Cancelling could stop a resize partway through.
     private func withTimeout<T: Sendable>(
         _ timeout: Duration,
         _ operation: @escaping @MainActor @Sendable () async -> T
@@ -227,9 +238,7 @@ final class LoopCommandHandler {
 
             let timer = Task {
                 try? await Task.sleep(for: timeout)
-                if race.finish(with: nil) {
-                    work.cancel()
-                }
+                race.finish(with: nil)
             }
 
             Task {
@@ -372,7 +381,7 @@ final class LoopCommandHandler {
             }
 
             guard let action = binding.action, !action.direction.isNoOp else {
-                return failureResponse(.notFound, message: "\(target) doesn’t run an action")
+                return failureResponse(.failed, message: "\(target) doesn’t run an action")
             }
 
             return await run(action, target: target, params: params, source: source)

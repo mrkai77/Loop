@@ -9,7 +9,8 @@ import CoreGraphics
 import Foundation
 
 // Every key is always present, with `null` for missing values, so scripts can rely on the shape.
-// `key`, `id`, `target` and `code` values are stable; `name`, `title`, `category` and `trigger` are display text.
+// `key`, `id`, `target` and `code` values are stable; `name`, `title`, `category`, `trigger` and `note` are display text.
+// Version 1 only ever gains keys, result kinds and error codes. Anything else bumps `version`, so readers should ignore what they don't know.
 
 enum LoopAutomationResultKind: String, Codable {
     case windowList
@@ -187,12 +188,18 @@ enum LoopAutomationErrorCode: String, Codable {
     case excludedApp
     /// The window is in full screen, and Loop is set to ignore those
     case fullscreenWindow
-    /// Loop couldn't be reached, or isn't accepting commands yet
+    /// Loop can't run commands, such as when it isn't running, its command-line tool isn't set up, or it lacks Accessibility access
     case unavailable
     /// The command didn't finish in time, and may still complete
     case timeout
     /// The command ran but didn't succeed
     case failed
+
+    /// Reads codes from a newer Loop as `failed`, rather than failing to read the whole response
+    init(from decoder: Decoder) throws {
+        let rawValue = try decoder.singleValueContainer().decode(String.self)
+        self = Self(rawValue: rawValue) ?? .failed
+    }
 }
 
 struct LoopAutomationError: Codable, Error {

@@ -45,15 +45,12 @@ struct LoopAutomationCatalog {
     let keybinds: [WindowAction]
     let radialMenuActions: [RadialMenuAction]
     let gestures: [GestureBinding]
-    private let usesDefaultRadialMenu: Bool
-
     init(
         keybinds: [WindowAction] = Defaults[.keybinds],
         radialMenuActions: [RadialMenuAction]? = nil,
         gestures: [GestureBinding] = Defaults[.gestures]
     ) {
         self.keybinds = keybinds
-        self.usesDefaultRadialMenu = radialMenuActions == nil && !Defaults[.enableRadialMenuCustomization]
         self.radialMenuActions = radialMenuActions ?? RadialMenuAction.userConfiguredActions
         self.gestures = gestures
     }
@@ -96,10 +93,7 @@ struct LoopAutomationCatalog {
     }
 
     var radialMenuBindings: [Binding] {
-        let stems = usesDefaultRadialMenu
-            ? RadialMenuAction.defaultAutomationIDs
-            : radialMenuActions.map { Self.idStem($0.type) }
-        let ids = LoopAutomationIdentity.uniqueIDs(for: stems)
+        let ids = LoopAutomationIdentity.uniqueIDs(for: radialMenuActions.map { Self.idStem($0.type) })
 
         return zip(radialMenuActions.indices, ids).map { index, id in
             let action = radialMenuActions[index]
@@ -274,24 +268,6 @@ extension WindowDirection {
     var isRunnableOnItsOwn: Bool {
         ![.noAction, .noSelection, .custom, .stash, .cycle].contains(self)
     }
-}
-
-// MARK: - Radial Menu Defaults
-
-extension RadialMenuAction {
-    /// Fixed so they don't change with the language, as the default cycles' names are localized.
-    /// One per entry in `defaultRadialMenuActions`.
-    static let defaultAutomationIDs = [
-        "top-cycle",
-        "top-right-quarter",
-        "right-cycle",
-        "bottom-right-quarter",
-        "bottom-cycle",
-        "bottom-left-quarter",
-        "left-cycle",
-        "top-left-quarter",
-        "maximize-macos-center"
-    ]
 }
 
 // MARK: - Gestures

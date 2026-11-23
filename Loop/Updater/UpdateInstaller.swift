@@ -512,7 +512,8 @@ actor UpdateInstaller {
                         }
                     }
                 } catch {
-                    // Without a session, offer the Applications folder instead, including when the password prompt was canceled
+                    // Without a session, offer the Applications folder instead, including when the password prompt was canceled.
+                    // That's `AuthorizationCanceled`. A `CancellationError` means the update task itself was cancelled, so it's passed on.
                     guard !enteredPrivilegedSession, !(error is CancellationError) else {
                         throw error
                     }

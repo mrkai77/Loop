@@ -21,7 +21,7 @@ struct LoopCLICommand: ParsableCommand {
         discussion: """
         Successful commands print to stdout: aligned tables in a terminal, and tab-separated lines without a header when piped. Pass --json for JSON instead. Errors go to stderr, except with --json, where Loop's error is printed to stdout as JSON. Mistyped commands and options always print to stderr.
 
-        Exit codes: 0 on success, 1 when a command fails, 64 for invalid usage, 69 when Loop can't be reached, and 75 when Loop doesn't respond in time.
+        Exit codes: 0 on success, 1 when a command fails, 64 for invalid usage, 69 when Loop can't run commands, such as when it isn't running, and 75 when Loop doesn't respond in time.
 
         Examples:
           \(executableName) list actions
@@ -108,9 +108,10 @@ extension CLIRequestCommand {
 }
 
 extension ExitCode {
-    /// `sysexits.h` codes for Loop being unreachable or slow, so scripts can tell them apart from a failed command
+    /// `sysexits.h` codes, so scripts can tell bad usage and Loop being unavailable or slow apart from a failed command
     init(_ code: LoopAutomationErrorCode) {
         switch code {
+        case .invalidRequest: self = .validationFailure
         case .unavailable: self = ExitCode(69)
         case .timeout: self = ExitCode(75)
         default: self = .failure

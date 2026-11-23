@@ -8,7 +8,6 @@
 import CoreGraphics
 import Foundation
 @testable import Loop
-import Security
 import Testing
 
 /// The ids and spellings here are a contract with scripts, and with the ids Loop will write to its settings file
@@ -186,10 +185,18 @@ struct LoopAutomationCatalogTests {
         #expect(catalog.radialMenuBindings[1].note == nil)
     }
 
-    @Test func defaultRadialMenuIDsDontDependOnTheLanguage() {
-        #expect(RadialMenuAction.defaultAutomationIDs.count == RadialMenuAction.defaultRadialMenuActions.count)
-        #expect(Set(RadialMenuAction.defaultAutomationIDs).count == RadialMenuAction.defaultAutomationIDs.count)
-        #expect(LoopAutomationIdentity.kebabCase("Top Cycle") == RadialMenuAction.defaultAutomationIDs[0])
+    @Test func namesWithoutLatinLettersFallBackToTheActionKey() {
+        let catalog = LoopAutomationCatalog(
+            keybinds: [
+                WindowAction("上側サイクル", cycle: [.init(.topHalf), .init(.topThird)]),
+                WindowAction("右側サイクル", cycle: [.init(.rightHalf), .init(.rightThird)])
+            ],
+            radialMenuActions: [.custom(WindowAction("上側サイクル", cycle: [.init(.topHalf)]))],
+            gestures: []
+        )
+
+        #expect(catalog.keyBindings.map(\.id) == ["cycle", "cycle-2"])
+        #expect(catalog.radialMenuBindings.map(\.id) == ["cycle"])
     }
 
     @Test func gesturesThatOpenTheRadialMenuCantBeRun() {
@@ -225,6 +232,16 @@ struct LoopAutomationJSONTests {
         let decoded = try LoopAutomationJSON.decodeResponse(from: json)
         #expect(decoded.success)
         #expect(decoded.error == nil)
+    }
+
+    @Test func responsesFromANewerLoopStillDecode() throws {
+        let unknownCode = #"{ "version" : 1, "success" : false, "result" : null, "error" : { "code" : "somethingNew", "message" : "Nope" } }"#
+        #expect(try LoopAutomationJSON.decodeResponse(from: unknownCode).error?.code == .failed)
+
+        let unknownKind = #"{ "version" : 1, "success" : true, "result" : { "kind" : "somethingNew" }, "error" : null }"#
+        let decoded = try LoopAutomationJSON.decodeResponse(from: unknownKind)
+        #expect(decoded.success)
+        #expect(decoded.result == nil)
     }
 
     @Test func missingKeysDecodeAsNil() throws {
