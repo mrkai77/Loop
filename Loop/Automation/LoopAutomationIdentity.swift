@@ -42,6 +42,11 @@ enum LoopAutomationIdentity {
         return words.joined(separator: "-")
     }
 
+    /// ASCII letters, digits, `-` and `_`, as Loop's settings file allows
+    static func isValidID(_ id: String) -> Bool {
+        !id.isEmpty && id.allSatisfy { $0.isASCII && ($0.isLetter || $0.isNumber || $0 == "-" || $0 == "_") }
+    }
+
     /// A repeated `halves` becomes `halves-2`
     static func nextFreeID(_ id: String, taken: Set<String>) -> String {
         guard taken.contains(id) else {

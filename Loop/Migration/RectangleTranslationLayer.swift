@@ -25,6 +25,7 @@ enum RectangleTranslationLayer {
     /// Maps Rectangle direction keys to Loop's WindowDirection enum.
     private static let directionMapping: [String: WindowDirection] = [
         "bottomHalf": .bottomHalf,
+        "bottomLeft": .bottomLeftQuarter,
         "bottomRight": .bottomRightQuarter,
         "center": .center,
         "centerHalf": .horizontalCenterHalf,
@@ -45,11 +46,11 @@ enum RectangleTranslationLayer {
     /// Imports the keybinds from a JSON string.
     /// - Parameter jsonString: The JSON string to import the keybinds from.
     /// - Returns: An array of WindowAction instances corresponding to the keybinds.
-    static func importKeybinds(from data: Data) throws -> [SavedWindowActionFormat] {
+    static func importKeybinds(from data: Data) throws -> [Keybind] {
         let rectangleConfig = try JSONDecoder().decode(RectangleConfig.self, from: data)
 
         // Converts the Rectangle shortcuts into Loop's WindowActions.
-        let windowActions: [SavedWindowActionFormat] = rectangleConfig.shortcuts.compactMap { direction, shortcut in
+        let windowActions: [Keybind] = rectangleConfig.shortcuts.compactMap { direction, shortcut in
             guard
                 let loopDirection = directionMapping[direction],
                 !direction.contains("Todo")
@@ -57,9 +58,9 @@ enum RectangleTranslationLayer {
                 return nil
             }
 
-            return SavedWindowActionFormat(
-                .init(loopDirection, name: direction.capitalized.replacingOccurrences(of: " ", with: "") + "Cycle"),
-                keys: [CGKeyCode(shortcut.keyCode)] // Converts the integer keyCode to CGKeyCode.
+            return Keybind(
+                keys: [CGKeyCode(shortcut.keyCode)], // Converts the integer keyCode to CGKeyCode.
+                target: .action(WindowAction(loopDirection, name: direction.capitalized.replacingOccurrences(of: " ", with: "") + "Cycle"))
             )
         }
 

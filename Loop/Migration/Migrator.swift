@@ -15,73 +15,36 @@ import SwiftUI
 struct SavedKeybindsFormat: Codable {
     let version: String?
     let triggerKey: Set<CGKeyCode>?
-    let actions: [SavedWindowActionFormat]
+    let actions: [Keybind]
 
-    /// Linked keybinds are saved as the action they run, as the file doesn't hold what they link to
-    static func generateFromDefaults() -> SavedKeybindsFormat {
-        let resolver = BindingLinkResolver()
-        return SavedKeybindsFormat(
+    /// Linked keybinds are saved as the action they run, with config IDs so links still find them after an import
+    static func generate(from keybinds: [Keybind], triggerKey: Set<CGKeyCode>, resolver: BindingLinkResolver) -> SavedKeybindsFormat {
+        SavedKeybindsFormat(
             version: Bundle.main.appVersion,
-            triggerKey: Defaults[.triggerKey],
-            actions: Defaults[.keybinds].map { SavedWindowActionFormat($0.resolvedAction(with: resolver), keys: $0.keys) }
-        )
-    }
-}
-
-// MARK: - SavedWindowActionFormat
-
-/// Struct to define the format of saved window actions.
-struct SavedWindowActionFormat: Codable {
-    let direction: WindowDirection
-    let keybind: Set<CGKeyCode>
-    let name: String?
-    let unit: CustomWindowActionUnit?
-    let anchor: CustomWindowActionAnchor?
-    let sizeMode: CustomWindowActionSizeMode?
-    let width: Double?
-    let height: Double?
-    let positionMode: CustomWindowActionPositionMode?
-    let xPoint: Double?
-    let yPoint: Double?
-    let cycle: [SavedWindowActionFormat]?
-
-    /// Initialize from a WindowAction, and the keys of the keybind that runs it.
-    init(_ action: WindowAction, keys: Set<CGKeyCode> = []) {
-        self.direction = action.direction
-        self.keybind = keys
-        self.name = action.name
-        self.unit = action.unit
-        self.anchor = action.anchor
-        self.sizeMode = action.sizeMode
-        self.width = action.width
-        self.height = action.height
-        self.positionMode = action.positionMode
-        self.xPoint = action.xPoint
-        self.yPoint = action.yPoint
-        self.cycle = action.cycleActions?.map { SavedWindowActionFormat($0) }
-    }
-
-    /// Converts the saved format back into a keybind running its action.
-    func convertToKeybind() -> Keybind {
-        Keybind(convertToWindowAction(), keys: keybind)
-    }
-
-    /// Converts the saved format back into a usable WindowAction object.
-    func convertToWindowAction() -> WindowAction {
-        WindowAction(
-            direction,
-            name: name,
-            unit: unit,
-            anchor: anchor,
-            width: width,
-            height: height,
-            xPoint: xPoint,
-            yPoint: yPoint,
-            positionMode: positionMode,
-            sizeMode: sizeMode,
-            cycle: cycle?.map { $0.convertToWindowAction()
+            triggerKey: triggerKey,
+            actions: keybinds.map { keybind in
+                Keybind(
+                    configID: keybind.configID,
+                    keys: keybind.keys,
+                    bypassTriggerKey: keybind.bypassTriggerKey,
+                    target: .action(keybind.resolvedAction(with: resolver) ?? WindowAction(.noAction))
+                )
             }
         )
+    }
+
+    /// The keybinds under new ids, keeping valid config IDs not already in `taken` or earlier in the file
+    func importedKeybinds(keepingConfigIDsNotIn taken: [Keybind] = []) -> [Keybind] {
+        var takenConfigIDs = Set(taken.compactMap(\.configID))
+        return actions.map { keybind in
+            let configID = keybind.configID.flatMap { LoopAutomationIdentity.isValidID($0) && takenConfigIDs.insert($0).inserted ? $0 : nil }
+            return Keybind(
+                configID: configID,
+                keys: keybind.keys,
+                bypassTriggerKey: keybind.bypassTriggerKey,
+                target: keybind.target.action.map { .action($0.detached()) } ?? keybind.target
+            )
+        }
     }
 }
 
@@ -139,7 +102,7 @@ enum Migrator {
         }
 
         let directoryURL = try await getSaveDirectoryURL()
-        let keybinds = SavedKeybindsFormat.generateFromDefaults()
+        let keybinds = SavedKeybindsFormat.generate(from: Defaults[.keybinds], triggerKey: Defaults[.triggerKey], resolver: .current)
         try await saveKeybinds(keybinds, in: directoryURL)
 
         onSuccess()
@@ -360,7 +323,7 @@ private extension Migrator {
     /// Tries to import Loop's old (pre 1.2.0) keybinds format.
     static func importLoopLegacyKeybinds(from data: Data) throws -> SavedKeybindsFormat {
         let decoder = JSONDecoder()
-        let keybinds = try decoder.decode([SavedWindowActionFormat].self, from: data)
+        let keybinds = try decoder.decode([Keybind].self, from: data)
         return SavedKeybindsFormat(version: nil, triggerKey: nil, actions: keybinds)
     }
 
@@ -379,23 +342,26 @@ private extension Migrator {
         }
 
         if Defaults[.keybinds].isEmpty {
-            Defaults[.keybinds] = savedData.actions.map { $0.convertToKeybind() }
+            Defaults[.keybinds] = savedData.importedKeybinds()
             onSuccess()
         } else {
             let result = await showAlertForImportDecision()
 
             switch result {
             case .merge:
-                let newKeybinds = savedData.actions
-                    .map { $0.convertToKeybind() }
+                let newKeybinds = savedData.importedKeybinds(keepingConfigIDsNotIn: Defaults[.keybinds])
                     .filter { newKeybind in
-                        !Defaults[.keybinds].contains { $0.keys == newKeybind.keys && $0.action?.name == newKeybind.action?.name }
+                        !Defaults[.keybinds].contains {
+                            $0.keys == newKeybind.keys
+                                && $0.bypassTriggerKey == newKeybind.bypassTriggerKey
+                                && $0.target.action?.name == newKeybind.target.action?.name
+                        }
                     }
 
                 Defaults[.keybinds].append(contentsOf: newKeybinds)
                 onSuccess()
             case .erase:
-                Defaults[.keybinds] = savedData.actions.map { $0.convertToKeybind() }
+                Defaults[.keybinds] = savedData.importedKeybinds()
                 onSuccess()
             case .cancel:
                 // No action needed, no notification should be posted
