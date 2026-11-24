@@ -7,13 +7,16 @@ import AppKit
 import Defaults
 
 enum InitialWindowFrames {
+    static func allowsPlacement(bundleID: String, url: URL) -> Bool {
+        bundleID != Bundle.main.bundleIdentifier && !Defaults[.excludedApps].contains(url)
+    }
+
     /// Returns an app's configured initial frame action without changing any windows.
     /// Dynamic size modes depend on a window's current size or action history.
     static func action(for app: NSRunningApplication) -> WindowAction? {
         guard let id = app.bundleIdentifier,
-              id != Bundle.main.bundleIdentifier,
               let url = app.bundleURL,
-              !Defaults[.excludedApps].contains(url),
+              allowsPlacement(bundleID: id, url: url),
               let action = Defaults[.initialWindowFrames][id],
               action.direction == .custom,
               action.sizeMode == .custom
@@ -32,18 +35,39 @@ enum InitialWindowFrames {
         let properties = Window.ResolvedProperties(from: window)
         let context = ResizeContext(window: window, initialFrame: properties.frame, screen: screen, action: action)
         context.resolvedWindowProperties = properties
-        guard let frame = constrain(context.getTargetFrame().padded, to: context.paddedBounds) else {
+        guard let frame = placementFrame(in: context) else {
             return nil
         }
         return (frame, context.paddedBounds)
+    }
+
+    /// Fit the requested size on the display before inner padding clips the frame to its bounds.
+    static func placementFrame(in context: ResizeContext) -> CGRect? {
+        let bounds = context.paddedBounds
+        let rawFrame = WindowFrameResolver.getFrame(resizeContext: context).frame
+        // The resolver also returns zero for invalid geometry. Only forward an explicitly requested zero.
+        guard rawFrame.size.width > 0 || context.action.width == 0,
+              rawFrame.size.height > 0 || context.action.height == 0,
+              let fitted = constrain(rawFrame, to: bounds)
+        else {
+            return nil
+        }
+
+        let padded = context.padding.applyToWindow(
+            frame: fitted,
+            paddedBounds: bounds,
+            action: context.action,
+            resolvedWindowProperties: context.resolvedWindowProperties
+        )
+        return constrain(padded, to: bounds)
     }
 
     /// Keep the requested frame within the display's usable area.
     static func constrain(_ frame: CGRect, to bounds: CGRect) -> CGRect? {
         guard frame.isFinite,
               bounds.isFinite,
-              frame.size.width > 0,
-              frame.size.height > 0,
+              frame.size.width >= 0,
+              frame.size.height >= 0,
               bounds.size.width > 0,
               bounds.size.height > 0
         else {

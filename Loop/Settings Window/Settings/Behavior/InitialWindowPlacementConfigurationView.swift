@@ -12,7 +12,6 @@ struct InitialWindowPlacementConfigurationView: View {
     @Default(.initialWindowFrames) private var frames
     @State private var editingID: String?
     @State private var draft = WindowAction(.custom)
-    @State private var appIDs: [String] = []
     @State private var selectedIDs = Set<String>()
     @State private var pickerError: String?
 
@@ -20,6 +19,7 @@ struct InitialWindowPlacementConfigurationView: View {
         if let editingID {
             CustomActionConfigurationView(
                 action: $draft,
+                // Done saves the edited placement and returns to the app list in the same modal.
                 isPresented: Binding(
                     get: { true },
                     set: { presented in
@@ -48,7 +48,7 @@ struct InitialWindowPlacementConfigurationView: View {
                     }
                     .luminareRoundingBehavior(top: true)
 
-                    LuminareList(items: $appIDs, selection: $selectedIDs, id: \.self) { item in
+                    LuminareList(items: .constant(frames.keys.sorted()), selection: $selectedIDs, id: \.self) { item in
                         let id = item.wrappedValue
                         HStack(spacing: 8) {
                             if let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) {
@@ -73,6 +73,7 @@ struct InitialWindowPlacementConfigurationView: View {
                             .help("Edit placement")
                         }
                         .padding(.horizontal, 12)
+                        .moveDisabled(true)
                     } emptyView: {
                         VStack {
                             Text("No configured apps")
@@ -85,12 +86,6 @@ struct InitialWindowPlacementConfigurationView: View {
                     }
                     .luminareListFixedHeight(until: 250)
                     .luminareRoundingBehavior(bottom: true)
-                    .task(id: frames.keys.sorted()) {
-                        let ids = frames.keys.sorted()
-                        appIDs.removeAll { !ids.contains($0) }
-                        appIDs.append(contentsOf: ids.filter { !appIDs.contains($0) })
-                        selectedIDs.formIntersection(ids)
-                    }
                 }
 
                 if let pickerError {
@@ -105,7 +100,9 @@ struct InitialWindowPlacementConfigurationView: View {
     }
 
     private func appName(_ id: String) -> String {
-        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else { return id }
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: id) else {
+            return id
+        }
         return FileManager.default.displayName(atPath: url.path)
     }
 
@@ -114,12 +111,14 @@ struct InitialWindowPlacementConfigurationView: View {
         panel.allowedContentTypes = [.application]
         panel.directoryURL = FileManager.default.urls(for: .applicationDirectory, in: .localDomainMask).first
         pickerError = nil
-        guard panel.runModal() == .OK, let url = panel.url else { return }
+        guard panel.runModal() == .OK, let url = panel.url else {
+            return
+        }
         guard let id = Bundle(url: url)?.bundleIdentifier else {
             pickerError = String(localized: "This app has no bundle identifier.")
             return
         }
-        guard id != Bundle.main.bundleIdentifier, !Defaults[.excludedApps].contains(url) else {
+        guard InitialWindowFrames.allowsPlacement(bundleID: id, url: url) else {
             pickerError = String(localized: "Loop skips window placement for this app.")
             return
         }
@@ -127,7 +126,7 @@ struct InitialWindowPlacementConfigurationView: View {
     }
 
     private func edit(_ id: String) {
-        draft = frames[id] ?? WindowAction(.custom, keybind: [], unit: .percentage, anchor: .center, width: 80, height: 80, positionMode: .generic, sizeMode: .custom)
+        draft = frames[id] ?? WindowAction(.custom)
         draft.direction = .custom
         draft.sizeMode = .custom
         editingID = id

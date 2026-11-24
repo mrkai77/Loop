@@ -8,6 +8,40 @@ import SwiftUI
 import Testing
 
 struct InitialWindowPlacementTests {
+    @Test func coordinatePlacementKeepsItsSizeAtTheRightEdge() {
+        let bounds = CGRect(x: -1000, y: 0, width: 1000, height: 800)
+        let action = WindowAction(
+            .custom,
+            keybind: [],
+            unit: .percentage,
+            width: 50,
+            height: 50,
+            xPoint: 80,
+            yPoint: 0,
+            positionMode: .coordinates,
+            sizeMode: .custom
+        )
+        let context = ResizeContext(bounds: bounds, padding: .zero, action: action)
+        #expect(InitialWindowFrames.placementFrame(in: context) == CGRect(x: -500, y: 0, width: 500, height: 400))
+    }
+
+    @Test(arguments: [CGSize(width: 0, height: 50), CGSize(width: 50, height: 0), .zero])
+    func explicitZeroDimensionsReachTheWindowSetter(_ size: CGSize) {
+        let bounds = CGRect(x: 0, y: 0, width: 1000, height: 800)
+        let action = WindowAction(
+            .custom,
+            keybind: [],
+            unit: .percentage,
+            width: size.width,
+            height: size.height,
+            positionMode: .coordinates,
+            sizeMode: .custom
+        )
+        let context = ResizeContext(bounds: bounds, padding: .zero, action: action)
+        let target = InitialWindowFrames.placementFrame(in: context)
+        #expect(target?.size == CGSize(width: size.width * 10, height: size.height * 8))
+    }
+
     @Test func frameStaysReachableOnASecondaryDisplay() {
         let bounds = CGRect(x: -1600, y: 25, width: 1600, height: 1000)
         let oversized = CGRect(x: -1800, y: -100, width: 2000, height: 1200)
