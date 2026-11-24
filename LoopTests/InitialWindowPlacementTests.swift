@@ -1,3 +1,8 @@
+//
+//  InitialWindowPlacementTests.swift
+//  LoopTests
+//
+
 @testable import Loop
 import SwiftUI
 import Testing
@@ -44,7 +49,9 @@ struct InitialWindowPlacementTests {
             task = Task {
                 await InitialWindowFrames.waitUntilReady {
                     attempts += 1
-                    if attempts == 1 { continuation.resume() }
+                    if attempts == 1 {
+                        continuation.resume()
+                    }
                     return attempts == 1 ? .wait : .ready
                 }
             }
