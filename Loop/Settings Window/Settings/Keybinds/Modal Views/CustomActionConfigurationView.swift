@@ -32,6 +32,8 @@ struct CustomActionConfigurationView: View {
         }
     }
 
+    private let placementAppName: String?
+
     private let anchors: [CustomWindowActionAnchor] = [
         .topLeft, .top, .topRight, .left, .center, .right, .bottomLeft, .bottom, .bottomRight
     ]
@@ -47,7 +49,8 @@ struct CustomActionConfigurationView: View {
     private let previewController = PreviewController()
     private let screenSize: CGSize = NSScreen.main?.frame.size ?? NSScreen.screens[0].frame.size
 
-    init(action: Binding<WindowAction>, isPresented: Binding<Bool>) {
+    init(action: Binding<WindowAction>, isPresented: Binding<Bool>, placementAppName: String? = nil) {
+        self.placementAppName = placementAppName
         _windowAction = action
         _isPresented = isPresented
         _action = State(initialValue: action.wrappedValue)
@@ -70,16 +73,21 @@ struct CustomActionConfigurationView: View {
 
     @ViewBuilder
     private func configurationSections() -> some View {
-        LuminareSection(outerPadding: 0) {
-            LuminareTextField(
-                WindowDirection.custom.name,
-                text: Binding(
-                    get: { action.name ?? "" },
-                    set: { action.name = $0 }
+        if let placementAppName {
+            Text(verbatim: placementAppName)
+                .font(.headline)
+        } else {
+            LuminareSection(outerPadding: 0) {
+                LuminareTextField(
+                    WindowDirection.custom.name,
+                    text: Binding(
+                        get: { action.name ?? "" },
+                        set: { action.name = $0 }
+                    )
                 )
-            )
-            .luminareFilledStates(.none)
-            .luminareBorderedStates(.none)
+                .luminareFilledStates(.none)
+                .luminareBorderedStates(.none)
+            }
         }
 
         LuminareSection(outerPadding: 0) {
@@ -287,32 +295,34 @@ struct CustomActionConfigurationView: View {
 
     @ViewBuilder
     private func sizeConfiguration() -> some View {
-        LuminarePicker(
-            elements: CustomWindowActionSizeMode.allCases,
-            selection: Binding(
-                get: {
-                    action.sizeMode ?? .custom
-                },
-                set: { newValue in
-                    withAnimation(luminareAnimation) {
-                        action.sizeMode = newValue
+        if placementAppName == nil {
+            LuminarePicker(
+                elements: CustomWindowActionSizeMode.allCases,
+                selection: Binding(
+                    get: {
+                        action.sizeMode ?? .custom
+                    },
+                    set: { newValue in
+                        withAnimation(luminareAnimation) {
+                            action.sizeMode = newValue
+                        }
                     }
+                ),
+                columns: 3
+            ) { mode in
+                VStack(spacing: 4) {
+                    mode.image
+                    Text(mode.name)
                 }
-            ),
-            columns: 3
-        ) { mode in
-            VStack(spacing: 4) {
-                mode.image
-                Text(mode.name)
+                .padding(.vertical, 15)
+                .compositingGroup()
             }
-            .padding(.vertical, 15)
-            .compositingGroup()
+            .luminareContentSize(hasFixedHeight: true)
+            .luminareRoundingBehavior(
+                top: true,
+                bottom: action.sizeMode != .custom
+            )
         }
-        .luminareContentSize(hasFixedHeight: true)
-        .luminareRoundingBehavior(
-            top: true,
-            bottom: action.sizeMode != .custom
-        )
 
         if action.sizeMode ?? .custom == .custom {
             LuminareSlider(
