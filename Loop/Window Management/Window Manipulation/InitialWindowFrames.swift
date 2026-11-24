@@ -41,25 +41,16 @@ enum InitialWindowFrames {
         return (frame, context.paddedBounds)
     }
 
-    /// Fit the requested size on the display before inner padding clips the frame to its bounds.
+    /// Use the same padded target as a custom action invoked by a keybind.
     static func placementFrame(in context: ResizeContext) -> CGRect? {
-        let bounds = context.paddedBounds
-        let rawFrame = WindowFrameResolver.getFrame(resizeContext: context).frame
+        let target = context.getTargetFrame()
         // The resolver also returns zero for invalid geometry. Only forward an explicitly requested zero.
-        guard rawFrame.size.width > 0 || context.action.width == 0,
-              rawFrame.size.height > 0 || context.action.height == 0,
-              let fitted = constrain(rawFrame, to: bounds)
+        guard target.raw.size.width > 0 || context.action.width == 0,
+              target.raw.size.height > 0 || context.action.height == 0
         else {
             return nil
         }
-
-        let padded = context.padding.applyToWindow(
-            frame: fitted,
-            paddedBounds: bounds,
-            action: context.action,
-            resolvedWindowProperties: context.resolvedWindowProperties
-        )
-        return constrain(padded, to: bounds)
+        return constrain(target.padded, to: context.paddedBounds)
     }
 
     /// Keep the requested frame within the display's usable area.

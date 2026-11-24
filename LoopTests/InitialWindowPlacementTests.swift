@@ -8,7 +8,7 @@ import SwiftUI
 import Testing
 
 struct InitialWindowPlacementTests {
-    @Test func coordinatePlacementKeepsItsSizeAtTheRightEdge() {
+    @Test func coordinatePlacementMatchesCustomActionAtTheRightEdge() {
         let bounds = CGRect(x: -1000, y: 0, width: 1000, height: 800)
         let action = WindowAction(
             .custom,
@@ -22,7 +22,9 @@ struct InitialWindowPlacementTests {
             sizeMode: .custom
         )
         let context = ResizeContext(bounds: bounds, padding: .zero, action: action)
-        #expect(InitialWindowFrames.placementFrame(in: context) == CGRect(x: -500, y: 0, width: 500, height: 400))
+        let customFrame = context.getTargetFrame().padded
+        #expect(customFrame == CGRect(x: -200, y: 0, width: 200, height: 400))
+        #expect(InitialWindowFrames.placementFrame(in: context) == customFrame)
     }
 
     @Test(arguments: [CGSize(width: 0, height: 50), CGSize(width: 50, height: 0), .zero])
