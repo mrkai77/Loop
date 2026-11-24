@@ -1,5 +1,5 @@
 //
-//  PrivilegedInstallerService.swift
+//  PrivilegedHelperService.swift
 //  Loop
 //
 //  Created by Kai Azim on 2026-02-23.
@@ -12,7 +12,7 @@ import Scribe
 import Security
 
 @Loggable
-final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
+final class PrivilegedHelperService: NSObject, NSXPCListenerDelegate {
     struct TrustedClientContext {
         let clientPID: pid_t
         let clientUID: uid_t
@@ -34,9 +34,9 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
     }
 
     func run() {
-        log.info("Starting privileged installer listener")
+        log.info("Starting privileged helper listener")
         listener.resume()
-        log.success("Privileged installer listener is running")
+        log.success("Privileged helper listener is running")
         RunLoop.current.run()
     }
 
@@ -60,8 +60,10 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
         newConnection.interruptionHandler = { [weak self] in
             self?.releaseActiveConnection(for: pid, reason: "interruption")
         }
-        newConnection.exportedInterface = NSXPCInterface(with: PrivilegedInstallerProtocol.self)
-        newConnection.exportedObject = PrivilegedInstaller(context: context)
+        // Checked against each message's audit token, so a reused pid can't take over the connection
+        newConnection.setCodeSigningRequirement(PrivilegedHelperConstants.authorizedClientRequirement)
+        newConnection.exportedInterface = NSXPCInterface(with: PrivilegedHelperProtocol.self)
+        newConnection.exportedObject = PrivilegedHelper(context: context)
         newConnection.resume()
         log.success("Accepted XPC connection (pid: \(pid), uid: \(context.clientUID))")
 
@@ -77,17 +79,13 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
         }
 
         guard let app = NSRunningApplication(processIdentifier: pid),
-              app.bundleIdentifier == PrivilegedInstallerConstants.appBundleIdentifier else {
+              app.bundleIdentifier == PrivilegedHelperConstants.appBundleIdentifier else {
             log.warn("Rejecting client pid \(pid) due to bundle identifier mismatch")
             return nil
         }
 
-        guard validateCodeSignature(forProcessID: pid) else {
-            return nil
-        }
-
-        guard let bundleURL = app.bundleURL else {
-            log.warn("Rejecting client pid \(pid) because bundle URL could not be resolved")
+        // From the code that passed the check, rather than whatever process now has this pid
+        guard let bundleURL = validatedBundleURL(forProcessID: pid) else {
             return nil
         }
 
@@ -116,36 +114,46 @@ final class PrivilegedInstallerService: NSObject, NSXPCListenerDelegate {
         )
     }
 
-    private func validateCodeSignature(forProcessID pid: pid_t) -> Bool {
+    /// The client's bundle, if its code meets `authorizedClientRequirement`
+    private func validatedBundleURL(forProcessID pid: pid_t) -> URL? {
         var code: SecCode?
         let attributes = [kSecGuestAttributePid as String: pid] as CFDictionary
         let guestStatus = SecCodeCopyGuestWithAttributes(nil, attributes, SecCSFlags(), &code)
 
         guard guestStatus == errSecSuccess, let code else {
             log.error("Failed to copy guest code for pid \(pid), status \(guestStatus)")
-            return false
+            return nil
         }
 
         var requirement: SecRequirement?
         let requirementStatus = SecRequirementCreateWithString(
-            PrivilegedInstallerConstants.authorizedClientRequirement as CFString,
+            PrivilegedHelperConstants.authorizedClientRequirement as CFString,
             SecCSFlags(),
             &requirement
         )
 
         guard requirementStatus == errSecSuccess, let requirement else {
             log.error("Failed creating requirement, status \(requirementStatus)")
-            return false
+            return nil
         }
 
         let validationStatus = SecCodeCheckValidity(code, SecCSFlags(), requirement)
         guard validationStatus == errSecSuccess else {
             log.error("Code signature requirement check failed for pid \(pid), status \(validationStatus)")
-            return false
+            return nil
+        }
+
+        var staticCode: SecStaticCode?
+        var path: CFURL?
+        guard SecCodeCopyStaticCode(code, SecCSFlags(), &staticCode) == errSecSuccess, let staticCode,
+              SecCodeCopyPath(staticCode, SecCSFlags(), &path) == errSecSuccess, let path
+        else {
+            log.error("Couldn’t resolve the bundle of pid \(pid)")
+            return nil
         }
 
         log.success("Code signature requirement check passed for pid \(pid)")
-        return true
+        return path as URL
     }
 
     /// Resolves a user's home directory and primary group from the system account database.

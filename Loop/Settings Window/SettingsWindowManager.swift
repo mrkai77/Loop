@@ -104,6 +104,15 @@ final class SettingsWindowManager: ObservableObject {
         log.success("Settings window opened")
     }
 
+    /// Hides the Dock icon while the settings window is closed, unless the user wants it shown
+    func hideDockIconIfUnused() {
+        guard controller == nil, !Defaults[.showDockIcon] else {
+            return
+        }
+
+        NSApp.setActivationPolicy(.accessory)
+    }
+
     func close() {
         if let controller {
             controller.close()

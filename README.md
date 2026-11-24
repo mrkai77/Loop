@@ -114,35 +114,44 @@ To set Caps Lock as your trigger key, you have two options:
 
 #### c. Shell/AppleScript
 
-Loop can be controlled via shell commands or AppleScript using its URL scheme:
+Loop can be controlled with the `loop` command, or with `loop://` URLs from other apps. Both run built-in actions like `right-half` or `next-screen`, and your own keybinds, gestures and radial menu actions, like `keybind:portrait`.
+
+##### The `loop` command
+
+The `loop` command isn't installed by default. To install it, open Loop's settings, go to Advanced, and click Install… under Command-Line Tool.
 
 ```bash
-# Shell examples
-open "loop://direction/right"     # Move window to right half
-open "loop://action/maximize"     # Maximize window
-open "loop://screen/next"         # Move to next screen
+loop list actions          # Built-in actions
+loop list keybinds         # Your keybinds
+loop list gestures         # Your trackpad gestures
+loop list radial-menu      # Your radial menu actions
+loop list windows          # Open windows
+loop list screens          # Connected screens
 
-# AppleScript examples
-osascript -e 'tell application "Loop" to activate'
-osascript -e 'open location "loop://direction/left"'
+loop run right-half        # A built-in action
+loop run keybind:portrait  # One of your keybinds, also gesture:<id> and radial-menu:<id>
 ```
 
-You can also create custom scripts to chain multiple actions:
+Actions apply to the window a keybind would. To pick a different window or screen:
 
 ```bash
-#!/bin/bash
-# Example: Move window right and then maximize
-open "loop://direction/right"
-sleep 0.5
-open "loop://action/maximize"
+loop run maximize --window-id 1234               # A window from list windows
+loop run left-half --bundle-id com.apple.Safari  # An app's frontmost window, opening the app if needed
+loop run right-half --screen-id 2                # A screen from list screens
 ```
 
-For a complete list of available commands:
+Run `loop help` for all commands and options.
 
-```bash
-open "loop://list/all"           # List all commands
-open "loop://list/actions"       # List window actions
-open "loop://list/keybinds"      # List custom keybinds
+##### URLs
+
+Apps that can open links, like Shortcuts, Raycast or a Stream Deck, can run the same commands as URLs:
+
+```text
+loop://run/right-half
+loop://run/keybind:portrait
+loop://run/maximize?windowID=1234               # A window from list/windows
+loop://run/left-half?bundleID=com.apple.Safari  # A running app's frontmost window
+loop://run/right-half?screenID=2                # A screen from list/screens
 ```
 
 ### Keyboard Shortcuts

@@ -203,6 +203,19 @@ enum WindowEngine {
                 try Task.checkCancellation()
                 frameAfterResize = window.frame
             }
+
+            // Right after a window moves to another display, macOS can still size it against the old one,
+            // while reporting the requested size until it catches up. Like Rectangle, try again once it's settled:
+            // https://github.com/rxhanson/Rectangle/blob/adbc8a0560367a6c0a56b2e8ae6f39a24740ab14/Rectangle/Managers/WindowManager.swift#L303-L307
+            if willChangeScreens {
+                try await Task.sleep(for: .milliseconds(25))
+                frameAfterResize = window.frame
+                if !frameAfterResize.approximatelyEqual(to: targetFrame) {
+                    await window.setFrame(targetFrame, placement: placement, resolvedProperties: resolvedProperties)
+                    try Task.checkCancellation()
+                    frameAfterResize = window.frame
+                }
+            }
             actualFrame = frameAfterResize
         }
 
