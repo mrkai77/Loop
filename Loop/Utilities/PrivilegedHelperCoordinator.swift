@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 import Scribe
 import Security
 import ServiceManagement
@@ -84,16 +85,15 @@ final class PrivilegedHelperCoordinator {
         }
     }
 
-    private final class ContinuationCompletion: @unchecked Sendable {
-        private let lock = NSLock()
-        private var didComplete = false
+    private final class ContinuationCompletion: Sendable {
+        private let didComplete = OSAllocatedUnfairLock(initialState: false)
 
         func tryComplete() -> Bool {
-            lock.lock()
-            defer { lock.unlock() }
-            guard !didComplete else { return false }
-            didComplete = true
-            return true
+            didComplete.withLock { didComplete in
+                guard !didComplete else { return false }
+                didComplete = true
+                return true
+            }
         }
     }
 

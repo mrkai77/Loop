@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import os
 import Scribe
 
 /// Runs automation commands from the URL scheme and `loop-cli` one at a time, in the order they arrive,
@@ -67,19 +68,20 @@ final class AutomationQueue {
     }
 }
 
-private final class TimeoutRace<T: Sendable>: @unchecked Sendable {
-    private let lock = NSLock()
-    private var continuation: CheckedContinuation<T?, Never>?
+private final class TimeoutRace<T: Sendable>: Sendable {
+    private let continuation: OSAllocatedUnfairLock<CheckedContinuation<T?, Never>?>
 
     init(_ continuation: CheckedContinuation<T?, Never>) {
-        self.continuation = continuation
+        self.continuation = OSAllocatedUnfairLock(initialState: continuation)
     }
 
+    /// Takes the continuation under the lock and resumes it after, so resuming never runs while the lock is held
     func finish(with value: T?) {
-        lock.lock()
-        defer { lock.unlock() }
+        let continuation = continuation.withLock { state in
+            defer { state = nil }
+            return state
+        }
 
         continuation?.resume(returning: value)
-        continuation = nil
     }
 }

@@ -8,6 +8,7 @@
 import AppKit
 import Darwin
 import Foundation
+import os
 import Scribe
 import Security
 
@@ -24,8 +25,7 @@ final class PrivilegedHelperService: NSObject, NSXPCListenerDelegate {
     }
 
     private let listener: NSXPCListener
-    private let connectionStateLock = NSLock()
-    private var activeConnectionPID: pid_t?
+    private let activeConnectionPID = OSAllocatedUnfairLock<pid_t?>(initialState: nil)
 
     init(serviceName: String) {
         self.listener = NSXPCListener(machServiceName: serviceName)
@@ -175,27 +175,31 @@ final class PrivilegedHelperService: NSObject, NSXPCListenerDelegate {
 
     /// Reserves a single active connection slot to prevent overlapping privileged sessions.
     private func reserveActiveConnection(for pid: pid_t) -> Bool {
-        connectionStateLock.lock()
-        defer { connectionStateLock.unlock() }
+        activeConnectionPID.withLock { activePID in
+            guard activePID == nil else {
+                return false
+            }
 
-        guard activeConnectionPID == nil else {
-            return false
+            activePID = pid
+            return true
         }
-
-        activeConnectionPID = pid
-        return true
     }
 
     /// Releases the active connection slot when that connection ends.
     private func releaseActiveConnection(for pid: pid_t, reason: String) {
-        connectionStateLock.lock()
-        defer { connectionStateLock.unlock() }
+        let didRelease = activeConnectionPID.withLock { activePID in
+            guard activePID == pid else {
+                return false
+            }
 
-        guard activeConnectionPID == pid else {
+            activePID = nil
+            return true
+        }
+
+        guard didRelease else {
             return
         }
 
-        activeConnectionPID = nil
         log.info("Released active XPC connection state for pid \(pid) (\(reason))")
     }
 }
