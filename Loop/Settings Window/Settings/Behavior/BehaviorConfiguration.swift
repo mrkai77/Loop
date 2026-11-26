@@ -30,6 +30,8 @@ struct BehaviorConfigurationView: View {
 
     @State private var isPaddingConfigurationViewPresented = false
 
+    @State private var isPlacementPresented = false
+
     var body: some View {
         LuminareForm {
             generalSection
@@ -91,6 +93,15 @@ struct BehaviorConfigurationView: View {
                 }
                 .luminareModalCornerRadius(24)
             }
+
+            LuminareButton("Initial Window Placement", "Configure…") {
+                isPlacementPresented = true
+            }
+            .luminareModal(isPresented: $isPlacementPresented) {
+                InitialWindowPlacementConfigurationView(isPresented: $isPlacementPresented)
+                    .frame(width: 400)
+            }
+            .luminareModalCornerRadius(24)
         }
     }
 

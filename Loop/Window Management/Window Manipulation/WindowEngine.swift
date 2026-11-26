@@ -230,7 +230,7 @@ enum WindowEngine {
 
     // MARK: - Size Constraints
 
-    private static func handleSizeConstrainedWindow(
+    static func handleSizeConstrainedWindow(
         window: Window,
         actualFrame: CGRect,
         targetFrame: CGRect,
