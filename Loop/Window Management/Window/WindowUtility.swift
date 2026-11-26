@@ -12,6 +12,29 @@ import Scribe
 /// This enum is in charge of fetching windows in the user's workspace, which will be used by Loop.
 @Loggable(style: .static)
 enum WindowUtility {
+    enum Rejection {
+        case appExcluded
+        case fullscreenWindow
+    }
+
+    /// Why Loop won't act on `window`, or `nil` when it can. Without a window, only actions that don't need one can run.
+    @MainActor
+    static func rejection(for window: Window?) -> Rejection? {
+        guard let window else {
+            return nil
+        }
+
+        if window.isAppExcluded {
+            return .appExcluded
+        }
+
+        if window.fullscreen, Defaults[.ignoreFullscreen] {
+            return .fullscreenWindow
+        }
+
+        return nil
+    }
+
     /// Get the target window, depending on the user's preferences. This could be the frontmost window, or the window under the cursor.
     /// - Returns: The target window
     static func userDefinedTargetWindow() -> Window? {

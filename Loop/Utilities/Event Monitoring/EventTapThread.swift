@@ -7,23 +7,25 @@
 
 import CoreFoundation
 import Foundation
+import os
 
 /// Owns the run loop used by global event taps.
 final class EventTapThread: Thread {
     static let shared = EventTapThread(name: "\(Bundle.main.bundleID).EventTapThread")
 
-    private let startLock = NSLock()
+    private let hasStarted = OSAllocatedUnfairLock(initialState: false)
     private let runLoopReady = DispatchGroup()
-    private var hasStarted = false
     private var eventTapRunLoop: CFRunLoop?
 
     var runLoop: CFRunLoop {
-        startLock.lock()
-        if !hasStarted {
-            hasStarted = true
+        let shouldStart = hasStarted.withLock { hasStarted in
+            defer { hasStarted = true }
+            return !hasStarted
+        }
+
+        if shouldStart {
             start()
         }
-        startLock.unlock()
 
         runLoopReady.wait()
 

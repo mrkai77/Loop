@@ -26,13 +26,13 @@ struct LoopAutomationFormatter {
     func format(_ result: LoopAutomationResult) -> LoopAutomationText {
         switch result {
         case let .windowList(result):
-            render(windowTable(result.windows), emptyMessage: "No windows")
+            render(windowTable(result.windows), emptyMessage: emptyMessage(for: .windows))
         case let .screenList(result):
-            render(screenTable(result.screens), emptyMessage: "No screens")
+            render(screenTable(result.screens), emptyMessage: emptyMessage(for: .screens))
         case let .actionList(result):
-            render(actionTable(result.actions), emptyMessage: "No actions")
+            render(actionTable(result.actions), emptyMessage: emptyMessage(for: .actions))
         case let .bindingList(result):
-            render(bindingTable(result.bindings), emptyMessage: emptyMessage(for: result.bindingKind))
+            render(bindingTable(result.bindings), emptyMessage: emptyMessage(for: result.bindingKind.listSubject))
         case let .run(result):
             runMessage(result)
         }
@@ -40,20 +40,20 @@ struct LoopAutomationFormatter {
 
     // MARK: - Tables
 
-    struct Column {
+    private struct Column {
         let title: String
         /// Cut short first when the table is too wide
         var isFlexible = false
     }
 
-    struct Row {
+    private struct Row {
         /// `nil` for a missing value. It's left blank, except in the first column, where a dash shows there's nothing to type.
         let cells: [String?]
         /// For rows that don't currently do anything, like a keybind without keys
         var isDimmed = false
     }
 
-    struct Table {
+    private struct Table {
         let columns: [Column]
         let rows: [Row]
     }
@@ -62,7 +62,7 @@ struct LoopAutomationFormatter {
     private static let missingValue = "—"
     private static let minimumFlexibleWidth = 12
 
-    func render(_ table: Table, emptyMessage: String) -> LoopAutomationText {
+    private func render(_ table: Table, emptyMessage: String) -> LoopAutomationText {
         guard !table.rows.isEmpty else {
             // Piped output stays empty, so scripts can count lines
             return layout == .tabSeparated ? LoopAutomationText() : LoopAutomationText(emptyMessage, style: .secondary)
@@ -217,12 +217,8 @@ struct LoopAutomationFormatter {
         )
     }
 
-    private func emptyMessage(for kind: LoopBindingKind) -> String {
-        switch kind {
-        case .keybind: "No keybinds"
-        case .gesture: "No gestures"
-        case .radialMenu: "No radial menu actions"
-        }
+    private func emptyMessage(for subject: LoopListSubject) -> String {
+        "No \(subject.pluralNoun)"
     }
 
     private func runMessage(_ result: LoopRunResult) -> LoopAutomationText {
@@ -288,13 +284,15 @@ struct LoopAutomationFormatter {
             return 2
         }
 
-        let wideRanges: [ClosedRange<UInt32>] = [
-            0x1100...0x115F, 0x2E80...0x303E, 0x3041...0x33FF, 0x3400...0x4DBF, 0x4E00...0x9FFF,
-            0xA000...0xA4CF, 0xAC00...0xD7A3, 0xF900...0xFAFF, 0xFE30...0xFE4F, 0xFF00...0xFF60,
-            0xFFE0...0xFFE6, 0x20000...0x3FFFD
-        ]
-        return wideRanges.contains { $0.contains(scalar.value) } ? 2 : 1
+        return wideCharacterRanges.contains { $0.contains(scalar.value) } ? 2 : 1
     }
+
+    /// Unicode's East Asian Wide and Fullwidth blocks, such as Hangul, CJK ideographs and fullwidth forms
+    private static let wideCharacterRanges: [ClosedRange<UInt32>] = [
+        0x1100...0x115F, 0x2E80...0x303E, 0x3041...0x33FF, 0x3400...0x4DBF, 0x4E00...0x9FFF,
+        0xA000...0xA4CF, 0xAC00...0xD7A3, 0xF900...0xFAFF, 0xFE30...0xFE4F, 0xFF00...0xFF60,
+        0xFFE0...0xFFE6, 0x20000...0x3FFFD
+    ]
 
     /// Cut short with an ellipsis so it fits in `width` columns
     static func truncated(_ string: String, toWidth width: Int) -> String {

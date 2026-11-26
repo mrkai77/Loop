@@ -111,12 +111,12 @@ struct WindowDirectionAutomationKeyTests {
     ])
     @MainActor func urlsFromEarlierVersionsMapOntoCurrentRoutes(url: String, expected: LoopRoute) throws {
         let components = try #require(LoopRoute.pathComponents(of: url))
-        #expect(LoopCommandHandler.legacyRoute(from: components) == expected)
+        #expect(AutomationRequest.legacyRoute(from: components) == expected)
     }
 
     @Test @MainActor func unknownOlderURLsDontMap() {
-        #expect(LoopCommandHandler.legacyRoute(from: ["direction", "sideways"]) == nil)
-        #expect(LoopCommandHandler.legacyRoute(from: ["screen", "sideways"]) == nil)
+        #expect(AutomationRequest.legacyRoute(from: ["direction", "sideways"]) == nil)
+        #expect(AutomationRequest.legacyRoute(from: ["screen", "sideways"]) == nil)
     }
 
     @Test @MainActor func everyDesktopIsListedWhateverTheCurrentCount() {
@@ -218,16 +218,24 @@ struct LoopAutomationCatalogTests {
 }
 
 struct LoopAutomationJSONTests {
+    private func object(_ json: String) throws -> [String: Any] {
+        try #require(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [String: Any])
+    }
+
     @Test func everyKeyIsPresentWithNullsForMissingValues() throws {
         let response = LoopAutomationResponse(
             result: .run(LoopRunResult(target: "keybind:portrait", action: LoopBoundAction(key: "custom", name: "Portrait"), window: nil))
         )
         let json = LoopAutomationJSON.encodeString(response)
+        let root = try object(json)
+        let result = try #require(root["result"] as? [String: Any])
 
-        #expect(json.contains(#""version" : 1"#))
-        #expect(json.contains(#""error" : null"#))
-        #expect(json.contains(#""window" : null"#))
-        #expect(json.contains(#""kind" : "run""#))
+        #expect(Set(root.keys) == ["version", "success", "result", "error"])
+        #expect(root["version"] as? Int == 1)
+        #expect(root["error"] is NSNull)
+        #expect(Set(result.keys) == ["kind", "target", "action", "window"])
+        #expect(result["kind"] as? String == "run")
+        #expect(result["window"] is NSNull)
 
         let decoded = try LoopAutomationJSON.decodeResponse(from: json)
         #expect(decoded.success)
@@ -254,9 +262,13 @@ struct LoopAutomationJSONTests {
 
     @Test func failuresCarryAStableCode() throws {
         let json = LoopAutomationJSON.encodedFailure(.notFound, message: "Unknown action: sideways")
-        #expect(json.contains(#""code" : "notFound""#))
-        #expect(json.contains(#""replacementRoute" : null"#))
-        #expect(json.contains(#""result" : null"#))
+        let root = try object(json)
+        let error = try #require(root["error"] as? [String: Any])
+
+        #expect(root["result"] is NSNull)
+        #expect(error["code"] as? String == "notFound")
+        #expect(error["replacementRoute"] is NSNull)
+        #expect(error["availableRoutes"] is NSNull)
 
         let decoded = try LoopAutomationJSON.decodeResponse(from: json)
         #expect(decoded.error?.code == .notFound)
@@ -324,5 +336,123 @@ struct LoopAutomationFormatterTests {
         let lines = LoopAutomationFormatter(layout: .table(maxWidth: 80)).format(windows).plainText.split(separator: "\n")
         #expect(lines.allSatisfy { LoopAutomationFormatter.displayWidth(of: String($0)) <= 80 })
         #expect(lines.last?.hasSuffix("…") == true)
+    }
+}
+
+struct AutomationRequestTests {
+    private func parse(_ string: String) throws -> Result<AutomationRequest, LoopAutomationError> {
+        try AutomationRequest.parse(#require(URL(string: string)))
+    }
+
+    @Test func routesAndTheirParametersParse() throws {
+        let request = try parse("loop://run/keybind:portrait?windowID=12&screenID=3").get()
+        #expect(request.command == .route(.run(.binding(.keybind, id: "portrait"))))
+        #expect(request.options == LoopTargetOptions(windowID: 12, screenID: 3))
+        #expect(try parse("loop://list/windows").get().command == .route(.list(.windows)))
+    }
+
+    @Test func parameterNamesIgnoreCase() throws {
+        let request = try parse("loop://run/maximize?BUNDLEID=com.apple.Safari").get()
+        #expect(request.options.bundleID == "com.apple.Safari")
+    }
+
+    @Test(arguments: [
+        ("https://run/maximize", "URLs must start with loop://"),
+        ("loop://run/maximize?window=12", "Unknown parameter: window"),
+        ("loop://run/maximize?windowID=abc", "Invalid window ID: abc"),
+        ("loop://run/maximize?bundleID", "Empty bundle ID"),
+        ("loop://run/maximize?windowID=1&bundleID=com.apple.Safari", "windowID and bundleID can’t be used together"),
+        ("loop://list/windows?screenID=1", "list doesn’t take windowID, bundleID or screenID"),
+        ("loop://list/everything", "Unknown list type: everything"),
+        ("loop://run", "No action given"),
+        ("loop://dance/now", "Unknown command: dance")
+    ])
+    func invalidRequestsSayWhy(url: String, message: String) throws {
+        guard case let .failure(error) = try parse(url) else {
+            Issue.record("\(url) parsed")
+            return
+        }
+
+        #expect(error.code == .invalidRequest)
+        #expect(error.message == message)
+    }
+
+    @Test func errorsPointAtWhatExists() throws {
+        guard case let .failure(error) = try parse("loop://run/maximize?screenID=main") else {
+            Issue.record("An invalid screen ID parsed")
+            return
+        }
+
+        #expect(error.replacementRoute == "loop://list/screens")
+    }
+
+    @Test func olderNameRoutesStillMatchKeybinds() throws {
+        #expect(try parse("loop://action/Portrait").get().command == .legacyNamedAction("Portrait", scope: .customOrBuiltIn))
+        #expect(try parse("loop://keybind/Portrait").get().command == .legacyNamedAction("Portrait", scope: .keybinds))
+        #expect(try parse("loop://direction/customLayout").get().command == .legacyNamedAction("customLayout", scope: .customOrBuiltIn))
+        #expect(try parse("loop://direction/right").get().command == .route(.run(.action("right-half"))))
+    }
+}
+
+struct LoopCommandLineTests {
+    @Test(arguments: [
+        (LoopRoute.list(.radialMenu), "loop list radial-menu"),
+        (.run(.binding(.keybind, id: "portrait")), "loop run keybind:portrait"),
+        (.run(.binding(.keybind, id: "my layout")), "loop run 'keybind:my layout'"),
+        (.run(.binding(.keybind, id: "it's")), #"loop run 'keybind:it'\''s'"#)
+    ])
+    func routesBecomeShellSafeInvocations(route: LoopRoute, expected: String) {
+        #expect(route.commandLineInvocation(executableName: "loop") == expected)
+    }
+
+    @Test func exitCodesFollowSysexits() {
+        #expect(LoopAutomationErrorCode.invalidRequest.exitCode == 64)
+        #expect(LoopAutomationErrorCode.unavailable.exitCode == 69)
+        #expect(LoopAutomationErrorCode.timeout.exitCode == 75)
+        #expect(LoopAutomationErrorCode.notFound.exitCode == 1)
+        #expect(LoopAutomationErrorCode.failed.exitCode == 1)
+    }
+}
+
+struct LoopSocketIOTests {
+    private func withSocketPair(_ body: (_ client: Int32, _ server: Int32) throws -> ()) throws {
+        var descriptors: [Int32] = [0, 0]
+        try #require(socketpair(AF_UNIX, SOCK_STREAM, 0, &descriptors) == 0)
+        defer { descriptors.forEach { close($0) } }
+        try body(descriptors[0], descriptors[1])
+    }
+
+    @Test func aRequestIsReadUntilTheClientStopsWriting() throws {
+        try withSocketPair { client, server in
+            try LoopSocketIO.write("loop://list/windows", to: client)
+            shutdown(client, SHUT_WR)
+            #expect(try LoopSocketIO.readToEnd(from: server) == "loop://list/windows")
+        }
+    }
+
+    @Test func requestsPastTheLimitAreRejected() throws {
+        try withSocketPair { client, server in
+            try LoopSocketIO.write(String(repeating: "a", count: 100), to: client)
+            shutdown(client, SHUT_WR)
+            #expect(throws: POSIXError(.EMSGSIZE)) { try LoopSocketIO.readToEnd(from: server, limit: 10) }
+        }
+    }
+
+    @Test func aStalledClientTimesOut() throws {
+        try withSocketPair { _, server in
+            LoopSocketIO.configure(server, timeout: .seconds(1))
+            #expect(throws: POSIXError(.EAGAIN)) { try LoopSocketIO.readToEnd(from: server) }
+        }
+    }
+
+    @Test func writingToAClosedPeerThrowsInsteadOfRaisingSIGPIPE() throws {
+        var descriptors: [Int32] = [0, 0]
+        try #require(socketpair(AF_UNIX, SOCK_STREAM, 0, &descriptors) == 0)
+        let (client, server) = (descriptors[0], descriptors[1])
+        defer { close(server) }
+
+        LoopSocketIO.configure(server, timeout: .seconds(1))
+        close(client)
+        #expect(throws: POSIXError.self) { try LoopSocketIO.write("response", to: server) }
     }
 }

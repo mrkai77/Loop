@@ -9,6 +9,7 @@ import Luminare
 import Scribe
 import SwiftUI
 
+@Loggable
 struct PickerList<Content, V>: View where Content: View, V: Hashable, V: Identifiable {
     @Environment(\.luminareDismiss) private var dismiss
     private let eventMonitorManager: PickerListEventMonitorManager = .shared
@@ -115,7 +116,7 @@ struct PickerList<Content, V>: View where Content: View, V: Hashable, V: Identif
 
         // Ensure nextIndex is valid
         guard nextIndex >= 0, nextIndex < items.count else {
-            Log.error("Invalid nextIndex: \(nextIndex), items count: \(items.count)", category: .pickerList)
+            log.error("Invalid nextIndex: \(nextIndex), items count: \(items.count)")
             return
         }
 
@@ -124,16 +125,12 @@ struct PickerList<Content, V>: View where Content: View, V: Hashable, V: Identif
 
         // Only scroll if the selection is valid and not nil
         guard let validSelection = arrowSelection else {
-            Log.info("arrowSelection is nil, skipping scroll", category: .pickerList)
+            log.info("arrowSelection is nil, skipping scroll")
             return
         }
 
         reader.scrollTo(validSelection, anchor: .center)
     }
-}
-
-extension LogCategory {
-    static let pickerList = LogCategory("PickerList")
 }
 
 struct PopoverPickerItem<Content, V>: View where Content: View, V: Hashable {

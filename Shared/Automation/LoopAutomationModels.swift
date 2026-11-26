@@ -195,6 +195,16 @@ enum LoopAutomationErrorCode: String, Codable {
     /// The command ran but didn't succeed
     case failed
 
+    /// `sysexits.h` codes, so scripts can tell bad usage and Loop being unavailable or slow apart from a failed command
+    var exitCode: Int32 {
+        switch self {
+        case .invalidRequest: EX_USAGE
+        case .unavailable: EX_UNAVAILABLE
+        case .timeout: EX_TEMPFAIL
+        case .notFound, .noWindow, .excludedApp, .fullscreenWindow, .failed: EXIT_FAILURE
+        }
+    }
+
     /// Reads codes from a newer Loop as `failed`, rather than failing to read the whole response
     init(from decoder: Decoder) throws {
         let rawValue = try decoder.singleValueContainer().decode(String.self)

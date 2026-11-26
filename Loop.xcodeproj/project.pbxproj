@@ -111,9 +111,9 @@
 		2A6A87F22F4D20F4004E995D /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				LoopSupportPaths.swift,
-				PrivilegedHelperConstants.swift,
-				PrivilegedHelperProtocol.swift,
+				PrivilegedHelper/LoopSupportPaths.swift,
+				PrivilegedHelper/PrivilegedHelperConstants.swift,
+				PrivilegedHelper/PrivilegedHelperProtocol.swift,
 			);
 			target = B1AA00112F30000100AABBCC /* LoopPrivilegedHelper */;
 		};
@@ -135,10 +135,29 @@
 			);
 			target = A8E59C34297F5E9A0064D4BA /* Loop */;
 		};
+		C1BB00F12F40000200AABBCC /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Automation/LoopAutomationFormatter.swift,
+				Automation/LoopAutomationJSON.swift,
+				Automation/LoopAutomationModels.swift,
+				Automation/LoopAutomationText.swift,
+				Automation/LoopRoute.swift,
+				Automation/LoopSocketIO.swift,
+				Automation/LoopSocketPath.swift,
+				Automation/LoopTarget.swift,
+				Automation/LoopTargetOptions.swift,
+				Automation/NullEncoded.swift,
+				"Bundle+Extensions.swift",
+				PrivilegedHelper/LoopSupportPaths.swift,
+				PrivilegedHelper/PrivilegedHelperConstants.swift,
+			);
+			target = C1BB00112F30000200AABBCC /* LoopCLI */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		2A6A87F02F4D20D2004E995D /* Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (2A6A87F22F4D20F4004E995D /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Shared; sourceTree = "<group>"; };
+		2A6A87F02F4D20D2004E995D /* Shared */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (2A6A87F22F4D20F4004E995D /* PBXFileSystemSynchronizedBuildFileExceptionSet */, C1BB00F12F40000200AABBCC /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Shared; sourceTree = "<group>"; };
 		2A86890E2F809700005B521B /* LoopDockTile */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LoopDockTile; sourceTree = "<group>"; };
 		2ACE2DEA3043A6F600C4FECB /* LoopTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = LoopTests; sourceTree = "<group>"; };
 		A8C751AC2D7BA98600B58784 /* Loop */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (A8C751FF2D7BA98600B58784 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = Loop; sourceTree = "<group>"; };
@@ -352,7 +371,6 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				2A6A87F02F4D20D2004E995D /* Shared */,
 				C1BB00022F30000200AABBCC /* LoopCLI */,
 			);
 			name = LoopCLI;

@@ -13,7 +13,6 @@ struct LoopAutomationText {
         case plain
         case bold
         case secondary
-        case heading
         case success
         case failure
     }
@@ -49,13 +48,23 @@ struct LoopAutomationText {
         runs.map { run in
             switch run.style {
             case .plain: run.text
-            case .bold, .heading: "\u{001B}[1m\(run.text)\u{001B}[22m"
-            case .secondary: "\u{001B}[2m\(run.text)\u{001B}[22m"
-            case .success: "\u{001B}[32m\(run.text)\u{001B}[39m"
-            case .failure: "\u{001B}[31m\(run.text)\u{001B}[39m"
+            case .bold: ANSI.bold + run.text + ANSI.normalIntensity
+            case .secondary: ANSI.faint + run.text + ANSI.normalIntensity
+            case .success: ANSI.green + run.text + ANSI.defaultColor
+            case .failure: ANSI.red + run.text + ANSI.defaultColor
             }
         }
         .joined()
+    }
+
+    /// SGR escape codes. Each style resets only what it set, so styles can sit next to each other.
+    private enum ANSI {
+        static let bold = "\u{001B}[1m"
+        static let faint = "\u{001B}[2m"
+        static let normalIntensity = "\u{001B}[22m"
+        static let green = "\u{001B}[32m"
+        static let red = "\u{001B}[31m"
+        static let defaultColor = "\u{001B}[39m"
     }
 }
 
