@@ -9,8 +9,8 @@ import Defaults
 import Luminare
 import SwiftUI
 
-/// Picks an action or a link to another binding. Leaves out links that would loop back to `owner`,
-/// and bindings of its own kind, which only a cycle step can link to.
+/// Picks an action, or a link to another binding that holds one.
+/// Bindings of `owner`'s kind are left out, as only cycle steps link to their own kind
 struct ActionPickerView: View {
     enum Item: Hashable, Identifiable {
         case direction(WindowDirection)
@@ -27,7 +27,7 @@ struct ActionPickerView: View {
     @FocusState private var isSearchFocused: Bool
 
     @Binding private var selection: Item
-    /// `nil` for a cycle step, which can't link to a cycle, so can't loop back to its own
+    /// `nil` for a cycle step
     private let owner: BindingIdentity?
 
     init(selection: Binding<Item>, owner: BindingIdentity?) {
@@ -60,7 +60,7 @@ struct ActionPickerView: View {
         func section(_ title: String, _ bindings: [BindingIdentity]) -> PickerSection<Item>? {
             let items = bindings
                 .filter { $0.kind != owner?.kind }
-                .filter { identity in resolver.canBeLinked(identity) && !(owner.map { resolver.wouldLoop(linking: $0, to: identity) } ?? false) }
+                .filter { resolver.canBeLinked($0) }
                 .filter { !isInCycle || resolver.canBeLinked(fromCycle: $0) }
                 .map(Item.binding)
             return items.isEmpty ? nil : PickerSection(title, items)
@@ -77,7 +77,7 @@ struct ActionPickerView: View {
             ),
             section(
                 String(localized: "Your Radial Menu", comment: "Section header in the action picker, listing the user’s radial menu actions to link to"),
-                // The built-in radial menu isn't saved, so edits made through a link to it would be lost
+                // The built-in radial menu isn't saved, so edits through a link to it would be lost
                 enableRadialMenuCustomization ? resolver.radialMenuActions.map(\.identity) : []
             )
         ].compactMap(\.self)
@@ -235,12 +235,16 @@ extension BindingTarget {
         }
     }
 
-    /// A link changes the binding it links to, and is only unlinked with its link button.
-    /// Returns the picked direction, so the row can open its editor.
-    mutating func pick(_ item: ActionPickerView.Item) -> WindowDirection? {
+    /// Picking an action through a link changes the linked binding. Links to `owner` follow it to its new link.
+    /// Returns the picked direction, so the row can open its editor
+    mutating func pick(_ item: ActionPickerView.Item, owner: BindingIdentity?) -> WindowDirection? {
         switch item {
         case let .binding(identity):
-            self = .link(BindingStore.link(to: identity))
+            let link = BindingStore.link(to: identity)
+            if let owner {
+                BindingStore.relink(linksTo: owner, to: link)
+            }
+            self = .link(link)
             return nil
         case let .direction(direction):
             if let link, BindingStore.save(direction, through: link) {

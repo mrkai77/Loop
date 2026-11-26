@@ -234,7 +234,7 @@ struct LoopAutomationCatalogTests {
 
         let radial = catalog.radialMenuRows
         #expect(radial[0].linkedTarget == .binding(.keybind, id: "link"))
-        #expect(radial[0].action?.direction == .topHalf)
+        #expect(radial[0].note == "Links to something that doesn’t run an action")
         #expect(radial[1].note == "Links to a gesture that was removed")
     }
 

@@ -9,8 +9,7 @@ import Defaults
 import Luminare
 import SwiftUI
 
-/// The action a keybind, gesture, radial menu action or cycle step runs: a button that opens the action picker,
-/// with its info, link and editors beside it
+/// The action picker button of a keybind, gesture, radial menu action or cycle step, with its info, link and editors
 struct BindingActionSelection: View {
     @Environment(\.luminareAnimationFast) private var animationFast
     @BindingLinks private var linkResolver
@@ -34,7 +33,7 @@ struct BindingActionSelection: View {
         Binding(
             get: { target.pickerItem(with: linkResolver) },
             set: { item in
-                guard let direction = target.pick(item) else { return }
+                guard let direction = target.pick(item, owner: owner) else { return }
                 isConfiguringCustom = direction.isCustomizable
                 isConfiguringCycle = direction == .cycle
             }
@@ -68,7 +67,7 @@ struct BindingActionSelection: View {
                 isActionPickerPresented.toggle()
             } label: {
                 BindingActionLabel(action: action, link: target.link)
-                    // Keeps a truncated name against the leading edge, rather than centered in the button
+                    // Keeps a truncated name against the leading edge
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 4)
             }
@@ -137,7 +136,7 @@ struct BindingActionSelection: View {
     }
 }
 
-/// An action's icon and name, or what a link that leads nowhere lost
+/// An action's icon and name, or what a broken link is missing
 struct BindingActionLabel: View {
     let action: WindowAction?
     let link: BindingLink?
@@ -171,7 +170,7 @@ struct BindingActionLabel: View {
     }
 }
 
-/// The only way to unlink, as picking another action changes the linked binding instead
+/// The only way to unlink, as picking an action changes the linked binding
 struct BindingLinkBadge: View {
     let kind: LoopBindingKind
     let unlink: () -> ()
@@ -201,7 +200,7 @@ struct BindingLinkBadge: View {
 
 // MARK: - Resolver
 
-/// The bindings in settings, redrawing the view when any of them changes
+/// The bindings in settings, redrawing the view when they change
 @MainActor
 @propertyWrapper
 struct BindingLinks: DynamicProperty {

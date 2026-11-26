@@ -9,8 +9,8 @@ import CoreGraphics
 import Defaults
 import Foundation
 
-/// A link from one keybind, gesture or radial menu action to another.
-/// It runs whatever the other binding runs, and editing the action through the link edits that binding.
+/// A link from one keybind, gesture or radial menu action to another that holds an action, as links don't chain.
+/// It runs that binding's action, and edits through the link change that binding
 struct BindingLink: Hashable {
     var kind: LoopBindingKind
     /// The linked binding's config ID, or its UUID for links made before config IDs
@@ -64,7 +64,7 @@ enum BindingTarget: Hashable {
         if case let .link(link) = self { link } else { nil }
     }
 
-    /// The action it runs, following its link and the links in its cycle
+    /// The action it runs, with its link and cycle's links followed
     func resolvedAction(with resolver: BindingLinkResolver) -> WindowAction? {
         switch self {
         case let .action(action): resolver.resolvingCycle(of: action)
@@ -79,7 +79,7 @@ enum BindingTarget: Hashable {
         return self
     }
 
-    /// The action to edit, which is the one at the end of its link, with the links in its cycle kept
+    /// The action to edit, which is the linked one, with its cycle's links kept
     func editableAction(with resolver: BindingLinkResolver) -> WindowAction? {
         switch self {
         case let .action(action): action
@@ -94,6 +94,25 @@ enum BindingTarget: Hashable {
 
         self = .action((resolver.editableAction(for: link) ?? WindowAction(.noAction)).detached())
     }
+
+    /// Its links to `identity`, including in its cycle, pointing at `link` instead. `nil` when it has none
+    func relinking(_ identity: BindingIdentity, to link: BindingLink, with resolver: BindingLinkResolver) -> BindingTarget? {
+        func linksToIdentity(_ target: BindingTarget) -> Bool {
+            target.link.flatMap(resolver.identity(of:)) == identity
+        }
+
+        switch self {
+        case .link:
+            return linksToIdentity(self) ? .link(link) : nil
+        case var .action(action):
+            guard let cycle = action.cycle, cycle.contains(where: { linksToIdentity($0.target) }) else {
+                return nil
+            }
+
+            action.cycle = cycle.map { linksToIdentity($0.target) ? CycleStep(id: $0.id, target: .link(link)) : $0 }
+            return .action(action)
+        }
+    }
 }
 
 // MARK: - Bindings
@@ -102,10 +121,10 @@ protocol ActionBinding: Identifiable, Hashable where ID == UUID {
     static var bindingKind: LoopBindingKind { get }
 
     var id: UUID { get }
-    /// How links and the CLI refer to the binding, so they keep finding it after it's renamed.
-    /// `nil` until one of them does, which then sets it to the id the CLI shows for it.
+    /// How links and the CLI find the binding after it's renamed.
+    /// `nil` until either refers to it, which sets it to the id the CLI shows
     var configID: String? { get set }
-    /// What it runs. `nil` for a gesture that opens the radial menu.
+    /// What it runs. `nil` for a gesture that opens the radial menu
     var bindingTarget: BindingTarget? { get }
 
     /// Returns `false` when it can't run a target, like a gesture that opens the radial menu
@@ -117,7 +136,7 @@ extension ActionBinding {
         BindingIdentity(Self.bindingKind, id: id)
     }
 
-    /// The action it runs. A linked binding runs it under its own id, so its keys and cycle progress stay its own.
+    /// The action it runs, under its own id when linked, so its keys and cycle progress stay its own
     func resolvedAction(with resolver: BindingLinkResolver) -> WindowAction? {
         switch bindingTarget {
         case let .link(link)?: resolver.resolvedAction(for: link)?.withID(id)
@@ -132,9 +151,11 @@ extension ActionBinding {
             return true
         }
 
-        return resolver.chain(from: bindingTarget?.link).contains { identity in
-            identity.id == action.id || resolver.target(of: identity)?.action?.id == action.id
+        guard let identity = bindingTarget?.link.flatMap(resolver.identity(of:)) else {
+            return false
         }
+
+        return identity.id == action.id || resolver.target(of: identity)?.action?.id == action.id
     }
 
     func isLinked(by link: BindingLink) -> Bool {
@@ -163,18 +184,18 @@ struct BindingLinkResolver {
         bindings(of: link.kind).first { $0.isLinked(by: link) }?.identity
     }
 
-    /// The action `link` runs, with the links in its cycle resolved.
-    /// `nil` when the binding was removed, opens the radial menu, or its links loop back on themselves.
+    /// The action `link` runs, with its cycle's links resolved.
+    /// `nil` when the binding was removed, opens the radial menu, or is a link itself
     func resolvedAction(for link: BindingLink) -> WindowAction? {
         editableAction(for: link).map(resolvingCycle)
     }
 
     func editableAction(for link: BindingLink) -> WindowAction? {
-        terminal(of: link)?.action
+        linked(by: link)?.action
     }
 
-    /// `action` with each cycle step that links to another binding swapped for that binding's action, under the step's id
-    /// so cycle progress follows the step. Steps that lead nowhere, or to a cycle, are left out, as cycles don't nest.
+    /// `action` with linked cycle steps swapped for the linked action, under the step's id so cycle progress follows it.
+    /// Steps that lead nowhere or to a cycle are left out, as cycles don't nest
     func resolvingCycle(of action: WindowAction) -> WindowAction {
         guard let cycle = action.cycle, cycle.contains(where: { $0.target.link != nil }) else {
             return action
@@ -195,7 +216,7 @@ struct BindingLinkResolver {
         return resolved
     }
 
-    /// Whether a cycle step can link to a binding: one running a single action that doesn't repeat while held
+    /// Cycle steps only link to a single action that doesn't repeat while held
     func canBeLinked(fromCycle identity: BindingIdentity) -> Bool {
         guard let target = target(of: identity), let action = target.editableAction(with: self) else {
             return false
@@ -204,37 +225,18 @@ struct BindingLinkResolver {
         return action.direction != .cycle && !action.allowsRapidRepeat
     }
 
-    /// The binding at the end of the links, which holds the action, so edits made through a link change it
-    func terminal(of link: BindingLink) -> (identity: BindingIdentity, action: WindowAction)? {
-        guard let last = chain(from: link).last, case let .action(action)? = target(of: last) else {
+    /// The binding `link` links to and its action, which edits through the link change
+    func linked(by link: BindingLink) -> (identity: BindingIdentity, action: WindowAction)? {
+        guard let identity = identity(of: link), case let .action(action)? = target(of: identity) else {
             return nil
         }
 
-        return (last, action)
+        return (identity, action)
     }
 
-    /// Whether linking `owner` to `target` would make links that never reach an action, such as a binding linking to itself
-    func wouldLoop(linking owner: BindingIdentity, to target: BindingIdentity) -> Bool {
-        let chain = chain(from: target)
-        let next = chain.last.flatMap { self.target(of: $0)?.link }.flatMap(identity(of:))
-        return chain.contains(owner) || next != nil
-    }
-
-    /// The bindings a link leads through, in order, up to a binding that's missing or already in the chain
-    func chain(from link: BindingLink?) -> [BindingIdentity] {
-        link.flatMap(identity(of:)).map(chain(from:)) ?? []
-    }
-
-    private func chain(from identity: BindingIdentity) -> [BindingIdentity] {
-        var chain = [identity]
-        while let next = target(of: chain[chain.count - 1])?.link.flatMap(identity(of:)), !chain.contains(next) {
-            chain.append(next)
-        }
-        return chain
-    }
-
+    /// Only bindings holding an action can be linked to, so links never chain or loop
     func canBeLinked(_ identity: BindingIdentity) -> Bool {
-        target(of: identity)?.resolvedAction(with: self) != nil
+        target(of: identity)?.action != nil
     }
 
     func target(of identity: BindingIdentity) -> BindingTarget? {
@@ -256,8 +258,8 @@ struct BindingLinkResolver {
 
 // MARK: - Coding
 
-/// Written as `RadialMenuAction.ActionType` was, so older versions of Loop still read radial menu actions and gestures.
-/// Links to keybinds by UUID keep the case older versions run.
+/// Written as `RadialMenuAction.ActionType` was, so older versions still read radial menu actions and gestures.
+/// Links to keybinds by UUID keep the case older versions run
 extension BindingTarget: Codable {
     private enum CodingKeys: String, CodingKey {
         case custom, keybindReference
@@ -294,8 +296,8 @@ extension BindingTarget: Codable {
     }
 }
 
-/// An action of its own, or a `noAction` action carrying the link, which older versions of Loop read as doing nothing.
-/// Keybinds and cycle steps are written this way too.
+/// An action, or a `noAction` action carrying the link, which older versions read as doing nothing.
+/// Keybinds and cycle steps are written this way too
 extension BindingTarget {
     private enum InlineKeys: String, CodingKey {
         case link

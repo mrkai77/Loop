@@ -8,7 +8,7 @@
 import Defaults
 import Foundation
 
-/// Saves bindings to settings, including edits made through a link and the config IDs links find them by
+/// Saves bindings to settings, including edits through links and the config IDs links find them by
 @MainActor
 enum BindingStore {
     private enum Change {
@@ -18,18 +18,18 @@ enum BindingStore {
 
     // MARK: - Editing
 
-    /// Saves an action edited through `link` to the binding at the end of its links
+    /// Saves an action edited through `link` to the binding it links to
     @discardableResult
     static func save(_ action: WindowAction, through link: BindingLink) -> Bool {
-        guard let terminal = BindingLinkResolver.current.terminal(of: link)?.identity else {
+        guard let linked = BindingLinkResolver.current.linked(by: link)?.identity else {
             return false
         }
 
-        return update(terminal, .target(.action(action)))
+        return update(linked, .target(.action(action)))
     }
 
-    /// Changes the binding at the end of `link` to run `direction`, as picking an action does.
-    /// Returns `false` when there's nothing to change, such as when the link leads nowhere.
+    /// Changes the linked binding to run `direction`, as picking an action does.
+    /// `false` when the link leads nowhere
     @discardableResult
     static func save(_ direction: WindowDirection, through link: BindingLink) -> Bool {
         guard var action = BindingLinkResolver.current.editableAction(for: link) else {
@@ -44,9 +44,17 @@ enum BindingStore {
         BindingLink(identity.kind, id: configID(for: identity))
     }
 
+    /// Points the links to `identity` at what it now links to, as links don't chain
+    static func relink(linksTo identity: BindingIdentity, to link: BindingLink) {
+        let resolver = BindingLinkResolver.current
+        relink(.keybinds, linksTo: identity, to: link, with: resolver)
+        relink(.gestures, linksTo: identity, to: link, with: resolver)
+        relink(.radialMenuActions, linksTo: identity, to: link, with: resolver)
+    }
+
     // MARK: - Config IDs
 
-    /// The binding's config ID, saving the id the CLI shows for it the first time a link or the CLI refers to it
+    /// The binding's config ID, saving the id the CLI shows the first time a link or the CLI refers to it
     @discardableResult
     static func configID(for identity: BindingIdentity) -> String {
         let resolver = BindingLinkResolver.current
@@ -54,7 +62,7 @@ enum BindingStore {
             return configID
         }
 
-        // A binding that's no longer there keeps its UUID, so a link to it still reads as removed
+        // A removed binding keeps its UUID, so a link to it still reads as removed
         guard let derived = derivedID(of: identity, in: resolver) else {
             return identity.id.uuidString
         }
@@ -84,13 +92,31 @@ enum BindingStore {
 
     // MARK: - Saving
 
-    /// Only bindings in settings are changed. The default radial menu, shown until it's customized, isn't saved.
+    /// Only changes bindings in settings, so not the built-in radial menu
     @discardableResult
     private static func update(_ identity: BindingIdentity, _ change: Change) -> Bool {
         switch identity.kind {
         case .keybind: update(.keybinds, id: identity.id, change)
         case .gesture: update(.gestures, id: identity.id, change)
         case .radialMenu: update(.radialMenuActions, id: identity.id, change)
+        }
+    }
+
+    private static func relink(
+        _ key: Defaults.Key<[some ActionBinding & Defaults.Serializable]>,
+        linksTo identity: BindingIdentity,
+        to link: BindingLink,
+        with resolver: BindingLinkResolver
+    ) {
+        var bindings = Defaults[key]
+        for index in bindings.indices {
+            if let target = bindings[index].bindingTarget?.relinking(identity, to: link, with: resolver) {
+                _ = bindings[index].setTarget(target)
+            }
+        }
+
+        if bindings != Defaults[key] {
+            Defaults[key] = bindings
         }
     }
 

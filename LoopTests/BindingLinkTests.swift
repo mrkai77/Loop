@@ -38,19 +38,27 @@ struct BindingLinkTests {
         #expect(resolver.resolvedAction(for: BindingLink(.keybind, id: "swipe-up")) == nil)
     }
 
-    @Test func chainsResolveToTheBindingThatHoldsTheAction() {
+    @Test func linksOnlyResolveToABindingThatHoldsAnAction() {
         let toGesture = keybind(linkingTo: link(to: swipe))
         let toKeybind = RadialMenuBinding(target: .link(link(to: toGesture)))
         let resolver = resolver(keybinds: [toGesture], gestures: [swipe], radialMenuActions: [toKeybind])
 
-        let terminal = resolver.terminal(of: link(to: toKeybind))
-        #expect(terminal?.identity == swipe.identity)
-        #expect(terminal?.action.direction == .topHalf)
+        #expect(toGesture.resolvedAction(with: resolver)?.direction == .topHalf)
+        #expect(resolver.resolvedAction(for: link(to: toKeybind)) == nil)
+        #expect(!resolver.canBeLinked(toGesture.identity))
+    }
 
-        // The radial menu highlights the slot for an action from anywhere along its chain
-        for action in [swipe.resolvedAction(with: resolver), toGesture.resolvedAction(with: resolver)] {
-            #expect(action.map { toKeybind.runs($0, with: resolver) } == true)
-        }
+    @Test func linksToABindingThatLinksElsewhereCanFollowIt() {
+        let toKeybind = RadialMenuBinding(target: .link(link(to: maximize)))
+        var cycle = WindowAction(cycle: [WindowAction(.center)])
+        cycle.cycle?.append(CycleStep(target: .link(link(to: maximize))))
+        let resolver = resolver(keybinds: [maximize], radialMenuActions: [toKeybind])
+
+        let relinked = toKeybind.target.relinking(maximize.identity, to: link(to: swipe), with: resolver)
+        #expect(relinked?.link == link(to: swipe))
+        let relinkedCycle = BindingTarget.action(cycle).relinking(maximize.identity, to: link(to: swipe), with: resolver)
+        #expect(relinkedCycle?.action?.cycle?.map(\.target.link) == [nil, link(to: swipe)])
+        #expect(slot.target.relinking(maximize.identity, to: link(to: swipe), with: resolver) == nil)
     }
 
     @Test func removedBindingsAndRadialMenuGesturesResolveToNothing() {
@@ -59,21 +67,6 @@ struct BindingLinkTests {
         #expect(resolver.resolvedAction(for: BindingLink(.keybind, id: UUID().uuidString)) == nil)
         #expect(resolver.resolvedAction(for: link(to: radialGesture)) == nil)
         #expect(!resolver.canBeLinked(radialGesture.identity))
-    }
-
-    @Test func linksThatLoopResolveToNothingAndCantBeMade() {
-        let first = Keybind(target: .action(WindowAction(.noAction)))
-        let second = keybind(linkingTo: link(to: first))
-        let looped = Keybind(id: first.id, target: .link(link(to: second)))
-        #expect(resolver(keybinds: [looped, second]).resolvedAction(for: link(to: looped)) == nil)
-
-        let unlinked = Keybind(target: .action(WindowAction(.center)))
-        let fixed = resolver(keybinds: [first, unlinked, maximize])
-        #expect(fixed.wouldLoop(linking: first.identity, to: first.identity))
-        #expect(!fixed.wouldLoop(linking: first.identity, to: maximize.identity))
-
-        let backToFirst = resolver(keybinds: [first, second, maximize])
-        #expect(backToFirst.wouldLoop(linking: first.identity, to: second.identity))
     }
 
     @Test func aKeybindsActionSharesItsID() {
