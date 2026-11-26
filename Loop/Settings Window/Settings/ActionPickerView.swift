@@ -5,6 +5,7 @@
 //  Created by Kai Azim on 2026-11-22.
 //
 
+import Defaults
 import Luminare
 import SwiftUI
 
@@ -19,6 +20,7 @@ struct ActionPickerView: View {
     }
 
     @BindingLinks private var resolver
+    @Default(.enableRadialMenuCustomization) private var enableRadialMenuCustomization
 
     @State private var searchText = ""
     @State private var searchResults: [Item] = []
@@ -75,7 +77,8 @@ struct ActionPickerView: View {
             ),
             section(
                 String(localized: "Your Radial Menu", comment: "Section header in the action picker, listing the user’s radial menu actions to link to"),
-                resolver.radialMenuActions.map(\.identity)
+                // The built-in radial menu isn't saved, so edits made through a link to it would be lost
+                enableRadialMenuCustomization ? resolver.radialMenuActions.map(\.identity) : []
             )
         ].compactMap(\.self)
     }

@@ -186,14 +186,14 @@ struct LoopAutomationCatalog {
         }
     }
 
-    /// Settings keep a link after the binding it links to is deleted or stops running an action, and it then runs nothing
+    /// Links are kept after what they link to is removed, and then run nothing
     private func missingLinkNote(_ link: BindingLink?) -> String? {
         guard let link, resolver.resolvedAction(for: link) == nil else {
             return nil
         }
 
         if let identity = resolver.identity(of: link) {
-            return resolver.canBeLinked(identity)
+            return resolver.target(of: identity) != nil
                 ? "Links to something that doesn’t run an action"
                 : "Links to a gesture that opens the radial menu"
         }

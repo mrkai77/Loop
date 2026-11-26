@@ -234,7 +234,7 @@ struct BindingLinkResolver {
     }
 
     func canBeLinked(_ identity: BindingIdentity) -> Bool {
-        target(of: identity) != nil
+        target(of: identity)?.resolvedAction(with: self) != nil
     }
 
     func target(of identity: BindingIdentity) -> BindingTarget? {
