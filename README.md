@@ -150,7 +150,7 @@ Apps that can open links, like Shortcuts, Raycast or a Stream Deck, can run the 
 loop://run/right-half
 loop://run/keybind:portrait
 loop://run/maximize?windowID=1234               # A window from list/windows
-loop://run/left-half?bundleID=com.apple.Safari  # A running app's frontmost window
+loop://run/left-half?bundleID=com.apple.Safari  # An app's frontmost window, opening the app if needed
 loop://run/right-half?screenID=2                # A screen from list/screens
 ```
 
